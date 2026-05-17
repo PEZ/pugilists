@@ -43,7 +43,6 @@ public class Pugilist extends AdvancedRobot {
 
     static double enemyFirePower = 3.0;
     static double robotVelocity;
-    static int bhb;
     static Pugilist robot;
 
     public void run() {
@@ -121,7 +120,7 @@ public class Pugilist extends AdvancedRobot {
                     wave.bearingDirection * (wave.mostVisited() - Wave.MIDDLE_FACTOR)));
 
         addCustomEvent(wave);
-        if (getEnergy() >= BULLET_POWER && bhb < 4 && Math.abs(getGunTurnRemainingRadians()) < Math.atan2(18, enemyDistance)) {
+        if (getEnergy() >= BULLET_POWER && Math.abs(getGunTurnRemainingRadians()) < Math.atan2(18, enemyDistance)) {
             setFire(bulletPower);
         }
         // </gun>
@@ -141,10 +140,6 @@ public class Pugilist extends AdvancedRobot {
         EnemyWave.passingWave.registerVisits();
     }
 
-    public void onBulletHitBullet(BulletHitBulletEvent e) {
-        bhb = 4;
-    }
-
     static int wallIndex(Wave wave) {
         int wallIndex = 0;
         do {
@@ -156,16 +151,14 @@ public class Pugilist extends AdvancedRobot {
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
         Point2D destination = new Point2D.Double();
-        int tries = 0;
-        while (tries < 2) {
+        for (;;) {
             double currentSmoothing = 0;
             while (currentSmoothing < 100 && !fieldRectangle.contains(destination = project(location, absoluteBearing(location, enemyLocation) -
                             direction*(Math.PI / 2 + 0.2 - (currentSmoothing++ / 100.0)), enemyDistance / 5.0)));
-            direction -= direction;
-            tries++;
-            if (currentSmoothing < 45) {
+            if (currentSmoothing < 45 || direction == 0) {
                 break;
             }
+            direction = 0;
         }
         return destination;
     }
