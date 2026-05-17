@@ -21,15 +21,11 @@ import java.awt.geom.*;
 
 public class Pugilist extends AdvancedRobot {
     static final double MAX_VELOCITY = 8;
-    static final double BOT_WIDTH = 36;
     static final double BATTLE_FIELD_WIDTH = 800;
     static final double BATTLE_FIELD_HEIGHT = 600;
 
-    static final double MAX_WALL_SMOOTH_TRIES = 150;
-    static final double BLIND_STICK  = 150;
     static final double WALL_MARGIN = 20;
 
-    static final double MAX_DISTANCE = 900;
     static final double MAX_BULLET_POWER = 3.0;
     static final double BULLET_POWER = 1.9;
 
@@ -47,6 +43,7 @@ public class Pugilist extends AdvancedRobot {
 
     static double enemyFirePower = 3.0;
     static double robotVelocity;
+    static int bhb;
     static Pugilist robot;
 
     public void run() {
@@ -83,7 +80,7 @@ public class Pugilist extends AdvancedRobot {
             accelIndex = sign(robotVelocity - getVelocity()) + 1;
         }
         ew.visits = EnemyWave.factors
-            [distanceIndex = (int)Math.min(Wave.DISTANCE_INDEXES - 1, (enemyDistance / (MAX_DISTANCE / Wave.DISTANCE_INDEXES)))]
+            [distanceIndex = (int)Math.min(Wave.DISTANCE_INDEXES - 1, enemyDistance / 180)]
             [(int)Math.abs(robotVelocity / 2)]
             [accelIndex]
             ;
@@ -124,7 +121,7 @@ public class Pugilist extends AdvancedRobot {
                     wave.bearingDirection * (wave.mostVisited() - Wave.MIDDLE_FACTOR)));
 
         addCustomEvent(wave);
-        if (getEnergy() >= BULLET_POWER && Math.abs(getGunTurnRemainingRadians()) < Math.atan2(BOT_WIDTH / 2, enemyDistance)) {
+        if (getEnergy() >= BULLET_POWER && bhb < 4 && Math.abs(getGunTurnRemainingRadians()) < Math.atan2(18, enemyDistance)) {
             setFire(bulletPower);
         }
         // </gun>
@@ -142,6 +139,10 @@ public class Pugilist extends AdvancedRobot {
 
     public void onHitByBullet(HitByBulletEvent e) {
         EnemyWave.passingWave.registerVisits();
+    }
+
+    public void onBulletHitBullet(BulletHitBulletEvent e) {
+        bhb = 4;
     }
 
     static int wallIndex(Wave wave) {
