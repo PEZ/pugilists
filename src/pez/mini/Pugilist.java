@@ -221,8 +221,7 @@ class Wave extends Condition {
     }
 
     int visitingIndex(Point2D target) {
-        return (int)Math.max(0, Math.min(FACTORS - 1,
-                Math.round(((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection) + (FACTORS - 1) / 2)));
+        return (int)(((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection) + (FACTORS - 1) / 2 + 0.5);
     }
 
     double gunBearing(Point2D target) {
