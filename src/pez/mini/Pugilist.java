@@ -56,14 +56,14 @@ public class Pugilist extends AdvancedRobot {
         robot = this;
         EnemyWave.passingWave = null;
 
-        do {
-            turnRadarRightRadians(Double.POSITIVE_INFINITY); 
-        } while (true);
+        while (true) {
+            turnRadarRightRadians(Double.POSITIVE_INFINITY);
+        }
     }
 
     public void onScannedRobot(ScannedRobotEvent e) {
-        Wave wave = new Wave();
-        EnemyWave ew = new EnemyWave();
+        var wave = new Wave();
+        var ew = new EnemyWave();
         ew.gunLocation = (Point2D)enemyLocation.clone();
         ew.startBearing = ew.gunBearing(robotLocation);
 
@@ -117,7 +117,7 @@ public class Pugilist extends AdvancedRobot {
         wave.visits = Wave.factors[distanceIndex]
             [velocityIndex]
             [velocityIndex = (int)Math.abs(enemyVelocity / 2)]
-            [(int)minMax(Math.pow(enemyTimeSinceVChange++, 0.45) - 1, 0, Wave.VCHANGE_TIME_INDEXES - 1)]
+            [(int)Math.clamp((long)(Math.pow(enemyTimeSinceVChange++, 0.45) - 1), 0, Wave.VCHANGE_TIME_INDEXES - 1)]
             [wallIndex(wave)];
 
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
@@ -175,7 +175,7 @@ public class Pugilist extends AdvancedRobot {
     }
 
     Point2D waveImpactLocation(EnemyWave wave, double direction, int timeOffset) {
-        Point2D impactLocation = (Point2D)robotLocation.clone();
+        var impactLocation = (Point2D)robotLocation.clone();
         do {
             impactLocation = project(impactLocation, absoluteBearing(impactLocation,
                         wallSmoothedDestination(impactLocation, direction * robotBearingDirection(wave.gunBearing(robotLocation)))), MAX_VELOCITY);
@@ -199,10 +199,6 @@ public class Pugilist extends AdvancedRobot {
 
     static int sign(double v) {
         return v < 0 ? -1 : 1;
-    }
-
-    static double minMax(double v, double min, double max) {
-        return Math.max(min, Math.min(max, v));
     }
 }
 
@@ -244,7 +240,7 @@ class Wave extends Condition {
     }
 
     int visitingIndex(Point2D target) {
-        return (int)Pugilist.minMax(
+        return (int)Math.clamp(
                 Math.round(((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection) + (FACTORS - 1) / 2), 0, FACTORS - 1);
     }
 
