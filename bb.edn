@@ -1,6 +1,6 @@
 {:paths ["scripts"]
  :tasks
- {:requires ([robocode] [codesize] [battle])
+ {:requires ([robocode] [codesize] [battle] [install])
 
   robocode {:doc "Launch Robocode"
             :task (robocode/launch! nil)}
@@ -15,4 +15,9 @@
 
   battle {:doc "Run headless battles: bb battle pez.mini.Pugilist [rounds]"
           :task (battle/battle! {:bot (first *command-line-args*)
-                                 :rounds (parse-long (or (second *command-line-args*) "35"))})}}}
+                                 :rounds (parse-long (or (second *command-line-args*) "35"))})}
+
+  install {:doc "Install a bot from RoboRumble participants: bb install voidious.mini.Komarious (or --all)"
+           :task (install/install! {:bot (when-not (= "--all" (first *command-line-args*))
+                                          (first *command-line-args*))
+                                    :all (= "--all" (first *command-line-args*))})}}}
