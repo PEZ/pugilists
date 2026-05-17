@@ -113,7 +113,7 @@ public class Pugilist extends AdvancedRobot {
         wave.visits = Wave.factors[distanceIndex]
             [velocityIndex]
             [velocityIndex = (int)Math.abs(enemyVelocity / 2)]
-            [(int)Math.clamp((long)(Math.pow(enemyTimeSinceVChange++, 0.45) - 1), 0, Wave.VCHANGE_TIME_INDEXES - 1)]
+            [(int)Math.max(0, Math.min((long)(Math.pow(enemyTimeSinceVChange++, 0.45) - 1), Wave.VCHANGE_TIME_INDEXES - 1))]
             [wallIndex(wave)];
 
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
@@ -238,8 +238,8 @@ class Wave extends Condition {
     }
 
     int visitingIndex(Point2D target) {
-        return (int)Math.clamp(
-                Math.round(((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection) + (FACTORS - 1) / 2), 0, FACTORS - 1);
+        return (int)Math.max(0, Math.min(
+                Math.round(((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection) + (FACTORS - 1) / 2), FACTORS - 1));
     }
 
     void registerVisits(double[] buffer, double depth) {
