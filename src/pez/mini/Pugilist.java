@@ -72,7 +72,7 @@ public class Pugilist extends AdvancedRobot {
         ew.bulletVelocity = 20 - 3 * enemyFirePower;
 
         double direction = robotBearingDirection(ew.startBearing);
-        ew.bearingDirection = Math.asin(MAX_VELOCITY / ew.bulletVelocity) * direction / (double)EnemyWave.MIDDLE_FACTOR;
+        ew.calcBearingDirection(direction);
 
         int accelIndex = 1;
         if (robotVelocity != getVelocity()) {
@@ -106,9 +106,9 @@ public class Pugilist extends AdvancedRobot {
         wave.bulletVelocity = 20 - 3 * (bulletPower = Math.min(enemyEnergy / 4, distanceIndex > 0 ? BULLET_POWER : MAX_BULLET_POWER));
 
         if (enemyVelocity != 0) {
-            enemyBearingDirection = 0.7 * sign(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
+            enemyBearingDirection = sign(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
         }
-        wave.bearingDirection = enemyBearingDirection / (double)Wave.MIDDLE_FACTOR;
+        wave.calcBearingDirection(enemyBearingDirection);
 
         wave.visits = Wave.factors[distanceIndex]
             [velocityIndex]
@@ -231,6 +231,10 @@ class Wave extends Condition {
 
     void advance(int ticks) {
         distanceFromGun += ticks * bulletVelocity;
+    }
+
+    void calcBearingDirection(double direction) {
+        bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
     }
 
     int visitingIndex(Point2D target) {
