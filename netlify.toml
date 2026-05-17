@@ -1,0 +1,8 @@
+[build]
+  publish = "site/"
+
+[[headers]]
+  for = "/*.jar"
+  [headers.values]
+    Content-Type = "application/java-archive"
+    Cache-Control = "public, max-age=60"
