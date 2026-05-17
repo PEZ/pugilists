@@ -3,6 +3,9 @@
 build/
 bin/
 
+# Temp
+.tmp/
+
 # IDE
 .idea/
 *.iml

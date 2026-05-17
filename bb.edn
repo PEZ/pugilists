@@ -1,0 +1,14 @@
+{:paths ["scripts"]
+ :tasks
+ {:requires ([robocode] [codesize])
+
+  robocode {:doc "Launch Robocode"
+            :task (robocode/launch! nil)}
+
+  build {:doc "Compile bots (delegates to Gradle)"
+         :task (babashka.process/shell
+                {:extra-env {"JAVA_HOME" "/Library/Java/JavaVirtualMachines/graalvm-23.jdk/Contents/Home"}}
+                "./gradlew" "build")}
+
+  codesize {:doc "Check codesize of a bot: bb codesize pez.mini.Pugilist"
+            :task (codesize/check! {:bot (first *command-line-args*)})}}}
