@@ -27,4 +27,4 @@
                                             :rounds (parse-long (or (second *command-line-args*) "100"))})}
 
   publish {:doc "Build and deploy to Netlify: bb publish [version]"
-           :task (publish/publish! {:version (first *command-line-args*)})}}
+           :task (publish/publish! {:version (first *command-line-args*)})}}}

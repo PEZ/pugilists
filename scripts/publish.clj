@@ -3,40 +3,66 @@
             [babashka.process :as p]
             [clojure.string :as str]))
 
-(def properties-file "src/pez/mini/Pugilist.properties")
+(def classes-dir "build/classes/java/main")
 
-(defn- current-version []
-  (some->> (slurp properties-file)
-           str/split-lines
-           (some #(when (str/starts-with? % "robot.version=")
-                    (subs % (count "robot.version="))))))
+(defn- read-properties [path]
+  (->> (slurp (str path))
+       str/split-lines
+       (remove #(str/starts-with? % "#"))
+       (keep #(let [[k v] (str/split % #"=" 2)]
+                (when v [(str/trim k) (str/trim v)])))
+       (into {})))
 
-(defn- set-version! [version]
-  (let [content (slurp properties-file)
-        updated (str/replace content
-                             #"robot\.version=.*"
-                             (str "robot.version=" version))]
-    (spit properties-file updated)
-    (println (str "Version set to " version " in " properties-file))))
+(defn- find-bots []
+  (->> (fs/glob "src" "**/*.properties")
+       (map (fn [props-path]
+              (let [props (read-properties props-path)
+                    classname (get props "robot.classname")
+                    version (get props "robot.version")
+                    package-dir (str/replace (subs classname 0 (str/last-index-of classname ".")) "." "/")]
+                {:classname classname
+                 :version version
+                 :package-dir package-dir
+                 :properties-path props-path})))))
+
+(defn- create-bot-jar! [{:keys [classname version package-dir]}]
+  (let [jar-name (str classname "_" version ".jar")
+        jar-path (str "site/" jar-name)]
+    (println (str "  " jar-name))
+    (p/shell "jar" "cf" jar-path
+             "-C" classes-dir package-dir)
+    jar-name))
+
+(defn- set-version! [classname version]
+  (let [props-file (str "src/" (str/replace classname "." "/") ".properties")
+        content (slurp props-file)
+        updated (str/replace content #"robot\.version=.*" (str "robot.version=" version))]
+    (spit props-file updated)
+    (println (str "Version set to " version " in " props-file))))
 
 (defn publish!
-  "Build, copy JAR to site/, and deploy to Netlify.
-   Pass version as argument: bb publish 2.5.4"
+  "Build and deploy per-bot JARs to Netlify.
+   bb publish [version] — version applies to Pugilist."
   [{:keys [version]}]
-  (let [current (current-version)]
-    (if version
-      (set-version! version)
-      (println (str "Publishing current version: " current)))
+  (when version
+    (set-version! "pez.mini.Pugilist" version))
 
-    (println "Building...")
-    (p/shell {:extra-env {"JAVA_HOME" "/Library/Java/JavaVirtualMachines/graalvm-23.jdk/Contents/Home"}}
-             "./gradlew" "build")
+  (println "Building...")
+  (p/shell {:extra-env {"JAVA_HOME" "/Library/Java/JavaVirtualMachines/graalvm-23.jdk/Contents/Home"}}
+           "./gradlew" "build")
 
-    (fs/create-dirs "site")
-    (fs/copy "build/libs/pugilists.jar" "site/pugilists.jar"
-             {:replace-existing true})
-    (println "JAR copied to site/pugilists.jar")
+  (fs/create-dirs "site")
+  ;; Clean old JARs
+  (doseq [old-jar (fs/glob "site" "*.jar")]
+    (fs/delete old-jar))
 
-    (println "Deploying to Netlify...")
+  (println "Creating per-bot JARs:")
+  (let [bots (find-bots)
+        jar-names (mapv create-bot-jar! bots)]
+
+    (println (str "\nDeploying " (count jar-names) " bot JARs to Netlify..."))
     (p/shell "netlify" "deploy" "--prod" "--dir=site")
-    (println (str "\nPublished version: " (or version current)))))
+
+    (println "\nPublished JARs:")
+    (doseq [name jar-names]
+      (println (str "  https://pugilists.netlify.app/" name)))))
