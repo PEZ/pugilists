@@ -1,6 +1,6 @@
 {:paths ["scripts"]
  :tasks
- {:requires ([robocode] [codesize] [battle] [install])
+ {:requires ([robocode] [codesize] [battle] [install] [benchmark])
 
   robocode {:doc "Launch Robocode"
             :task (robocode/launch! nil)}
@@ -20,4 +20,8 @@
   install {:doc "Install a bot from RoboRumble participants: bb install voidious.mini.Komarious (or --all)"
            :task (install/install! {:bot (when-not (= "--all" (first *command-line-args*))
                                           (first *command-line-args*))
-                                    :all (= "--all" (first *command-line-args*))})}}}
+                                      :all (= "--all" (first *command-line-args*))})}
+
+    benchmark {:doc "Run benchmark: bb benchmark pez.mini.Pugilist [rounds]"
+               :task (benchmark/benchmark! {:bot (first *command-line-args*)
+                                            :rounds (parse-long (or (second *command-line-args*) "100"))})}}}
