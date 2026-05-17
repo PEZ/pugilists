@@ -28,7 +28,7 @@ public class Pugilist extends AdvancedRobot {
         setAdjustRadarForGunTurn(true);
         setAdjustGunForRobotTurn(true);
         robot = this;
-        Wave.passingWave = null;
+        EnemyWave.passingWave = null;
         while (true) {
             turnRadarRightRadians(Double.POSITIVE_INFINITY);
         }
@@ -36,7 +36,7 @@ public class Pugilist extends AdvancedRobot {
 
     public void onScannedRobot(ScannedRobotEvent e) {
         var wave = new Wave();
-        var ew = new Wave();
+        var ew = new EnemyWave();
         ew.gunLocation = (Point2D)enemyLocation.clone();
         ew.startBearing = ew.gunBearing(robotLocation);
 
@@ -83,7 +83,7 @@ public class Pugilist extends AdvancedRobot {
         }
         // </gun>
 
-        if (Wave.dangerReverse < Wave.dangerForward) {
+        if (EnemyWave.dangerReverse < EnemyWave.dangerForward) {
             direction = -direction;
         }
         double angle;
@@ -91,19 +91,19 @@ public class Pugilist extends AdvancedRobot {
         setTurnRightRadians(Math.tan(angle));
 
         setTurnRadarRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getRadarHeadingRadians()) * 2);
-        Wave.dangerForward = Wave.dangerReverse = 0;
+        EnemyWave.dangerForward = EnemyWave.dangerReverse = 0;
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
-        Wave.passingWave.record(Wave.surfObs);
+        EnemyWave.passingWave.record(EnemyWave.surfObs);
     }
 
     // Surf: compute danger for forward/reverse using shared kernel
-    void updateDirectionStats(Wave wave) {
-        wave.query(Wave.surfObs);
+    void updateDirectionStats(EnemyWave wave) {
+        wave.query(EnemyWave.surfObs);
         double d = Math.abs(wave.distanceFromTarget(wave.targetLocation, 0)) * wave.bulletVelocity;
-        Wave.dangerForward += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, 1.0, 0))] / d;
-        Wave.dangerReverse += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, -1.0, 5))] / d;
+        EnemyWave.dangerForward += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, 1.0, 0))] / d;
+        EnemyWave.dangerReverse += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, -1.0, 5))] / d;
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
@@ -120,7 +120,7 @@ public class Pugilist extends AdvancedRobot {
         return destination;
     }
 
-    Point2D waveImpactLocation(Wave wave, double direction, int timeOffset) {
+    Point2D waveImpactLocation(EnemyWave wave, double direction, int timeOffset) {
         var impactLocation = (Point2D)robotLocation.clone();
         do {
             impactLocation = project(impactLocation, absoluteBearing(impactLocation,
@@ -154,11 +154,7 @@ class Wave extends Condition {
 
     // Shared observation lists (each entry: double[]{gf, dist, vel, third})
     static ArrayList gunObs = new ArrayList();
-    static ArrayList surfObs = new ArrayList();
     static double[] scores = new double[FACTORS];
-    static double dangerForward;
-    static double dangerReverse;
-    static Wave passingWave;
 
     double bulletVelocity;
     Point2D gunLocation;
@@ -166,7 +162,6 @@ class Wave extends Condition {
     double startBearing;
     double bearingDirection;
     double distanceFromGun;
-    boolean surfable;
 
     // Per-wave observation attributes (pre-normalized)
     double obsDist;
@@ -175,16 +170,7 @@ class Wave extends Condition {
 
     public boolean test() {
         advance(1);
-        if (surfable) {
-            if (passed(-20)) {
-                passingWave = this;
-            } else {
-                Pugilist.robot.updateDirectionStats(this);
-            }
-            if (passed(25)) {
-                Pugilist.robot.removeCustomEvent(this);
-            }
-        } else if (passed(-18)) {
+        if (passed(-18)) {
             if (Pugilist.robot.getOthers() > 0) {
                 record(gunObs);
             }
@@ -247,4 +233,26 @@ class Wave extends Condition {
     }
 }
 
+class EnemyWave extends Wave {
+    static ArrayList surfObs = new ArrayList();
 
+    static double dangerForward;
+    static double dangerReverse;
+    static EnemyWave passingWave;
+    boolean surfable;
+
+    public boolean test() {
+        advance(1);
+        if (passed(-20)) {
+            surfable = false;
+            passingWave = this;
+        }
+        if (passed(25)) {
+            Pugilist.robot.removeCustomEvent(this);
+        }
+        if (surfable) {
+            Pugilist.robot.updateDirectionStats(this);
+        }
+        return false;
+    }
+}
