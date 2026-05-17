@@ -17,7 +17,6 @@ public class Pugilist extends AdvancedRobot {
     static Point2D robotLocation = new Point2D.Double();
     static Point2D enemyLocation = new Point2D.Double();
     static double enemyDistance;
-    static double enemyVelocity;
     static double enemyEnergy;
     static double enemyBearingDirection;
 
@@ -47,19 +46,14 @@ public class Pugilist extends AdvancedRobot {
             ew.surfable = true;
         }
         enemyEnergy = e.getEnergy();
-        ew.bulletVelocity = 20 - 3 * enemyFirePower;
 
         double direction = robotBearingDirection(ew.startBearing);
-        ew.calcBearingDirection(direction);
-
-        // Store surf attributes (our state when enemy fired)
-        ew.obsDist = enemyDistance / 200.0;
-        ew.obsVel = robotVelocity / 4.0;
-        ew.obsThird = Math.min(Math.min(robotLocation.getX(), robotLocation.getY()), Math.min(800 - robotLocation.getX(), 600 - robotLocation.getY())) / 200.0;
+        ew.initObs(enemyFirePower, robotVelocity, robotLocation, direction);
         robotVelocity = getVelocity();
         ew.targetLocation = robotLocation;
 
-        robotLocation.setLocation(new Point2D.Double(getX(), getY()));
+        robotLocation.setLocation(getX(), getY());
+
         double enemyAbsoluteBearing;
         wave.startBearing = enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
         enemyLocation.setLocation(project(wave.gunLocation = (Point2D)robotLocation.clone(), enemyAbsoluteBearing, enemyDistance));
@@ -70,20 +64,14 @@ public class Pugilist extends AdvancedRobot {
         addCustomEvent(ew);
 
         // <gun>
-        enemyVelocity = e.getVelocity();
+        double enemyVelocity = e.getVelocity();
 
-        double bulletPower;
-        wave.bulletVelocity = 20 - 3 * (bulletPower = Math.min(enemyEnergy / 4, enemyDistance > 180 ? BULLET_POWER : MAX_BULLET_POWER));
+        double bulletPower = Math.min(enemyEnergy / 4, enemyDistance > 180 ? BULLET_POWER : MAX_BULLET_POWER);
 
         if (enemyVelocity != 0) {
             enemyBearingDirection = sign(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
         }
-        wave.calcBearingDirection(enemyBearingDirection);
-
-        // Store gun attributes (enemy state when we fire)
-        wave.obsDist = enemyDistance / 200.0;
-        wave.obsVel = enemyVelocity / 4.0;
-        wave.obsThird = Math.min(Math.min(enemyLocation.getX(), enemyLocation.getY()), Math.min(800 - enemyLocation.getX(), 600 - enemyLocation.getY())) / 200.0;
+        wave.initObs(bulletPower, enemyVelocity, enemyLocation, enemyBearingDirection);
 
         wave.query(Wave.gunObs);
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
@@ -107,7 +95,7 @@ public class Pugilist extends AdvancedRobot {
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
-        EnemyWave.passingWave.recordHit();
+        EnemyWave.passingWave.record(EnemyWave.surfObs);
     }
 
     // Surf: compute danger for forward/reverse using shared kernel
@@ -224,8 +212,12 @@ class Wave extends Condition {
         distanceFromGun += ticks * bulletVelocity;
     }
 
-    void calcBearingDirection(double direction) {
+    void initObs(double power, double vel, Point2D loc, double direction) {
+        bulletVelocity = 20 - 3 * power;
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
+        obsDist = Pugilist.enemyDistance / 200.0;
+        obsVel = vel / 4.0;
+        obsThird = Math.min(Math.min(loc.getX(), loc.getY()), Math.min(800 - loc.getX(), 600 - loc.getY())) / 200.0;
     }
 
     int visitingIndex(Point2D target) {
@@ -249,10 +241,6 @@ class EnemyWave extends Wave {
     static double dangerReverse;
     static EnemyWave passingWave;
     boolean surfable;
-
-    void recordHit() {
-        record(surfObs);
-    }
 
     public boolean test() {
         advance(1);
