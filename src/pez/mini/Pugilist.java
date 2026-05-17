@@ -149,7 +149,7 @@ public class Pugilist extends AdvancedRobot {
         do {
             wallIndex++;
         } while (wallIndex < (Wave.WALL_INDEXES) &&
-                fieldRectangle.contains(project(wave.gunLocation, wave.startBearing + wave.bearingDirection * (double)(wallIndex * 5.5), enemyDistance)));
+                fieldRectangle.contains(project(wave.gunLocation, wave.startBearing + wave.bearingDirection * (wallIndex * 5.5), enemyDistance)));
         return wallIndex - 1;
     }
 
@@ -255,7 +255,7 @@ class Wave extends Condition {
     }
 
     double distanceFromTarget(Point2D location, int timeOffset) {
-        return gunLocation.distance(location) - distanceFromGun - (double)timeOffset * bulletVelocity;
+        return gunLocation.distance(location) - distanceFromGun - timeOffset * bulletVelocity;
     }
 
     int mostVisited() {
@@ -306,7 +306,7 @@ class EnemyWave extends Wave {
         double smoothed = 0;
         int i = 0;
         do {
-            smoothed += ((double)(fastFactors[i]) + (double)visits[i] * 2) / Math.sqrt((Math.abs(visitingIndex(destination) - i) + 1.0));
+            smoothed += (fastFactors[i] + visits[i] * 2) / Math.sqrt((Math.abs(visitingIndex(destination) - i) + 1.0));
             i++;
         } while (i < FACTORS);
         return smoothed / Math.abs(distanceFromTarget(targetLocation, 0)) / bulletVelocity;
