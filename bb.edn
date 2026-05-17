@@ -1,6 +1,6 @@
 {:paths ["scripts"]
  :tasks
- {:requires ([robocode] [codesize])
+ {:requires ([robocode] [codesize] [battle])
 
   robocode {:doc "Launch Robocode"
             :task (robocode/launch! nil)}
@@ -11,4 +11,8 @@
                 "./gradlew" "build")}
 
   codesize {:doc "Check codesize of a bot: bb codesize pez.mini.Pugilist"
-            :task (codesize/check! {:bot (first *command-line-args*)})}}}
+            :task (codesize/check! {:bot (first *command-line-args*)})}
+
+  battle {:doc "Run headless battles: bb battle pez.mini.Pugilist [rounds]"
+          :task (battle/battle! {:bot (first *command-line-args*)
+                                 :rounds (parse-long (or (second *command-line-args*) "35"))})}}}
