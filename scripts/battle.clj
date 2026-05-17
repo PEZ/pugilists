@@ -33,6 +33,7 @@
               :out :string
               :err :string}
              "java"
+             "-Djava.awt.headless=true"
              "-cp" "libs/*"
              "-Xmx512M"
              "-XX:+IgnoreUnrecognizedVMOptions"
