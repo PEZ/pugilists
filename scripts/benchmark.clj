@@ -91,7 +91,8 @@
     "awesomeness.Elite"
     "mn.nano.perceptual.Impact"
     "bvh.mini.Wodan"
-    "ary.mini.Nimi"]
+    "ary.mini.Nimi"
+    "gh.micro.GrubbmThree 1.01"]
 
    ;; Bots we beat well — regression canaries
    :canaries
