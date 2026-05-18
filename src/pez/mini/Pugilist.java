@@ -81,7 +81,7 @@ public class Pugilist extends AdvancedRobot {
         // <gun>
         double enemyVelocity = e.getVelocity();
 
-        double bulletPower = enemyDistance < 175 ? MAX_BULLET_POWER : Math.max(enemyFirePower - 0.25, 0.1);
+        double bulletPower = enemyDistance < 175 ? MAX_BULLET_POWER : Math.max(enemyFirePower - 0.175, 0.1);
 
         if (enemyVelocity != 0) {
             enemyBearingDirection = sign(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
@@ -129,18 +129,19 @@ public class Pugilist extends AdvancedRobot {
         double s;
         for (;;) {
             s = wallSmooth(location, enemyLocation, direction);
-            if (s < 45 || direction == 0) break;
+            if (s < 45 || direction == 0)
+                break;
             direction = 0;
         }
         return project(location, absoluteBearing(location, enemyLocation)
-                - direction * (Math.PI / 2 + 0.2 - ((s - 1) / 100.0)), enemyDistance / 5.0);
+                - direction * (Math.PI / 2 + 0.25 - ((s - 1) / 100.0)), enemyDistance / 5.0);
     }
 
     static double wallSmooth(Point2D from, Point2D toward, double direction) {
         double w = 0;
         while (w < 100 && !fieldRectangle.contains(
                 project(from, absoluteBearing(from, toward)
-                        - direction * (Math.PI / 2 + 0.2 - (w++ / 100.0)), enemyDistance / 5.0)))
+                        - direction * (Math.PI / 2 + 0.25 - (w++ / 100.0)), enemyDistance / 5.0)))
             ;
         return w;
     }
@@ -176,7 +177,7 @@ public class Pugilist extends AdvancedRobot {
 }
 
 class Wave extends Condition {
-    static final int FACTORS = 31;
+    static final int FACTORS = 29;
     static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
 
     // Shared observation lists (each entry: double[]{gf, dist, vel, third})
@@ -260,11 +261,11 @@ class Wave extends Condition {
     void initObs(double power, double vel, double prevVel, Point2D loc, double direction, Point2D orbitCenter) {
         bulletVelocity = 20 - 3 * power;
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
-        obsDist = Pugilist.enemyDistance / 100.0;
-        obsVel = vel;
-        obsAccel = Math.abs(vel) - Math.abs(prevVel);
-        obsWall = Pugilist.wallSmooth(loc, orbitCenter, direction) / 10.0;
-        obsOtherWall = surfable ? 0 : Pugilist.wallSmooth(orbitCenter, loc, direction) / 10.0;
+        obsDist = Pugilist.enemyDistance;
+        obsVel = vel * 50;
+        obsAccel = (prevVel - vel) * 200;
+        obsWall = Pugilist.wallSmooth(loc, orbitCenter, direction) * 12.0;
+        obsOtherWall = surfable ? 0 : Pugilist.wallSmooth(orbitCenter, loc, direction) * 12.0;
     }
 
     int visitingIndex(Point2D target) {
@@ -282,5 +283,3 @@ class Wave extends Condition {
         return gunLocation.distance(location) - distanceFromGun - timeOffset * bulletVelocity;
     }
 }
-
-
