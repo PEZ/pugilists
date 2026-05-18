@@ -37,8 +37,8 @@ public class Pugilist extends AdvancedRobot {
     }
 
     public void onScannedRobot(ScannedRobotEvent e) {
-        var wave = new Wave();
-        var ew = new EnemyWave();
+        Wave wave = new Wave();
+        EnemyWave ew = new EnemyWave();
         ew.gunLocation = (Point2D)enemyLocation.clone();
         ew.startBearing = ew.gunBearing(robotLocation);
 
@@ -125,7 +125,7 @@ public class Pugilist extends AdvancedRobot {
     }
 
     Point2D waveImpactLocation(EnemyWave wave, double direction, int timeOffset) {
-        var impactLocation = (Point2D)robotLocation.clone();
+        Point2D impactLocation = (Point2D)robotLocation.clone();
         do {
             impactLocation = project(impactLocation, absoluteBearing(impactLocation,
                         wallSmoothedDestination(impactLocation, direction * robotBearingDirection(wave.gunBearing(robotLocation)))), MAX_VELOCITY);
@@ -226,7 +226,7 @@ class Wave extends Condition {
     }
 
     int visitingIndex(Point2D target) {
-        return (int)(((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection) + (FACTORS - 1) / 2 + 0.5);
+        return Math.max(0, Math.min(FACTORS - 1, (int)(((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection) + (FACTORS - 1) / 2 + 0.5)));
     }
 
     double gunBearing(Point2D target) {
