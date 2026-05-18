@@ -23,6 +23,7 @@ public class Pugilist extends AdvancedRobot {
     static double prevRobotVelocity;
 
     static double enemyFirePower = BULLET_POWER;
+    static int shieldHits;
     static double robotVelocity;
     static Pugilist robot;
 
@@ -99,7 +100,7 @@ public class Pugilist extends AdvancedRobot {
     }
 
     public void onBulletHitBullet(BulletHitBulletEvent e) {
-        enemyFirePower = 0;
+        if (++shieldHits > 3) enemyFirePower = 0;
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
