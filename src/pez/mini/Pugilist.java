@@ -98,6 +98,10 @@ public class Pugilist extends AdvancedRobot {
         EnemyWave.dangerForward = EnemyWave.dangerReverse = 0;
     }
 
+    public void onBulletHitBullet(BulletHitBulletEvent e) {
+        enemyFirePower = 0;
+    }
+
     public void onHitByBullet(HitByBulletEvent e) {
         EnemyWave.passingWave.record(EnemyWave.surfObs);
     }
