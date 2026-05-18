@@ -66,12 +66,9 @@
       (println "Ready.\n"))))
 
 (def benchmark-bots
-  {;; Bullet shielders/catchers — Pugilist's worst weakness
+  {;; Bullet shielder — keep one to track anti-shielder
    :shielders
-   ["dsekercioglu.shield.ColdBreath"
-    "rsim.micro.uCatcher"
-    "wiki.BasicBulletShielder"
-    "rsim.mini.BulletCatcher"]
+   ["wiki.BasicBulletShielder"]
 
    ;; Top mini bots — competitive peers
    :top-minis
@@ -88,11 +85,17 @@
     "nz.jdc.nano.PatternAdept"
     "wiki.mini.GouldingiHT"]
 
+   ;; Bots where 2.5.5 regressed vs 2.5.4
+   :regression
+   ["oog.nano.Caligula"
+    "awesomeness.Elite"
+    "mn.nano.perceptual.Impact"
+    "bvh.mini.Wodan"
+    "ary.mini.Nimi"]
+
    ;; Bots we beat well — regression canaries
    :canaries
-   ["sample.Crazy"
-    "sample.SpinBot"
-    "sample.Walls"]})
+   ["sample.Crazy"]})
 
 (def all-opponents
   (into [] cat (vals benchmark-bots)))
@@ -243,7 +246,7 @@
               cat-avgs (doall (map (fn [cat]
                                     (when-let [pairings (get by-cat cat)]
                                       [cat (print-category-results cat pairings)]))
-                                  [:shielders :top-minis :underperform :canaries]))]
+                                  [:shielders :top-minis :underperform :regression :canaries]))]
           (println (str "\n  " (apply str (repeat 60 "="))))
           (let [overall (/ (reduce + (map :aps results)) (count results))]
             (println (format "  %-40s %6.2f%% OVERALL APS" "" overall))
