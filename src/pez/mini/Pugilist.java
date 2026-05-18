@@ -196,7 +196,8 @@ class Wave extends Condition {
         scores = new double[FACTORS];
         for (int i = 0; i < obs.size(); i++) {
             double[] o = obs.get(i);
-            scores[(int)o[0]] += (1.0 + i) / (Math.abs(o[1] - dist) + Math.abs(o[2] - prevVel) + Math.abs(o[3] - vel) + Math.abs(o[4] - wall) + 0.01);
+            double d = Math.abs(o[1] - dist) + Math.abs(o[2] - prevVel) + Math.abs(o[3] - vel) + Math.abs(o[4] - wall) + 0.01;
+            scores[(int)o[0]] += (1.0 + i) / (d * d);
         }
     }
 
