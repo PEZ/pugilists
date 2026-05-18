@@ -70,7 +70,7 @@ public class Pugilist extends AdvancedRobot {
         // <gun>
         double enemyVelocity = e.getVelocity();
 
-        double bulletPower = enemyFirePower > 0.3 ? Math.min(enemyEnergy / 4, enemyDistance > 180 ? BULLET_POWER : MAX_BULLET_POWER) : 0.1;
+        double bulletPower = enemyFirePower > 0.3 ? Math.min(enemyEnergy / 4, BULLET_POWER) : 0.1;
 
         if (enemyVelocity != 0) {
             enemyBearingDirection = sign(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
@@ -225,7 +225,7 @@ class Wave extends Condition {
     void initObs(double power, double vel, double prevVel, Point2D loc, double direction) {
         bulletVelocity = 20 - 3 * power;
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
-        obsDist = Pugilist.enemyDistance / 400.0;
+        obsDist = Pugilist.enemyDistance / 100.0;
         obsPrevVel = (vel - prevVel) / 2.0;
         obsVel = vel / 4.0;
         obsWall = Math.min(Math.min(loc.getX(), loc.getY()), Math.min(800 - loc.getX(), 600 - loc.getY())) / 200.0;
