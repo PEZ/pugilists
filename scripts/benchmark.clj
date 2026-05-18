@@ -225,10 +225,10 @@
   "Run benchmark battles and report APS per category.
    Options: :bot - fully qualified bot name
             :rounds - total rounds per opponent (default: 100)
-            :match-length - rounds per match (default: 10, like LiteRumble)
+            :match-length - rounds per match (default: 35, like LiteRumble)
             :commit - optional git ref to benchmark (default: working tree)"
   [{:keys [bot rounds match-length commit]
-    :or {rounds 100 match-length 10}}]
+    :or {rounds 105 match-length 35}}]
   (when-not bot
     (println "Usage: bb benchmark <bot> [rounds] [match-length] [commit]")
     (println "Example: bb benchmark pez.mini.Pugilist")
