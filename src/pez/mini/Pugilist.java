@@ -230,7 +230,7 @@ class Wave extends Condition {
         obsVel = vel / 4.0;
         obsWall = 0;
         while (obsWall < 100 && !Pugilist.fieldRectangle.contains(
-            Pugilist.project(loc, Pugilist.absoluteBearing(loc, orbitCenter) - direction * (Math.PI / 2 + 0.2 - (obsWall++ / 100.0)), Pugilist.enemyDistance / 5.0)));
+            Pugilist.project(loc, Pugilist.absoluteBearing(loc, orbitCenter) - direction * (Math.PI / 2 + 0.2 - (obsWall++ / 100.0)), Pugilist.enemyDistance / 3.0)));
         obsWall /= 100.0;
     }
 
