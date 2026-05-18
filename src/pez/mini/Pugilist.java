@@ -24,7 +24,6 @@ public class Pugilist extends AdvancedRobot {
     static final double BATTLE_FIELD_HEIGHT = 600;
     static final double WALL_MARGIN = 20;
     static final double MAX_BULLET_POWER = 3.0;
-    static final double BULLET_POWER = 1.9;
 
     static Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
             BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
@@ -45,9 +44,7 @@ public class Pugilist extends AdvancedRobot {
         setAdjustGunForRobotTurn(true);
         robot = this;
         Wave.passingWave = null;
-        while (true) {
-            turnRadarRightRadians(Double.POSITIVE_INFINITY);
-        }
+        turnRadarRightRadians(Double.POSITIVE_INFINITY);
     }
 
     public void onScannedRobot(ScannedRobotEvent e) {
