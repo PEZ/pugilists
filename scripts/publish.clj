@@ -87,6 +87,13 @@
     (println (str "\nDeploying " (count (fs/glob "site" "*.jar")) " bot JARs to Netlify..."))
     (p/shell "netlify" "deploy" "--prod" "--dir=site")
 
+    (println "\nTagging...")
+    (doseq [{:keys [classname version]} bots]
+      (let [tag (str classname "_" version)]
+        (println (str "  " tag))
+        (p/shell "git" "tag" tag)
+        (p/shell "git" "push" "origin" tag)))
+
     (println "\nPublished JARs:")
     (doseq [name (sort all-jars)]
       (println (str "  " site-url "/" name)))))
