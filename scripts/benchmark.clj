@@ -179,11 +179,12 @@
       (println (format "  %-40s %6.2f%% avg" "" avg))
       avg)))
 
-(defn- save-results! [bot rounds results timestamp commit-info]
+(defn- save-results! [bot rounds results timestamp commit-info elapsed-s]
   (let [path (format "plans/benchmark-%s.edn" timestamp)
         data (cond-> {:bot bot
                       :rounds rounds
                       :timestamp timestamp
+                      :elapsed-seconds elapsed-s
                       :pairings (mapv #(dissoc % :win?) results)
                       :overall-aps (/ (reduce + (map :aps results)) (count results))
                       :by-category (->> results
@@ -211,6 +212,7 @@
     (build-and-deploy! bot commit)
     (let [opponents all-opponents
           total (count opponents)
+          start-ms (System/currentTimeMillis)
           timestamp (.format (java.time.LocalDateTime/now)
                              (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd_HHmmss"))]
       (println (format "Benchmark: %d opponents, %d rounds each, bot: %s%s\n"
@@ -242,7 +244,9 @@
           (let [overall (/ (reduce + (map :aps results)) (count results))]
             (println (format "  %-40s %6.2f%% OVERALL APS" "" overall))
             (println (format "  %-40s %d/%d wins" "" (count (filter :win? results)) (count results))))
-          (println)
-          (save-results! bot rounds results timestamp commit-info))
+          (let [elapsed-s (/ (- (System/currentTimeMillis) start-ms) 1000.0)]
+            (println (format "  %-40s %s elapsed" "" (format "%d:%02d" (int (/ elapsed-s 60)) (int (mod elapsed-s 60)))))
+            (println)
+            (save-results! bot rounds results timestamp commit-info elapsed-s)))
         (fs/delete-if-exists ".tmp/benchmark.battle")
         (fs/delete-if-exists ".tmp/benchmark-results.txt")))))
