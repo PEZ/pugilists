@@ -253,14 +253,14 @@ class Wave extends Condition {
         bulletVelocity = 20 - 3 * power;
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
         obsDist = Pugilist.enemyDistance;
+        obsVel = vel * 30;
         obsPrevVel = (vel - prevVel) * 50;
-        obsVel = vel * 100;
         obsWall = 0;
         while (obsWall < 100 && !Pugilist.fieldRectangle.contains(
                 Pugilist.project(loc, Pugilist.absoluteBearing(loc, orbitCenter)
-                        - direction * (Math.PI / 2 + 0.2 - (obsWall++ / 100.0)), Pugilist.enemyDistance / 3.0)))
+                        - direction * (Math.PI / 2 + 0.2 - (obsWall++ / 100.0)), Pugilist.enemyDistance / 3.5)))
             ;
-        obsWall *= 7;
+        obsWall *= 2;
     }
 
     int visitingIndex(Point2D target) {
