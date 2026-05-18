@@ -22,9 +22,10 @@
                                           (first *command-line-args*))
                                       :all (= "--all" (first *command-line-args*))})}
 
-    benchmark {:doc "Run benchmark: bb benchmark pez.mini.Pugilist [rounds]"
+    benchmark {:doc "Run benchmark: bb benchmark pez.mini.Pugilist [rounds] [commit]"
                :task (benchmark/benchmark! {:bot (first *command-line-args*)
-                                            :rounds (parse-long (or (second *command-line-args*) "100"))})}
+                                            :rounds (parse-long (or (second *command-line-args*) "100"))
+                                            :commit (nth *command-line-args* 2 nil)})}
 
   publish {:doc "Build and deploy to Netlify: bb publish [version]"
            :task (publish/publish! {:version (first *command-line-args*)})}}}
