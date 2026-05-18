@@ -128,7 +128,7 @@ public class Pugilist extends AdvancedRobot {
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
         double s;
         for (;;) {
-            s = wallSmooth(location, enemyLocation, direction, enemyDistance / 5.0);
+            s = wallSmooth(location, enemyLocation, direction);
             if (s < 45 || direction == 0) break;
             direction = 0;
         }
@@ -136,11 +136,11 @@ public class Pugilist extends AdvancedRobot {
                 - direction * (Math.PI / 2 + 0.2 - ((s - 1) / 100.0)), enemyDistance / 5.0);
     }
 
-    static double wallSmooth(Point2D from, Point2D toward, double direction, double stick) {
+    static double wallSmooth(Point2D from, Point2D toward, double direction) {
         double w = 0;
         while (w < 100 && !fieldRectangle.contains(
                 project(from, absoluteBearing(from, toward)
-                        - direction * (Math.PI / 2 + 0.2 - (w++ / 100.0)), stick)))
+                        - direction * (Math.PI / 2 + 0.2 - (w++ / 100.0)), enemyDistance / 5.0)))
             ;
         return w;
     }
@@ -263,8 +263,8 @@ class Wave extends Condition {
         obsDist = Pugilist.enemyDistance / 100.0;
         obsVel = vel;
         obsAccel = Math.abs(vel) - Math.abs(prevVel);
-        obsWall = Pugilist.wallSmooth(loc, orbitCenter, direction, Pugilist.enemyDistance / 4.0) / 10.0;
-        obsOtherWall = surfable ? 0 : Pugilist.wallSmooth(orbitCenter, loc, direction, Pugilist.enemyDistance / 4.0) / 10.0;
+        obsWall = Pugilist.wallSmooth(loc, orbitCenter, direction) / 10.0;
+        obsOtherWall = surfable ? 0 : Pugilist.wallSmooth(orbitCenter, loc, direction) / 10.0;
     }
 
     int visitingIndex(Point2D target) {
