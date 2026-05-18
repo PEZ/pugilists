@@ -22,7 +22,7 @@ public class Pugilist extends AdvancedRobot {
     static double prevEnemyVelocity;
     static double prevRobotVelocity;
 
-    static double enemyFirePower = 3.0;
+    static double enemyFirePower;
     static double robotVelocity;
     static Pugilist robot;
 
@@ -69,7 +69,7 @@ public class Pugilist extends AdvancedRobot {
         // <gun>
         double enemyVelocity = e.getVelocity();
 
-        double bulletPower = Math.min(enemyEnergy / 4, enemyDistance > 180 ? BULLET_POWER : MAX_BULLET_POWER);
+        double bulletPower = enemyFirePower > 0.3 ? Math.min(enemyEnergy / 4, enemyDistance > 180 ? BULLET_POWER : MAX_BULLET_POWER) : 0.1;
 
         if (enemyVelocity != 0) {
             enemyBearingDirection = sign(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
@@ -82,7 +82,7 @@ public class Pugilist extends AdvancedRobot {
                     wave.bearingDirection * (Wave.bestGF() - Wave.MIDDLE_FACTOR)));
 
         addCustomEvent(wave);
-        if (getEnergy() >= BULLET_POWER && Math.abs(getGunTurnRemainingRadians()) < 18.0 / enemyDistance) {
+        if (getEnergy() >= bulletPower && Math.abs(getGunTurnRemainingRadians()) < 18.0 / enemyDistance) {
             setFire(bulletPower);
         }
         // </gun>
