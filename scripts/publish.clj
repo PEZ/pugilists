@@ -91,8 +91,9 @@
     (doseq [{:keys [classname version]} bots]
       (let [tag (str classname "_" version)]
         (println (str "  " tag))
-        (p/shell "git" "tag" tag)
-        (p/shell "git" "push" "origin" tag)))
+        (if (zero? (:exit (p/process ["git" "tag" tag] {:inherit true})))
+          (p/shell "git" "push" "origin" tag)
+          (println (str "    (tag already exists, skipping)")))))
 
     (println "\nPublished JARs:")
     (doseq [name (sort all-jars)]
