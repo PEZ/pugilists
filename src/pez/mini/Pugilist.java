@@ -199,7 +199,7 @@ class Wave extends Condition {
 
     // Per-wave observation attributes (pre-normalized)
     double obsDist;
-    double obsPrevVel;
+    double obsAccel;
     double obsVel;
     double obsWall;
 
@@ -224,11 +224,11 @@ class Wave extends Condition {
     }
 
     void record(ArrayList<double[]> obs) {
-        obs.add(new double[] { visitingIndex(targetLocation), obsDist, obsPrevVel, obsVel, obsWall });
+        obs.add(new double[] { visitingIndex(targetLocation), obsDist, obsAccel, obsVel, obsWall });
     }
 
     void query(ArrayList<double[]> obs) {
-        dcFill(obs, obsDist, obsPrevVel, obsVel, obsWall);
+        dcFill(obs, obsDist, obsAccel, obsVel, obsWall);
     }
 
     static void dcFill(ArrayList<double[]> obs, double dist, double prevVel, double vel, double wall) {
@@ -263,7 +263,7 @@ class Wave extends Condition {
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
         obsDist = Pugilist.enemyDistance / 100.0;
         obsVel = vel;
-        obsPrevVel = prevVel;
+        obsAccel = Math.abs(vel) - Math.abs(prevVel);
         obsWall = 0;
         while (obsWall < 100 && !Pugilist.fieldRectangle.contains(
                 Pugilist.project(loc, Pugilist.absoluteBearing(loc, orbitCenter)
