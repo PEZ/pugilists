@@ -39,3 +39,18 @@
              "--add-opens=java.desktop/javax.swing.text=ALL-UNNAMED"
              "--add-opens=java.desktop/sun.awt=ALL-UNNAMED"
              "robocode.Robocode")))
+
+(defn roborumble! [_opts]
+  (let [java-opts (java-options)
+        env (cond-> {"JAVA_HOME" "/Users/pez/.sdkman/candidates/java/17.0.17-tem"}
+              java-opts (assoc "_JAVA_OPTIONS" (clojure.string/join " " java-opts)))]
+    (p/shell {:dir robocode-home
+              :extra-env env}
+             (str "/Users/pez/.sdkman/candidates/java/17.0.17-tem/bin/java")
+             "-cp" "libs/*"
+             "-Xmx512M"
+             "-XX:+IgnoreUnrecognizedVMOptions"
+             "--add-opens=java.base/sun.net.www.protocol.jar=ALL-UNNAMED"
+             "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED"
+             "roborumble.RoboRumbleAtHome"
+             "./roborumble/roborumble.txt")))

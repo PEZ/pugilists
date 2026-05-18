@@ -28,4 +28,7 @@
                                             :commit (nth *command-line-args* 2 nil)})}
 
   publish {:doc "Build and deploy to Netlify: bb publish [version]"
-           :task (publish/publish! {:version (first *command-line-args*)})}}}
+           :task (publish/publish! {:version (first *command-line-args*)})}
+
+  roborumble {:doc "Run the RoboRumble client"
+              :task (robocode/roborumble! nil)}}}
