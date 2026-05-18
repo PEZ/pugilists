@@ -1,9 +1,13 @@
 (ns publish
   (:require [babashka.fs :as fs]
             [babashka.process :as p]
+            [clojure.edn :as edn]
+            [clojure.pprint :as pprint]
             [clojure.string :as str]))
 
 (def classes-dir "build/classes/java/main")
+(def site-url "https://pugilists.netlify.app")
+(def index-file "site-index.edn")
 
 (defn- read-properties [path]
   (->> (slurp (str path))
@@ -40,6 +44,24 @@
     (spit props-file updated)
     (println (str "Version set to " version " in " props-file))))
 
+(defn- load-index []
+  (if (fs/exists? index-file)
+    (edn/read-string (slurp index-file))
+    #{}))
+
+(defn- save-index! [jars]
+  (spit index-file (with-out-str (pprint/pprint (into (sorted-set) jars)))))
+
+(defn- sync-existing-jars!
+  "Download any jars listed in the index that aren't in site/ locally."
+  []
+  (let [index (load-index)]
+    (doseq [jar-name index]
+      (let [local-path (str "site/" jar-name)]
+        (when-not (fs/exists? local-path)
+          (println (str "  Downloading " jar-name "..."))
+          (p/shell "curl" "-sfo" local-path (str site-url "/" jar-name)))))))
+
 (defn publish!
   "Build and deploy per-bot JARs to Netlify.
    bb publish [version] — version applies to Pugilist."
@@ -52,17 +74,19 @@
            "./gradlew" "build")
 
   (fs/create-dirs "site")
-  ;; Clean old JARs
-  (doseq [old-jar (fs/glob "site" "*.jar")]
-    (fs/delete old-jar))
+  (println "Syncing existing jars...")
+  (sync-existing-jars!)
 
   (println "Creating per-bot JARs:")
   (let [bots (find-bots)
-        jar-names (mapv create-bot-jar! bots)]
+        jar-names (mapv create-bot-jar! bots)
+        all-jars (into (load-index) jar-names)]
 
-    (println (str "\nDeploying " (count jar-names) " bot JARs to Netlify..."))
+    (save-index! all-jars)
+    (fs/copy index-file "site/site-index.edn" {:replace-existing true})
+    (println (str "\nDeploying " (count (fs/glob "site" "*.jar")) " bot JARs to Netlify..."))
     (p/shell "netlify" "deploy" "--prod" "--dir=site")
 
     (println "\nPublished JARs:")
-    (doseq [name jar-names]
-      (println (str "  https://pugilists.netlify.app/" name)))))
+    (doseq [name (sort all-jars)]
+      (println (str "  " site-url "/" name)))))
