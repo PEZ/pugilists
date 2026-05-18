@@ -22,7 +22,7 @@ public class Pugilist extends AdvancedRobot {
     static double prevEnemyVelocity;
     static double prevRobotVelocity;
 
-    static double enemyFirePower;
+    static double enemyFirePower = BULLET_POWER;
     static double robotVelocity;
     static Pugilist robot;
 
@@ -220,7 +220,7 @@ class Wave extends Condition {
         bulletVelocity = 20 - 3 * power;
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
         obsDist = Pugilist.enemyDistance / 200.0;
-        obsPrevVel = prevVel / 4.0;
+        obsPrevVel = (vel - prevVel) / 4.0;
         obsVel = vel / 4.0;
         obsWall = Math.min(Math.min(loc.getX(), loc.getY()), Math.min(800 - loc.getX(), 600 - loc.getY())) / 200.0;
     }
