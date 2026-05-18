@@ -37,7 +37,6 @@ public class Pugilist extends AdvancedRobot {
     static double prevRobotVelocity;
 
     static double enemyFirePower = MAX_BULLET_POWER;
-    static int shieldHits;
     static double robotVelocity;
     static Pugilist robot;
 
@@ -85,7 +84,7 @@ public class Pugilist extends AdvancedRobot {
         // <gun>
         double enemyVelocity = e.getVelocity();
 
-        double bulletPower = enemyDistance < 175 ? MAX_BULLET_POWER : Math.max(enemyFirePower - 0.2, 0.1);
+        double bulletPower = enemyDistance < 175 ? MAX_BULLET_POWER : Math.max(enemyFirePower - 0.25, 0.1);
 
         if (enemyVelocity != 0) {
             enemyBearingDirection = sign(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
@@ -267,8 +266,8 @@ class Wave extends Condition {
         obsDist = Pugilist.enemyDistance / 100.0;
         obsVel = vel;
         obsAccel = Math.abs(vel) - Math.abs(prevVel);
-        obsWall = Pugilist.wallSmooth(loc, orbitCenter, direction, Pugilist.enemyDistance / 4.5) / 12.0;
-        obsOtherWall = Pugilist.wallSmooth(orbitCenter, loc, direction, Pugilist.enemyDistance / 4.5) / 12.0;
+        obsWall = Pugilist.wallSmooth(loc, orbitCenter, direction, Pugilist.enemyDistance / 4.0) / 10.0;
+        obsOtherWall = surfable ? 0 : Pugilist.wallSmooth(orbitCenter, loc, direction, Pugilist.enemyDistance / 4.0) / 10.0;
     }
 
     int visitingIndex(Point2D target) {
