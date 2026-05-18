@@ -1,4 +1,5 @@
 package pez.mini;
+
 import robocode.*;
 import robocode.util.Utils;
 import java.awt.geom.*;
@@ -40,7 +41,7 @@ public class Pugilist extends AdvancedRobot {
     public void onScannedRobot(ScannedRobotEvent e) {
         Wave wave = new Wave();
         EnemyWave ew = new EnemyWave();
-        ew.gunLocation = (Point2D)enemyLocation.clone();
+        ew.gunLocation = (Point2D) enemyLocation.clone();
         ew.startBearing = ew.gunBearing(robotLocation);
 
         double enemyDeltaEnergy = enemyEnergy - e.getEnergy();
@@ -60,7 +61,8 @@ public class Pugilist extends AdvancedRobot {
 
         double enemyAbsoluteBearing;
         wave.startBearing = enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
-        enemyLocation.setLocation(project(wave.gunLocation = (Point2D)robotLocation.clone(), enemyAbsoluteBearing, enemyDistance));
+        enemyLocation.setLocation(
+                project(wave.gunLocation = (Point2D) robotLocation.clone(), enemyAbsoluteBearing, enemyDistance));
         wave.targetLocation = enemyLocation;
         enemyDistance = e.getDistance();
 
@@ -75,12 +77,13 @@ public class Pugilist extends AdvancedRobot {
         if (enemyVelocity != 0) {
             enemyBearingDirection = sign(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
         }
-        wave.initObs(bulletPower, enemyVelocity, prevEnemyVelocity, enemyLocation, enemyBearingDirection, robotLocation);
+        wave.initObs(bulletPower, enemyVelocity, prevEnemyVelocity, enemyLocation, enemyBearingDirection,
+                robotLocation);
         prevEnemyVelocity = enemyVelocity;
 
         wave.query(Wave.gunObs);
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
-                    wave.bearingDirection * (Wave.bestGF() - Wave.MIDDLE_FACTOR)));
+                wave.bearingDirection * (Wave.bestGF() - Wave.MIDDLE_FACTOR)));
 
         addCustomEvent(wave);
         if (getEnergy() >= bulletPower && Math.abs(getGunTurnRemainingRadians()) < 18.0 / enemyDistance) {
@@ -92,7 +95,9 @@ public class Pugilist extends AdvancedRobot {
             direction = -direction;
         }
         double angle;
-        setAhead(Math.cos(angle = wave.gunBearing(wallSmoothedDestination(robotLocation, direction)) - getHeadingRadians()) * 100);
+        setAhead(Math
+                .cos(angle = wave.gunBearing(wallSmoothedDestination(robotLocation, direction)) - getHeadingRadians())
+                * 100);
         setTurnRightRadians(Math.tan(angle));
 
         setTurnRadarRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getRadarHeadingRadians()) * 2);
@@ -100,7 +105,8 @@ public class Pugilist extends AdvancedRobot {
     }
 
     public void onBulletHitBullet(BulletHitBulletEvent e) {
-        if (++shieldHits > 3) enemyFirePower = 0;
+        if (++shieldHits > 3)
+            enemyFirePower = 0;
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
@@ -119,8 +125,12 @@ public class Pugilist extends AdvancedRobot {
         Point2D destination = new Point2D.Double();
         for (;;) {
             double currentSmoothing = 0;
-            while (currentSmoothing < 100 && !fieldRectangle.contains(destination = project(location, absoluteBearing(location, enemyLocation) -
-                            direction*(Math.PI / 2 + 0.2 - (currentSmoothing++ / 100.0)), enemyDistance / 5.0)));
+            while (currentSmoothing < 100
+                    && !fieldRectangle.contains(destination = project(location,
+                            absoluteBearing(location, enemyLocation) -
+                                    direction * (Math.PI / 2 + 0.2 - (currentSmoothing++ / 100.0)),
+                            enemyDistance / 5.0)))
+                ;
             if (currentSmoothing < 45 || direction == 0) {
                 break;
             }
@@ -130,10 +140,12 @@ public class Pugilist extends AdvancedRobot {
     }
 
     Point2D waveImpactLocation(EnemyWave wave, double direction, int timeOffset) {
-        Point2D impactLocation = (Point2D)robotLocation.clone();
+        Point2D impactLocation = (Point2D) robotLocation.clone();
         do {
             impactLocation = project(impactLocation, absoluteBearing(impactLocation,
-                        wallSmoothedDestination(impactLocation, direction * robotBearingDirection(wave.gunBearing(robotLocation)))), MAX_VELOCITY);
+                    wallSmoothedDestination(impactLocation,
+                            direction * robotBearingDirection(wave.gunBearing(robotLocation)))),
+                    MAX_VELOCITY);
             timeOffset++;
         } while (wave.distanceFromTarget(impactLocation, timeOffset) > -10);
         return impactLocation;
@@ -190,7 +202,7 @@ class Wave extends Condition {
     }
 
     void record(ArrayList<double[]> obs) {
-        obs.add(new double[]{visitingIndex(targetLocation), obsDist, obsPrevVel, obsVel, obsWall});
+        obs.add(new double[] { visitingIndex(targetLocation), obsDist, obsPrevVel, obsVel, obsWall });
     }
 
     void query(ArrayList<double[]> obs) {
@@ -201,15 +213,17 @@ class Wave extends Condition {
         scores = new double[FACTORS];
         for (int i = 0; i < obs.size(); i++) {
             double[] o = obs.get(i);
-            double d = Math.abs(o[1] - dist) + Math.abs(o[2] - prevVel) + Math.abs(o[3] - vel) + Math.abs(o[4] - wall) + 0.01;
-            scores[(int)o[0]] += (1.0 + i) / (d * d);
+            double d = Math.abs(o[1] - dist) + Math.abs(o[2] - prevVel) + Math.abs(o[3] - vel) + Math.abs(o[4] - wall)
+                    + 0.01;
+            scores[(int) o[0]] += (1.0 + i) / (d * d);
         }
     }
 
     static int bestGF() {
         int best = MIDDLE_FACTOR;
         for (int i = 0; i < FACTORS; i++) {
-            if (scores[i] > scores[best]) best = i;
+            if (scores[i] > scores[best])
+                best = i;
         }
         return best;
     }
@@ -225,17 +239,22 @@ class Wave extends Condition {
     void initObs(double power, double vel, double prevVel, Point2D loc, double direction, Point2D orbitCenter) {
         bulletVelocity = 20 - 3 * power;
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
-        obsDist = Pugilist.enemyDistance / 100.0;
-        obsPrevVel = (vel - prevVel) / 2.0;
-        obsVel = vel / 4.0;
+        obsDist = Pugilist.enemyDistance;
+        obsPrevVel = (vel - prevVel) * 50;
+        obsVel = vel * 100;
         obsWall = 0;
         while (obsWall < 100 && !Pugilist.fieldRectangle.contains(
-            Pugilist.project(loc, Pugilist.absoluteBearing(loc, orbitCenter) - direction * (Math.PI / 2 + 0.2 - (obsWall++ / 100.0)), Pugilist.enemyDistance / 3.0)));
-        obsWall /= 100.0;
+                Pugilist.project(loc, Pugilist.absoluteBearing(loc, orbitCenter)
+                        - direction * (Math.PI / 2 + 0.2 - (obsWall++ / 100.0)), Pugilist.enemyDistance / 3.0)))
+            ;
+        obsWall *= 7;
     }
 
     int visitingIndex(Point2D target) {
-        return Math.max(0, Math.min(FACTORS - 1, (int)(((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection) + (FACTORS - 1) / 2 + 0.5)));
+        return Math.max(0,
+                Math.min(FACTORS - 1,
+                        (int) (((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection)
+                                + (FACTORS - 1) / 2 + 0.5)));
     }
 
     double gunBearing(Point2D target) {
