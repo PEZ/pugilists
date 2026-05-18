@@ -1,7 +1,8 @@
 (ns benchmark
   (:require [babashka.fs :as fs]
             [babashka.process :as p]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [codesize]))
 
 (def robocode-home (str (fs/expand-home "~/robocode")))
 (def java-home "/Users/pez/.sdkman/candidates/java/17.0.17-tem")
@@ -210,14 +211,17 @@
     (System/exit 1))
   (let [commit-info (when commit (resolve-commit commit))]
     (build-and-deploy! bot commit)
-    (let [opponents all-opponents
+    (let [jar-path (str robocode-home "/robots/" bot "_2.5.5.jar")
+          bot-codesize (codesize/get-size jar-path)
+          opponents all-opponents
           total (count opponents)
           start-ms (System/currentTimeMillis)
           timestamp (.format (java.time.LocalDateTime/now)
                              (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd_HHmmss"))]
-      (println (format "Benchmark: %d opponents, %d rounds each, bot: %s%s\n"
+      (println (format "Benchmark: %d opponents, %d rounds each, bot: %s%s%s\n"
                        total rounds bot
-                       (if commit-info (str " @ " commit-info) "")))
+                       (if commit-info (str " @ " commit-info) "")
+                       (if bot-codesize (str " [" bot-codesize " bytes]") "")))
       (let [results (doall
                      (keep-indexed
                       (fn [i opponent]

@@ -47,6 +47,16 @@
              entries))
     jar-path))
 
+(defn get-size
+  "Return the codesize (as integer) for the given bot jar path, or nil."
+  [jar-path]
+  (let [result (p/shell {:out :string :in (java.io.ByteArrayInputStream. (.getBytes "exit\n"))}
+                        "java" "-jar" codesize-jar jar-path)
+        lines (str/split-lines (:out result))
+        size-line (first (filter #(str/includes? % "Codesize") lines))]
+    (when size-line
+      (parse-long (re-find #"\d+" (subs size-line (str/index-of size-line ":")))))))
+
 (defn check! [{:keys [bot]}]
   (when-not bot
     (println "Usage: bb codesize <namespace>")
@@ -56,9 +66,6 @@
     (println "Build output not found. Run `bb build` first.")
     (System/exit 1))
   (let [jar-path (create-bot-jar! bot)
-        result (p/shell {:out :string :in (java.io.ByteArrayInputStream. (.getBytes "exit\n"))}
-                        "java" "-jar" codesize-jar jar-path)
-        lines (str/split-lines (:out result))
-        size-line (first (filter #(str/includes? % "Codesize") lines))]
-    (when size-line (println size-line))
+        size (get-size jar-path)]
+    (when size (println (str "Codesize: " size)))
     (fs/delete jar-path)))
