@@ -51,7 +51,7 @@ public class Pugilist extends AdvancedRobot {
         enemyEnergy = e.getEnergy();
 
         double direction = robotBearingDirection(ew.startBearing);
-        ew.initObs(enemyFirePower, robotVelocity, prevRobotVelocity, robotLocation, direction);
+        ew.initObs(enemyFirePower, robotVelocity, prevRobotVelocity, robotLocation, direction, enemyLocation);
         prevRobotVelocity = robotVelocity;
         robotVelocity = getVelocity();
         ew.targetLocation = robotLocation;
@@ -75,7 +75,7 @@ public class Pugilist extends AdvancedRobot {
         if (enemyVelocity != 0) {
             enemyBearingDirection = sign(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
         }
-        wave.initObs(bulletPower, enemyVelocity, prevEnemyVelocity, enemyLocation, enemyBearingDirection);
+        wave.initObs(bulletPower, enemyVelocity, prevEnemyVelocity, enemyLocation, enemyBearingDirection, robotLocation);
         prevEnemyVelocity = enemyVelocity;
 
         wave.query(Wave.gunObs);
@@ -222,13 +222,16 @@ class Wave extends Condition {
         distanceFromGun += ticks * bulletVelocity;
     }
 
-    void initObs(double power, double vel, double prevVel, Point2D loc, double direction) {
+    void initObs(double power, double vel, double prevVel, Point2D loc, double direction, Point2D orbitCenter) {
         bulletVelocity = 20 - 3 * power;
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
         obsDist = Pugilist.enemyDistance / 100.0;
         obsPrevVel = (vel - prevVel) / 2.0;
         obsVel = vel / 4.0;
-        obsWall = Math.min(Math.min(loc.getX(), loc.getY()), Math.min(800 - loc.getX(), 600 - loc.getY())) / 200.0;
+        obsWall = 0;
+        while (obsWall < 100 && !Pugilist.fieldRectangle.contains(
+            Pugilist.project(loc, Pugilist.absoluteBearing(loc, orbitCenter) - direction * (Math.PI / 2 + 0.2 - (obsWall++ / 100.0)), Pugilist.enemyDistance / 5.0)));
+        obsWall /= 100.0;
     }
 
     int visitingIndex(Point2D target) {
