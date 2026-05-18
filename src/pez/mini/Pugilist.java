@@ -5,6 +5,19 @@ import robocode.util.Utils;
 import java.awt.geom.*;
 import java.util.ArrayList;
 
+//This code is released under the RoboWiki Public Code Licence (RWPCL), datailed on:
+//http://robowiki.net/?RWPCL
+//(Basically it means you must keep the code public if you base any bot on it.)
+
+//Pugilist, by PEZ. Although a pugilist needs strong and accurate fists, he/she even more needs an evasive movement.
+
+//Pugilist explores two major concepts:
+//1. Guess factor targeting, invented by Paul Evans. http://robowiki.net/?GuessFacorTargeting
+//2. Wave surfing movement, invented by ABC. http://robowiki.net/?WaveSurfing
+
+//Many thanks to Jim, Kawigi, iiley, Jamougha, Axe, ABC, rozu, Kuuran, FnH, nano and many others who have helped me.
+//Check out http://robowiki.net/?Members to get an idea about who those people are. =)
+
 public class Pugilist extends AdvancedRobot {
     static final double MAX_VELOCITY = 8;
     static final double BATTLE_FIELD_WIDTH = 800;
