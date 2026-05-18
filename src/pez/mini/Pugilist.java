@@ -220,8 +220,8 @@ class Wave extends Condition {
     void initObs(double power, double vel, double prevVel, Point2D loc, double direction) {
         bulletVelocity = 20 - 3 * power;
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
-        obsDist = Pugilist.enemyDistance / 200.0;
-        obsPrevVel = (vel - prevVel) / 4.0;
+        obsDist = Pugilist.enemyDistance / 400.0;
+        obsPrevVel = (vel - prevVel) / 2.0;
         obsVel = vel / 4.0;
         obsWall = Math.min(Math.min(loc.getX(), loc.getY()), Math.min(800 - loc.getX(), 600 - loc.getY())) / 200.0;
     }
