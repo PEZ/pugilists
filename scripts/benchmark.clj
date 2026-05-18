@@ -152,7 +152,13 @@
             cat))
         benchmark-bots))
 
-(defn- run-pairing! [bot opponent rounds]
+(defn- stddev [values mean]
+  (if (<= (count values) 1)
+    0.0
+    (Math/sqrt (/ (reduce + (map #(Math/pow (- % mean) 2) values))
+                  (dec (count values))))))
+
+(defn- run-single-match! [bot opponent rounds]
   (let [battle-file (create-battle-file! bot opponent rounds)
         results-text (run-battle! battle-file)
         results (parse-results results-text)]
@@ -160,34 +166,49 @@
       (let [bot-result (first (filter #(str/starts-with? (:name %) bot) results))
             opp-result (first (filter #(not (str/starts-with? (:name %) bot)) results))]
         (when (and bot-result opp-result)
-          (let [total (+ (:score bot-result) (:score opp-result))
-                aps (if (pos? total)
-                      (* 100.0 (/ (:score bot-result) total))
-                      0.0)]
-            {:opponent opponent
-             :category (find-category opponent)
-             :aps aps
-             :bot-score (:score bot-result)
-             :opp-score (:score opp-result)
-             :win? (> (:score bot-result) (:score opp-result))}))))))
+          (let [total (+ (:score bot-result) (:score opp-result))]
+            (if (pos? total)
+              (* 100.0 (/ (:score bot-result) total))
+              0.0)))))))
+
+(defn- run-pairing! [bot opponent rounds match-length]
+  (let [num-matches (max 1 (quot rounds match-length))
+        aps-values (doall
+                    (keep (fn [_] (run-single-match! bot opponent match-length))
+                          (range num-matches)))]
+    (when (seq aps-values)
+      (let [mean (/ (reduce + aps-values) (count aps-values))
+            sd (stddev aps-values mean)]
+        {:opponent opponent
+         :category (find-category opponent)
+         :aps mean
+         :min-aps (apply min aps-values)
+         :max-aps (apply max aps-values)
+         :stddev sd
+         :matches (count aps-values)
+         :win? (> mean 50.0)}))))
 
 (defn- print-category-results [category pairings]
   (let [label (str/replace (name category) "-" " ")]
     (println (format "\n  %s" (str/upper-case label)))
     (println (str "  " (apply str (repeat 60 "-"))))
     (doseq [p (sort-by :aps pairings)]
-      (println (format "  %-40s %6.2f%% APS  %s"
+      (println (format "  %-40s %6.2f%% APS  (%.1f-%.1f ±%.1f)  %s"
                        (:opponent p)
                        (:aps p)
+                       (:min-aps p)
+                       (:max-aps p)
+                       (:stddev p)
                        (if (:win? p) "WIN" "LOSS"))))
     (let [avg (/ (reduce + (map :aps pairings)) (count pairings))]
       (println (format "  %-40s %6.2f%% avg" "" avg))
       avg)))
 
-(defn- save-results! [bot rounds results timestamp commit-info elapsed-s]
+(defn- save-results! [bot rounds match-length results timestamp commit-info elapsed-s]
   (let [path (format "plans/benchmark-%s.edn" timestamp)
         data (cond-> {:bot bot
                       :rounds rounds
+                      :match-length match-length
                       :timestamp timestamp
                       :elapsed-seconds elapsed-s
                       :pairings (mapv #(dissoc % :win?) results)
@@ -203,17 +224,20 @@
 (defn benchmark!
   "Run benchmark battles and report APS per category.
    Options: :bot - fully qualified bot name
-            :rounds - rounds per battle (default: 100)
+            :rounds - total rounds per opponent (default: 100)
+            :match-length - rounds per match (default: 10, like LiteRumble)
             :commit - optional git ref to benchmark (default: working tree)"
-  [{:keys [bot rounds commit]
-    :or {rounds 100}}]
+  [{:keys [bot rounds match-length commit]
+    :or {rounds 100 match-length 10}}]
   (when-not bot
-    (println "Usage: bb benchmark <bot> [rounds] [commit]")
+    (println "Usage: bb benchmark <bot> [rounds] [match-length] [commit]")
     (println "Example: bb benchmark pez.mini.Pugilist")
-    (println "         bb benchmark pez.mini.Pugilist 200")
-    (println "         bb benchmark pez.mini.Pugilist 100 HEAD~3")
+    (println "         bb benchmark pez.mini.Pugilist 100")
+    (println "         bb benchmark pez.mini.Pugilist 100 10")
+    (println "         bb benchmark pez.mini.Pugilist 100 10 HEAD~3")
     (System/exit 1))
-  (let [commit-info (when commit (resolve-commit commit))]
+  (let [commit-info (when commit (resolve-commit commit))
+        num-matches (max 1 (quot rounds match-length))]
     (build-and-deploy! bot commit)
     (let [jar-path (str robocode-home "/robots/" bot "_2.5.5.jar")
           bot-codesize (codesize/get-size jar-path)
@@ -222,8 +246,8 @@
           start-ms (System/currentTimeMillis)
           timestamp (.format (java.time.LocalDateTime/now)
                              (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd_HHmmss"))]
-      (println (format "Benchmark: %d opponents, %d rounds each, bot: %s%s%s\n"
-                       total rounds bot
+      (println (format "Benchmark: %d opponents, %d×%d rounds each, bot: %s%s%s\n"
+                       total num-matches match-length bot
                        (if commit-info (str " @ " commit-info) "")
                        (if bot-codesize (str " [" bot-codesize " bytes]") "")))
       (let [results (doall
@@ -231,16 +255,17 @@
                       (fn [i opponent]
                         (print (format "  [%2d/%d] vs %-40s" (inc i) total opponent))
                         (flush)
-                        (let [result (run-pairing! bot opponent rounds)]
+                        (let [result (run-pairing! bot opponent rounds match-length)]
                           (if result
-                            (do (println (format "%6.2f%% APS" (:aps result)))
+                            (do (println (format "%6.2f%% APS  (%.1f–%.1f ±%.1f)"
+                                                (:aps result) (:min-aps result) (:max-aps result) (:stddev result)))
                                 result)
                             (do (println "FAILED")
                                 nil))))
                       opponents))]
         (println (str "\n" (apply str (repeat 66 "="))))
-        (println (format "BENCHMARK RESULTS — %s — %d rounds%s"
-                         bot rounds
+        (println (format "BENCHMARK RESULTS — %s — %d×%d rounds%s"
+                         bot num-matches match-length
                          (if commit-info (str " — " commit-info) "")))
         (println (apply str (repeat 66 "=")))
         (let [by-cat (group-by :category results)
@@ -255,6 +280,6 @@
           (let [elapsed-s (/ (- (System/currentTimeMillis) start-ms) 1000.0)]
             (println (format "  %-40s %s elapsed" "" (format "%d:%02d" (int (/ elapsed-s 60)) (int (mod elapsed-s 60)))))
             (println)
-            (save-results! bot rounds results timestamp commit-info elapsed-s)))
+            (save-results! bot rounds match-length results timestamp commit-info elapsed-s)))
         (fs/delete-if-exists ".tmp/benchmark.battle")
         (fs/delete-if-exists ".tmp/benchmark-results.txt")))))
