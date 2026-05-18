@@ -130,21 +130,23 @@ public class Pugilist extends AdvancedRobot {
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
-        Point2D destination = new Point2D.Double();
+        double s;
         for (;;) {
-            double currentSmoothing = 0;
-            while (currentSmoothing < 100
-                    && !fieldRectangle.contains(destination = project(location,
-                            absoluteBearing(location, enemyLocation) -
-                                    direction * (Math.PI / 2 + 0.2 - (currentSmoothing++ / 100.0)),
-                            enemyDistance / 5.0)))
-                ;
-            if (currentSmoothing < 45 || direction == 0) {
-                break;
-            }
+            s = wallSmooth(location, enemyLocation, direction, enemyDistance / 5.0);
+            if (s < 45 || direction == 0) break;
             direction = 0;
         }
-        return destination;
+        return project(location, absoluteBearing(location, enemyLocation)
+                - direction * (Math.PI / 2 + 0.2 - ((s - 1) / 100.0)), enemyDistance / 5.0);
+    }
+
+    static double wallSmooth(Point2D from, Point2D toward, double direction, double stick) {
+        double w = 0;
+        while (w < 100 && !fieldRectangle.contains(
+                project(from, absoluteBearing(from, toward)
+                        - direction * (Math.PI / 2 + 0.2 - (w++ / 100.0)), stick)))
+            ;
+        return w;
     }
 
     Point2D waveImpactLocation(Wave wave, double direction, int timeOffset) {
@@ -202,6 +204,7 @@ class Wave extends Condition {
     double obsAccel;
     double obsVel;
     double obsWall;
+    double obsOtherWall;
 
     public boolean test() {
         advance(1);
@@ -224,19 +227,19 @@ class Wave extends Condition {
     }
 
     void record(ArrayList<double[]> obs) {
-        obs.add(new double[] { visitingIndex(targetLocation), obsDist, obsAccel, obsVel, obsWall });
+        obs.add(new double[] { visitingIndex(targetLocation), obsDist, obsAccel, obsVel, obsWall, obsOtherWall });
     }
 
     void query(ArrayList<double[]> obs) {
-        dcFill(obs, obsDist, obsAccel, obsVel, obsWall);
+        dcFill(obs, obsDist, obsAccel, obsVel, obsWall, obsOtherWall);
     }
 
-    static void dcFill(ArrayList<double[]> obs, double dist, double prevVel, double vel, double wall) {
+    static void dcFill(ArrayList<double[]> obs, double dist, double accel, double vel, double wall, double otherWall) {
         scores = new double[FACTORS];
         for (int i = 0; i < obs.size(); i++) {
             double[] o = obs.get(i);
-            double d = Math.abs(o[1] - dist) + Math.abs(o[2] - prevVel) + Math.abs(o[3] - vel) + Math.abs(o[4] - wall)
-                    + 0.01;
+            double d = Math.abs(o[1] - dist) + Math.abs(o[2] - accel) + Math.abs(o[3] - vel) + Math.abs(o[4] - wall)
+                    + Math.abs(o[5] - otherWall) + 0.01;
             scores[(int) o[0]] += i / (d * d / 2.0);
         }
     }
@@ -264,12 +267,8 @@ class Wave extends Condition {
         obsDist = Pugilist.enemyDistance / 100.0;
         obsVel = vel;
         obsAccel = Math.abs(vel) - Math.abs(prevVel);
-        obsWall = 0;
-        while (obsWall < 100 && !Pugilist.fieldRectangle.contains(
-                Pugilist.project(loc, Pugilist.absoluteBearing(loc, orbitCenter)
-                        - direction * (Math.PI / 2 + 0.2 - (obsWall++ / 100.0)), Pugilist.enemyDistance / 3.5)))
-            ;
-        obsWall /= 12.0;
+        obsWall = Pugilist.wallSmooth(loc, orbitCenter, direction, Pugilist.enemyDistance / 4.5) / 12.0;
+        obsOtherWall = Pugilist.wallSmooth(orbitCenter, loc, direction, Pugilist.enemyDistance / 4.5) / 12.0;
     }
 
     int visitingIndex(Point2D target) {
