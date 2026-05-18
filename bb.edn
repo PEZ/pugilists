@@ -13,9 +13,11 @@
   codesize {:doc "Check codesize of a bot: bb codesize pez.mini.Pugilist"
             :task (codesize/check! {:bot (first *command-line-args*)})}
 
-  battle {:doc "Run headless battles: bb battle pez.mini.Pugilist [rounds]"
-          :task (battle/battle! {:bot (first *command-line-args*)
-                                 :rounds (parse-long (or (second *command-line-args*) "35"))})}
+  battle {:doc "Run headless battles: bb battle pez.mini.Pugilist [rounds] [opponent1 opponent2 ...]"
+          :task (let [[bot rounds & opponents] *command-line-args*]
+                  (battle/battle! {:bot bot
+                                   :rounds (parse-long (or rounds "35"))
+                                   :opponents (when (seq opponents) opponents)}))}
 
   install {:doc "Install a bot from RoboRumble participants: bb install voidious.mini.Komarious (or --all)"
            :task (install/install! {:bot (when-not (= "--all" (first *command-line-args*))
