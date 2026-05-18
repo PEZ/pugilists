@@ -19,6 +19,8 @@ public class Pugilist extends AdvancedRobot {
     static double enemyDistance;
     static double enemyEnergy;
     static double enemyBearingDirection;
+    static double prevEnemyVelocity;
+    static double prevRobotVelocity;
 
     static double enemyFirePower = 3.0;
     static double robotVelocity;
@@ -48,7 +50,8 @@ public class Pugilist extends AdvancedRobot {
         enemyEnergy = e.getEnergy();
 
         double direction = robotBearingDirection(ew.startBearing);
-        ew.initObs(enemyFirePower, robotVelocity, robotLocation, direction);
+        ew.initObs(enemyFirePower, robotVelocity, prevRobotVelocity, robotLocation, direction);
+        prevRobotVelocity = robotVelocity;
         robotVelocity = getVelocity();
         ew.targetLocation = robotLocation;
 
@@ -71,7 +74,8 @@ public class Pugilist extends AdvancedRobot {
         if (enemyVelocity != 0) {
             enemyBearingDirection = sign(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
         }
-        wave.initObs(bulletPower, enemyVelocity, enemyLocation, enemyBearingDirection);
+        wave.initObs(bulletPower, enemyVelocity, prevEnemyVelocity, enemyLocation, enemyBearingDirection);
+        prevEnemyVelocity = enemyVelocity;
 
         wave.query(Wave.gunObs);
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
@@ -165,8 +169,9 @@ class Wave extends Condition {
 
     // Per-wave observation attributes (pre-normalized)
     double obsDist;
+    double obsPrevVel;
     double obsVel;
-    double obsThird;
+    double obsWall;
 
     public boolean test() {
         advance(1);
@@ -180,19 +185,18 @@ class Wave extends Condition {
     }
 
     void record(ArrayList<double[]> obs) {
-        obs.add(new double[]{visitingIndex(targetLocation), obsDist, obsVel, obsThird});
+        obs.add(new double[]{visitingIndex(targetLocation), obsDist, obsPrevVel, obsVel, obsWall});
     }
 
     void query(ArrayList<double[]> obs) {
-        dcFill(obs, obsDist, obsVel, obsThird);
+        dcFill(obs, obsDist, obsPrevVel, obsVel, obsWall);
     }
 
-    // Shared DC kernel: fills scores[] with recency-weighted inverse-distance GF bins
-    static void dcFill(ArrayList<double[]> obs, double dist, double vel, double third) {
+    static void dcFill(ArrayList<double[]> obs, double dist, double prevVel, double vel, double wall) {
         scores = new double[FACTORS];
         for (int i = 0; i < obs.size(); i++) {
-            double[] o = (double[])obs.get(i);
-            scores[(int)o[0]] += (1.0 + i) / (Math.abs(o[1] - dist) + Math.abs(o[2] - vel) + Math.abs(o[3] - third) + 0.01);
+            double[] o = obs.get(i);
+            scores[(int)o[0]] += (1.0 + i) / (Math.abs(o[1] - dist) + Math.abs(o[2] - prevVel) + Math.abs(o[3] - vel) + Math.abs(o[4] - wall) + 0.01);
         }
     }
 
@@ -212,12 +216,13 @@ class Wave extends Condition {
         distanceFromGun += ticks * bulletVelocity;
     }
 
-    void initObs(double power, double vel, Point2D loc, double direction) {
+    void initObs(double power, double vel, double prevVel, Point2D loc, double direction) {
         bulletVelocity = 20 - 3 * power;
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
         obsDist = Pugilist.enemyDistance / 200.0;
+        obsPrevVel = prevVel / 4.0;
         obsVel = vel / 4.0;
-        obsThird = Math.min(Math.min(loc.getX(), loc.getY()), Math.min(800 - loc.getX(), 600 - loc.getY())) / 200.0;
+        obsWall = Math.min(Math.min(loc.getX(), loc.getY()), Math.min(800 - loc.getX(), 600 - loc.getY())) / 200.0;
     }
 
     int visitingIndex(Point2D target) {
