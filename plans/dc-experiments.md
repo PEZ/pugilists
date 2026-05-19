@@ -327,14 +327,14 @@ static Point2D orbitProject(Point2D from, Point2D toward, double direction, doub
 | G+F        | 1494  | 66.97%       | 64.60%             | 8th dim dilutes kernel; Foilist 35.14%, 18/20 wins |
 | A+G+F      | 1498  | 67.55%       | 65.62%             | 15/15 worst-drops wins! Spark flipped; 17/20 wins |
 | B+G+F      | 1497  | 68.34%       | 65.71%             | Best 8-dim combo; +d scales with dimensions, 18/20 |
-| H. clamp dest | 1491 | 68.24%    | —                  | Lost Sedan; clamped wallSmoothedDestination stick |
-| H2. clamp both | 1503 | 68.28%  | —                  | Sedan back; OVER LIMIT by 4 bytes |
-| H3. no upper  | 1491  | 65.28%   | —                  | Upper bound matters! Foilist 36.45% |
-| H4. extract full | 1493 | 67.43% | —                  | Slight regression |
-| H3+H4         | 1487  | 64.78%   | —                  | Worst H variant; confirms upper bound essential |
-| H5. orbit helper | 1467 | 67.61% | —                  | **-12 bytes!** No behavioral change |
-| H2+H5         | 1479  | 66.54%   | —                  | Full clamp, same bytes as G! |
-| H2+H5+B+F     | 1497  | 67.48%   | —                  | Below B+G+F; clamp doesn't help combo |
+| H. clamp dest | 1491 | 68.24%    | 64.19%             | Lost Sedan; clamped wallSmoothedDestination stick |
+| H2. clamp both | 1503 | 68.28%  | 64.94%             | Sedan back; 15/15 wd wins; OVER LIMIT by 4 bytes |
+| H3. no upper  | 1491  | 65.28%   | 63.58%             | Upper bound matters! Foilist 36.45% |
+| H4. extract full | 1493 | 67.43% | 64.63%             | Slight regression |
+| H3+H4         | 1487  | 64.78%   | 64.35%             | Worst H variant; confirms upper bound essential |
+| H5. orbit helper | 1467 | 67.61% | 64.64%             | **-12 bytes!** No behavioral change |
+| H2+H5         | 1479  | 66.54%   | 65.38%             | Full clamp, same bytes as G! |
+| H2+H5+B+F     | 1497  | 67.48%   | 64.93%             | 15/15 wd wins; below B+G+F on 20-bot |
 
 ## Benchmark Commands
 
