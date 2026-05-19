@@ -1,7 +1,7 @@
 # Pugilist DC Experiments
 
 Committed baseline (pre-dD): **1490 bytes** (9 bytes headroom). Codesize limit: 1499.
-Current baseline (G: reverse wallSmooth, no dD): **1479 bytes** (20 bytes headroom).
+Current baseline (H2+H5: clamped stick via orbit helper): **1479 bytes** (20 bytes headroom).
 
 All codesizes below from clean builds (`./gradlew clean build`).
 
@@ -315,26 +315,26 @@ static Point2D orbitProject(Point2D from, Point2D toward, double direction, doub
 
 ## Results
 
-| Experiment | Bytes | APS (20-bot) | APS (worst-drops) | Notes |
-|------------|-------|--------------|--------------------|-------|
-| Pre-dD     | 1490  | —            | —                  | Committed master before dD |
-| D. dD only | 1481  | 67.67%       | 63.27%             | Working baseline, all experiments on top of this |
-| A. d*d+5   | 1485  | 68.33%       | 65.07%             | NeophytePRAL 52.71→61.81 |
-| B. +d num  | 1484  | 68.18%       | 65.75%             | Lost Sedan+Spark; best worst-drops |
-| C. +i      | 1484  | 54.66%       | —                  | FAILED: +i overwhelms DC, 11/20 wins |
-| G. revWS   | 1479  | 67.91%       | 63.33%             | Foilist 38.54→50.36 (WIN!), 19/20 wins |
-| G+A        | 1483  | 67.29%       | 64.20%             | Foilist back to loss; soft kernel blurs wall info |
-| G+F        | 1494  | 66.97%       | 64.60%             | 8th dim dilutes kernel; Foilist 35.14%, 18/20 wins |
-| A+G+F      | 1498  | 67.55%       | 65.62%             | 15/15 worst-drops wins! Spark flipped; 17/20 wins |
-| B+G+F      | 1497  | 68.34%       | 65.71%             | Best 8-dim combo; +d scales with dimensions, 18/20 |
-| H. clamp dest | 1491 | 68.24%    | 64.19%             | Lost Sedan; clamped wallSmoothedDestination stick |
-| H2. clamp both | 1503 | 68.28%  | 64.94%             | Sedan back; 15/15 wd wins; OVER LIMIT by 4 bytes |
-| H3. no upper  | 1491  | 65.28%   | 63.58%             | Upper bound matters! Foilist 36.45% |
-| H4. extract full | 1493 | 67.43% | 64.63%             | Slight regression |
-| H3+H4         | 1487  | 64.78%   | 64.35%             | Worst H variant; confirms upper bound essential |
-| H5. orbit helper | 1467 | 67.61% | 64.64%             | **-12 bytes!** No behavioral change |
-| H2+H5         | 1479  | 66.54%   | 65.38%             | Full clamp, same bytes as G! |
-| H2+H5+B+F     | 1497  | 67.48%   | 64.93%             | 15/15 wd wins; below B+G+F on 20-bot |
+| Experiment | Bytes | Rounds | APS (20-bot) | APS (worst-drops) | Notes |
+|------------|-------|--------|--------------|--------------------|---------|
+| Pre-dD     | 1490  | —      | —            | —                  | Committed master before dD |
+| D. dD only | 1481  | 70     | 67.67%       | 63.27%             | Working baseline, all experiments on top of this |
+| A. d*d+5   | 1485  | 70     | 68.33%       | 65.07%             | NeophytePRAL 52.71→61.81 |
+| B. +d num  | 1484  | 70     | 68.18%       | 65.75%             | Lost Sedan+Spark; best worst-drops |
+| C. +i      | 1484  | 70     | 54.66%       | —                  | FAILED: +i overwhelms DC, 11/20 wins |
+| G. revWS   | 1479  | 140    | 67.67%       | 63.33%             | Foilist WIN; 19/20 wins (avg of 67.91+67.43) |
+| G+A        | 1483  | 70     | 67.29%       | 64.20%             | Foilist back to loss; soft kernel blurs wall info |
+| G+F        | 1494  | 70     | 66.97%       | 64.60%             | 8th dim dilutes kernel; Foilist 35.14%, 18/20 wins |
+| A+G+F      | 1498  | 70     | 67.55%       | 65.62%             | 15/15 worst-drops wins! Spark flipped; 17/20 wins |
+| B+G+F      | 1497  | 70     | 68.34%       | 65.71%             | Best 8-dim combo; +d scales with dimensions, 18/20 |
+| H. clamp dest | 1491 | 70   | 68.24%       | 64.19%             | Lost Sedan; clamped wallSmoothedDestination stick |
+| H2. clamp both | 1503 | 70  | 68.28%       | 64.94%             | Sedan back; 15/15 wd wins; OVER LIMIT by 4 bytes |
+| H3. no upper  | 1491  | 70   | 65.28%       | 63.58%             | Upper bound matters! Foilist 36.45% |
+| H4. extract full | 1493 | 70 | 67.43%      | 64.63%             | Slight regression |
+| H3+H4         | 1487  | 70   | 64.78%       | 64.35%             | Worst H variant; confirms upper bound essential |
+| H5. orbit helper | 1467 | 70 | 67.61%      | 64.64%             | **-12 bytes!** No behavioral change |
+| H2+H5         | 1479  | 140  | 66.69%       | 65.38%             | **Adopted baseline**; avg of 66.54+66.84, 19/20 wins |
+| H2+H5+B+F     | 1497  | 70   | 67.48%       | 64.93%             | 15/15 wd wins; below B+G+F on 20-bot |
 
 ## Benchmark Commands
 
