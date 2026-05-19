@@ -302,6 +302,17 @@ static Point2D orbitProject(Point2D from, Point2D toward, double direction, doub
 
 ---
 
+### H2+H5+B+F. Full Combo: Clamped Stick + Orbit Helper + Broader Kernel + 8th Dim
+
+**Hypothesis**: Stack all promising modifications: H5's orbit helper for byte savings, H2's full clamp for wall clearance, B's `+d` broader kernel for regularization, F's dD as 8th dimension. B+G+F was the best combo at 68.34% — adding clamped stick should help wall-heavy opponents.
+
+**Changes**: H2+H5 base + `+d` in numerator + dD as 8th obs dimension + 8-char weight strings.
+
+**Byte cost**: 1497 bytes (2 bytes headroom)
+**Status**: Tested — 67.48% (20-bot), 18/20 wins. Below B+G+F (68.34%); clamp doesn't help this combo
+
+---
+
 ## Results
 
 | Experiment | Bytes | APS (20-bot) | APS (worst-drops) | Notes |
@@ -323,6 +334,7 @@ static Point2D orbitProject(Point2D from, Point2D toward, double direction, doub
 | H3+H4         | 1487  | 64.78%   | —                  | Worst H variant; confirms upper bound essential |
 | H5. orbit helper | 1467 | 67.61% | —                  | **-12 bytes!** No behavioral change |
 | H2+H5         | 1479  | 66.54%   | —                  | Full clamp, same bytes as G! |
+| H2+H5+B+F     | 1497  | 67.48%   | —                  | Below B+G+F; clamp doesn't help combo |
 
 ## Benchmark Commands
 
