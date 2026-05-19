@@ -1,7 +1,7 @@
 # Pugilist DC Experiments
 
 Committed baseline (pre-dD): **1490 bytes** (9 bytes headroom). Codesize limit: 1499.
-Working baseline (with dD): **1481 bytes** (18 bytes headroom).
+Current baseline (G: reverse wallSmooth, no dD): **1479 bytes** (20 bytes headroom).
 
 All codesizes below from clean builds (`./gradlew clean build`).
 
