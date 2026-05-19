@@ -30,7 +30,6 @@ public class Pugilist extends AdvancedRobot {
     static Point2D robotLocation = new Point2D.Double();
     static Point2D enemyLocation = new Point2D.Double();
     static double enemyDistance;
-    static double dD;
     static double enemyEnergy;
     static double enemyBearingDirection;
     static double prevEnemyVelocity;
@@ -76,7 +75,7 @@ public class Pugilist extends AdvancedRobot {
         enemyLocation.setLocation(
                 project(wave.gunLocation = (Point2D) robotLocation.clone(), enemyAbsoluteBearing, enemyDistance));
         wave.targetLocation = enemyLocation;
-        dD = enemyDistance - (enemyDistance = e.getDistance());
+        enemyDistance = e.getDistance();
 
         ew.advance(2);
         addCustomEvent(ew);
@@ -264,7 +263,7 @@ class Wave extends Condition {
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
         obs = new double[] { 0, Pugilist.enemyDistance, prevVel - vel,
             vel, Pugilist.wallSmooth(loc, orbitCenter, direction),
-            Pugilist.dD, tSVC };
+            Pugilist.wallSmooth(orbitCenter, loc, direction), tSVC };
     }
 
     int visitingIndex(Point2D target) {
