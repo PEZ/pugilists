@@ -124,8 +124,12 @@ public class Pugilist extends AdvancedRobot {
     void updateDirectionStats(Wave wave) {
         wave.query(Wave.surfObss);
         double d = Math.abs(wave.distanceFromTarget(wave.targetLocation, 0)) * wave.bulletVelocity;
-        Wave.dangerForward += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, 1.0, 0))] / d;
-        Wave.dangerReverse += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, -1.0, 5))] / d;
+        int fwdIdx = wave.visitingIndex(waveImpactLocation(wave, 1.0, 0));
+        int revIdx = wave.visitingIndex(waveImpactLocation(wave, -1.0, 5));
+        for (int b = 0; b < Wave.FACTORS; b++) {
+            Wave.dangerForward += Wave.scores[b] / (Math.sqrt(Math.abs(fwdIdx - b) + 1.0) * d);
+            Wave.dangerReverse += Wave.scores[b] / (Math.sqrt(Math.abs(revIdx - b) + 1.0) * d);
+        }
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
@@ -263,8 +267,8 @@ class Wave extends Condition {
     void initObs(double power, double vel, double prevVel, Point2D loc, double direction, Point2D orbitCenter, int tSVC) {
         bulletVelocity = 20 - 3 * power;
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
-        obs = new double[] { 0, Pugilist.enemyDistance, prevVel - vel,
-            vel, Pugilist.wallSmooth(loc, orbitCenter, direction),
+        obs = new double[] { 0, Pugilist.enemyDistance, Math.abs(prevVel - vel),
+            Math.abs(vel), Pugilist.wallSmooth(loc, orbitCenter, direction),
             Pugilist.wallSmooth(orbitCenter, loc, direction), tSVC };
     }
 
