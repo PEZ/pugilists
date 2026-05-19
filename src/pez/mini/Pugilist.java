@@ -184,8 +184,8 @@ public class Pugilist extends AdvancedRobot {
 class Wave extends Condition {
     static final int FACTORS = 29;
     static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
-    static final String GW = "" + (char)100 + (char)100 + (char)100 + (char)100 + (char)100 + (char)50 + (char)20;
-    static final String SW = "" + (char)100 + (char)100 + (char)100 + (char)100 + (char)100 + (char)50 + (char)1;
+    static final String GW = "" + (char)1 + (char)200 + (char)50 + (char)12 + (char)12 + (char)3 + (char)20;
+    static final String SW = "" + (char)1 + (char)200 + (char)50 + (char)12 + (char)12 + (char)3 + (char)1;
 
     static ArrayList<double[]> gunObss = new ArrayList<double[]>();
     static ArrayList<double[]> surfObss = new ArrayList<double[]>();
@@ -263,12 +263,9 @@ class Wave extends Condition {
     void initObs(double power, double vel, double prevVel, Point2D loc, double direction, Point2D orbitCenter, int tSVC) {
         bulletVelocity = 20 - 3 * power;
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
-        obs = new double[] { 0, Pugilist.enemyDistance / 180.0,
-            (prevVel - vel) * 1.5,
-            vel / 2.0,
-            Pugilist.wallSmooth(loc, orbitCenter, direction) / 25.0,
-            Pugilist.wallSmooth(orbitCenter, loc, direction) / 25.0,
-            Math.sqrt(tSVC) };
+        obs = new double[] { 0, Pugilist.enemyDistance, prevVel - vel,
+            vel, Pugilist.wallSmooth(loc, orbitCenter, direction),
+            Pugilist.wallSmooth(orbitCenter, loc, direction), tSVC };
     }
 
     int visitingIndex(Point2D target) {
