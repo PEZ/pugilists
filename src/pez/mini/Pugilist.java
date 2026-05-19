@@ -207,20 +207,21 @@ class Wave extends Condition {
 
     public boolean test() {
         advance(1);
+        Pugilist r = Pugilist.robot;
         if (surfable) {
             if (passed(-20)) {
                 passingWave = this;
             } else {
-                Pugilist.robot.updateDirectionStats(this);
+                r.updateDirectionStats(this);
             }
             if (passed(25)) {
-                Pugilist.robot.removeCustomEvent(this);
+                r.removeCustomEvent(this);
             }
         } else if (passed(-18)) {
-            if (Pugilist.robot.getOthers() > 0) {
+            if (r.getOthers() > 0) {
                 record(gunObss);
             }
-            Pugilist.robot.removeCustomEvent(this);
+            r.removeCustomEvent(this);
         }
         return false;
     }
