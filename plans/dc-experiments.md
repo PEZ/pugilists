@@ -217,6 +217,91 @@ Math.max(40, Math.min(150, enemyDistance / 1.7))
 
 ---
 
+### H3. Clamped Stick — Drop Upper Bound (both functions)
+
+**Hypothesis**: H2 is 4 bytes over limit. Dropping `Math.min(150, ...)` simplifies to `Math.max(40, enemyDistance / 1.7)`. At typical Robocode distances the upper clamp rarely fires (150px stick requires dist > 255), so behavioral change is minimal. Saves bytecode from removing Math.min call + constant.
+
+**Changes**:
+```java
+// Both wallSmooth and wallSmoothedDestination stick:
+// From:
+enemyDistance / 5.0
+// To:
+Math.max(40, enemyDistance / 1.7)
+```
+
+**Estimated byte cost**: 1491 bytes (8 bytes headroom)
+**Status**: Tested — -2.63% (20-bot). Foilist 36.45% (LOSS). Upper bound matters!
+
+---
+
+### H4. Clamped Stick — Extract to Static Field (both functions)
+
+**Hypothesis**: Computing the full-clamp stick once in a static field and referencing it in both functions saves duplicating the expression. Field read (getstatic) is cheaper than repeated Math.max/Math.min calls.
+
+**Changes**:
+```java
+// New static field:
+static double stk;
+
+// In onScannedRobot, after enemyDistance = e.getDistance():
+stk = Math.max(40, Math.min(150, enemyDistance / 1.7));
+
+// Both functions use stk instead of enemyDistance / 5.0
+```
+
+**Estimated byte cost**: 1493 bytes (6 bytes headroom)
+**Status**: Tested — -0.48% (20-bot). Slight regression
+
+---
+
+### H3+H4. Extract Stick — Lower Bound Only
+
+**Hypothesis**: Combine H3 (drop upper clamp) with H4 (extract to field). Minimal expression, single computation, dual reference.
+
+**Changes**:
+```java
+static double stk;
+// After enemyDistance = e.getDistance():
+stk = Math.max(40, enemyDistance / 1.7);
+// Both functions use stk
+```
+
+**Estimated byte cost**: 1487 bytes (12 bytes headroom)
+**Status**: Tested — -3.13% (20-bot). Worst of the H variants — confirms upper bound essential
+
+---
+
+### H5. Extract Orbit-Project Helper
+
+**Hypothesis**: Both `wallSmooth` and `wallSmoothedDestination` compute `project(from, absoluteBearing(from, toward) - direction * (PI/2 + 0.25 - (w / 100.0)), stick)`. Extracting to a helper method saves duplicating the expression at the cost of method overhead. Likely marginal with only 2 call sites — testing to verify.
+
+**Changes**:
+```java
+static Point2D orbitProject(Point2D from, Point2D toward, double direction, double w) {
+    return project(from, absoluteBearing(from, toward)
+            - direction * (Math.PI / 2 + 0.25 - (w / 100.0)), enemyDistance / 5.0);
+}
+// wallSmoothedDestination: return orbitProject(location, enemyLocation, direction, s - 1);
+// wallSmooth: replace project(...) with orbitProject(from, toward, direction, w++)
+```
+
+**Estimated byte cost**: 1467 bytes (32 bytes headroom!) — saves 12 bytes vs baseline
+**Status**: Tested — 67.61% (within noise of G baseline 67.91%). No behavioral change, pure byte savings.
+
+---
+
+### H2+H5. Full Clamped Stick via Orbit Helper
+
+**Hypothesis**: H5 saves 12 bytes. H2 costs 24 bytes over G. Together, H2's full clamp fits inside H5's savings — same 1479 bytes as G baseline. Best of both: proper wall stick clamping with zero byte cost.
+
+**Changes**: H5's orbit helper with `Math.max(40, Math.min(150, enemyDistance / 1.7))` as stick.
+
+**Byte cost**: 1479 bytes (20 bytes headroom) — same as G!
+**Status**: Tested — 66.54% (20-bot), 18/20 wins. Within variance of H2 (68.28%)
+
+---
+
 ## Results
 
 | Experiment | Bytes | APS (20-bot) | APS (worst-drops) | Notes |
@@ -233,6 +318,11 @@ Math.max(40, Math.min(150, enemyDistance / 1.7))
 | B+G+F      | 1497  | 68.34%       | 65.71%             | Best 8-dim combo; +d scales with dimensions, 18/20 |
 | H. clamp dest | 1491 | 68.24%    | —                  | Lost Sedan; clamped wallSmoothedDestination stick |
 | H2. clamp both | 1503 | 68.28%  | —                  | Sedan back; OVER LIMIT by 4 bytes |
+| H3. no upper  | 1491  | 65.28%   | —                  | Upper bound matters! Foilist 36.45% |
+| H4. extract full | 1493 | 67.43% | —                  | Slight regression |
+| H3+H4         | 1487  | 64.78%   | —                  | Worst H variant; confirms upper bound essential |
+| H5. orbit helper | 1467 | 67.61% | —                  | **-12 bytes!** No behavioral change |
+| H2+H5         | 1479  | 66.54%   | —                  | Full clamp, same bytes as G! |
 
 ## Benchmark Commands
 
