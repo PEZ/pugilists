@@ -136,15 +136,17 @@ public class Pugilist extends AdvancedRobot {
                 break;
             direction = 0;
         }
-        return project(location, absoluteBearing(location, enemyLocation)
-                - direction * (Math.PI / 2 + 0.25 - ((s - 1) / 100.0)), enemyDistance / 5.0);
+        return orbitProject(location, enemyLocation, direction, s - 1);
+    }
+
+    static Point2D orbitProject(Point2D from, Point2D toward, double direction, double w) {
+        return project(from, absoluteBearing(from, toward)
+                - direction * (Math.PI / 2 + 0.25 - (w / 100.0)), enemyDistance / 5.0);
     }
 
     static double wallSmooth(Point2D from, Point2D toward, double direction) {
         double w = 0;
-        while (w < 100 && !fieldRectangle.contains(
-                project(from, absoluteBearing(from, toward)
-                        - direction * (Math.PI / 2 + 0.25 - (w++ / 100.0)), enemyDistance / 5.0)))
+        while (w < 100 && !fieldRectangle.contains(orbitProject(from, toward, direction, w++)))
             ;
         return w;
     }
