@@ -120,8 +120,8 @@ ew.obs[5] = dD;
 
 **Changes**: Extend obs to 8 elements, change `j < 7` to `j < 8`, add weight char at position 6 and move recency to position 7 in both GW and SW.
 
-**Estimated byte cost**: ~15-20 bytes (way over budget)
-**Status**: Skipped — over budget
+**Estimated byte cost**: ~15-20 bytes (estimated)
+**Status**: Tested as G+F — see G+F below
 
 ---
 
@@ -155,6 +155,17 @@ Pugilist.wallSmooth(orbitCenter, loc, direction)
 
 ---
 
+### G+F. Reverse WallSmooth + dD as 8th Dimension
+
+**Hypothesis**: Combine G (reverse wallSmooth) with F (dD as new 8th obs dimension). Keep all 6 existing dimensions, add dD at obs[7] with weight 12. Gets both wall info AND approach/retreat without sacrificing anything.
+
+**Result**: The extra dimension dilutes the DC kernel — more dimensions spread the distance metric thinner, weakening the wall precision that beats Foilist. Foilist regressed to 35.14%, CunobelinDC also lost. The curse of dimensionality outweighs the info gain.
+
+**Byte cost**: 1494 bytes (5 bytes headroom)
+**Status**: Tested — -0.94% (20-bot). Foilist 35.14% (loss), CunobelinDC 45.17% (loss), 18/20 wins
+
+---
+
 ## Results
 
 | Experiment | Bytes | APS (20-bot) | APS (worst-drops) | Notes |
@@ -166,6 +177,7 @@ Pugilist.wallSmooth(orbitCenter, loc, direction)
 | C. +i      | 1484  | 54.66%       | —                  | FAILED: +i overwhelms DC, 11/20 wins |
 | G. revWS   | 1479  | 67.91%       | 63.33%             | Foilist 38.54→50.36 (WIN!), 19/20 wins |
 | G+A        | 1483  | 67.29%       | 64.20%             | Foilist back to loss; soft kernel blurs wall info |
+| G+F        | 1494  | 66.97%       | —                  | 8th dim dilutes kernel; Foilist 35.14%, 18/20 wins |
 
 ## Benchmark Commands
 
