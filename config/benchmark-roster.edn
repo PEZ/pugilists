@@ -1,31 +1,25 @@
-{;; Bullet shielder — keep one to track anti-shielder
- :shielders
- ["wiki.BasicBulletShielder"]
+{;; 15 randomly selected from 281 LiteRumble opponents (2.5.6 pairings)
+ :random
+ ["wiki.mini.Sedan"
+  "chase.pm.Pytko"
+  "dz.OthoMicro 0.12"
+  "wiki.mini.GouldingiHT"
+  "blir.nano.Bruce R1.0.0"
+  "pez.mini.ChironexFleckeri"
+  "suh.nano.AngularMirrorC 1.00"
+  "pe.mini.SandboxMini"
+  "stelo.MatchupMini"
+  "squidM.SquidmanNano"
+  "robar.micro.Topaz 0.25"
+  "dummy.mini.Parakeet 2.40"
+  "GarmBox.Oranges 1.0.1"
+  "zzx.Gron 1.14"
+  "ers.nano.lig.LigMA 1.8a"]
 
- ;; Top mini bots — competitive peers
- :top-minis
- ["sheldor.mini.FoilistMC"
-  "sheldor.mini.Foilist"
-  "voidious.mini.Komarious"
-  "simonton.mini.WeeksOnEnd"
-  "mld.LittleBlackBook"]
-
- ;; Bots where we underperform (negative KNNPBI)
- :underperform
- ["dft.Guppy"
-  "exauge.Leopard"
-  "nz.jdc.nano.PatternAdept"
-  "wiki.mini.GouldingiHT"]
-
- ;; Bots where 2.5.5 regressed vs 2.5.4
- :regression
- ["oog.nano.Caligula"
-  "awesomeness.Elite"
-  "mn.nano.perceptual.Impact"
-  "bvh.mini.Wodan"
-  "ary.mini.Nimi"
-  "gh.micro.GrubbmThree 1.01"]
-
- ;; Bots we beat well — regression canaries
- :canaries
- ["sample.Crazy"]}
+ ;; 5 hand-picked interesting opponents
+ :interesting
+ ["sheldor.mini.Foilist"
+  "dft.Guppy"
+  "mld.LittleBlackBook"
+  "davidalves.net.DuelistMini"
+  "jk.mini.CunobelinDC 1.2"]}
