@@ -263,8 +263,8 @@ class Wave extends Condition {
     void initObs(double power, double vel, double prevVel, Point2D loc, double direction, Point2D orbitCenter, int tSVC) {
         bulletVelocity = 20 - 3 * power;
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
-        obs = new double[] { 0, Pugilist.enemyDistance, prevVel - vel,
-            vel, Pugilist.wallSmooth(loc, orbitCenter, direction),
+        obs = new double[] { 0, Pugilist.enemyDistance, Math.abs(prevVel - vel),
+            Math.abs(vel), Pugilist.wallSmooth(loc, orbitCenter, direction),
             Pugilist.wallSmooth(orbitCenter, loc, direction), tSVC };
     }
 
