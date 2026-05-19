@@ -166,6 +166,28 @@ Pugilist.wallSmooth(orbitCenter, loc, direction)
 
 ---
 
+### A+G+F. Soft Kernel + Reverse WallSmooth + 8th Dimension
+
+**Hypothesis**: The 8-dim kernel dilution (G+F) might be compensated by soft kernel regularization (A). The `+5` constant provides a floor that prevents over-segmentation in higher dimensions.
+
+**Result**: Soft kernel helps the 8-dim framework (67.55% vs 66.97% raw G+F) but not enough to beat G alone. Lost Sedan (47.55%). Foilist improved to 43.42% but still a loss.
+
+**Byte cost**: 1498 bytes (1 byte headroom)
+**Status**: Tested — -0.36% (20-bot). 17/20 wins
+
+---
+
+### B+G+F. Broader Kernel + Reverse WallSmooth + 8th Dimension
+
+**Hypothesis**: B's `+d` numerator scales with distance, which is naturally larger in higher dimensions. This should provide better regularization than A's fixed `+5` for the 8-dim kernel.
+
+**Result**: Best 8-dim combination. The `+d` broadening compensates for dimensionality dilution. Tied with A for best overall APS. Worst-drops essentially tied with B alone. Foilist close to win (48.20%).
+
+**Byte cost**: 1497 bytes (2 bytes headroom)
+**Status**: Tested — +0.43% (20-bot), +2.44% (worst-drops). 18/20 wins
+
+---
+
 ## Results
 
 | Experiment | Bytes | APS (20-bot) | APS (worst-drops) | Notes |
@@ -178,6 +200,8 @@ Pugilist.wallSmooth(orbitCenter, loc, direction)
 | G. revWS   | 1479  | 67.91%       | 63.33%             | Foilist 38.54→50.36 (WIN!), 19/20 wins |
 | G+A        | 1483  | 67.29%       | 64.20%             | Foilist back to loss; soft kernel blurs wall info |
 | G+F        | 1494  | 66.97%       | —                  | 8th dim dilutes kernel; Foilist 35.14%, 18/20 wins |
+| A+G+F      | 1498  | 67.55%       | —                  | Soft kernel helps 8-dim but not enough; 17/20 wins |
+| B+G+F      | 1497  | 68.34%       | 65.71%             | Best 8-dim combo; +d scales with dimensions, 18/20 |
 
 ## Benchmark Commands
 
