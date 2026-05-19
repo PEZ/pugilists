@@ -1,6 +1,7 @@
 (ns benchmark
   (:require [babashka.fs :as fs]
             [babashka.process :as p]
+            [clojure.edn :as edn]
             [clojure.string :as str]
             [codesize]))
 
@@ -65,41 +66,19 @@
       (deploy-jar! bot "build")
       (println "Ready.\n"))))
 
-(def benchmark-bots
-  {;; Bullet shielder — keep one to track anti-shielder
-   :shielders
-   ["wiki.BasicBulletShielder"]
+(def default-roster "config/benchmark-roster.edn")
 
-   ;; Top mini bots — competitive peers
-   :top-minis
-   ["sheldor.mini.FoilistMC"
-    "sheldor.mini.Foilist"
-    "voidious.mini.Komarious"
-    "simonton.mini.WeeksOnEnd"
-    "mld.LittleBlackBook"]
+(defn- load-roster [path]
+  (let [roster (edn/read-string (slurp path))]
+    (when-not (and (map? roster) (every? vector? (vals roster)))
+      (throw (ex-info "Roster must be a map of category keywords to vectors of bot names" {:path path})))
+    roster))
 
-   ;; Bots where we underperform (negative KNNPBI)
-   :underperform
-   ["dft.Guppy"
-    "exauge.Leopard"
-    "nz.jdc.nano.PatternAdept"
-    "wiki.mini.GouldingiHT"]
-
-   ;; Bots where 2.5.5 regressed vs 2.5.4
-   :regression
-   ["oog.nano.Caligula"
-    "awesomeness.Elite"
-    "mn.nano.perceptual.Impact"
-    "bvh.mini.Wodan"
-    "ary.mini.Nimi"
-    "gh.micro.GrubbmThree 1.01"]
-
-   ;; Bots we beat well — regression canaries
-   :canaries
-   ["sample.Crazy"]})
-
-(def all-opponents
-  (into [] cat (vals benchmark-bots)))
+(defn- find-category [opponent roster]
+  (some (fn [[cat bots]]
+          (when (some #(= opponent %) bots)
+            cat))
+        roster))
 
 (defn- create-battle-file! [bot opponent rounds]
   (let [path (str (fs/absolutize ".tmp/benchmark.battle"))
@@ -146,12 +125,6 @@
                  :rank (parse-long (or rank "0"))}))
             data-lines))))
 
-(defn- find-category [opponent]
-  (some (fn [[cat bots]]
-          (when (some #(= opponent %) bots)
-            cat))
-        benchmark-bots))
-
 (defn- stddev [values mean]
   (if (<= (count values) 1)
     0.0
@@ -171,7 +144,7 @@
               (* 100.0 (/ (:score bot-result) total))
               0.0)))))))
 
-(defn- run-pairing! [bot opponent rounds match-length]
+(defn- run-pairing! [bot opponent rounds match-length roster]
   (let [num-matches (max 1 (quot rounds match-length))
         aps-values (doall
                     (keep (fn [_] (run-single-match! bot opponent match-length))
@@ -180,7 +153,7 @@
       (let [mean (/ (reduce + aps-values) (count aps-values))
             sd (stddev aps-values mean)]
         {:opponent opponent
-         :category (find-category opponent)
+         :category (find-category opponent roster)
          :aps mean
          :min-aps (apply min aps-values)
          :max-aps (apply max aps-values)
@@ -226,22 +199,26 @@
    Options: :bot - fully qualified bot name
             :rounds - total rounds per opponent (default: 100)
             :match-length - rounds per match (default: 35, like LiteRumble)
-            :commit - optional git ref to benchmark (default: working tree)"
-  [{:keys [bot rounds match-length commit]
+            :commit - optional git ref to benchmark (default: working tree)
+            :roster - path to roster EDN file (default: config/benchmark-roster.edn)"
+  [{:keys [bot rounds match-length commit roster]
     :or {rounds 105 match-length 35}}]
   (when-not bot
-    (println "Usage: bb benchmark <bot> [rounds] [match-length] [commit]")
+    (println "Usage: bb benchmark <bot> [rounds] [match-length] [commit] [roster]")
     (println "Example: bb benchmark pez.mini.Pugilist")
     (println "         bb benchmark pez.mini.Pugilist 100")
     (println "         bb benchmark pez.mini.Pugilist 100 10")
     (println "         bb benchmark pez.mini.Pugilist 100 10 HEAD~3")
+    (println "         bb benchmark pez.mini.Pugilist 100 10 - config/my-roster.edn")
     (System/exit 1))
-  (let [commit-info (when commit (resolve-commit commit))
+  (let [roster-path (or roster default-roster)
+        roster-data (load-roster roster-path)
+        commit-info (when commit (resolve-commit commit))
         num-matches (max 1 (quot rounds match-length))]
     (build-and-deploy! bot commit)
     (let [jar-path (str robocode-home "/robots/" bot "_2.5.5.jar")
           bot-codesize (codesize/get-size jar-path)
-          opponents all-opponents
+          opponents (into [] cat (vals roster-data))
           total (count opponents)
           start-ms (System/currentTimeMillis)
           timestamp (.format (java.time.LocalDateTime/now)
@@ -255,7 +232,7 @@
                       (fn [i opponent]
                         (print (format "  [%2d/%d] vs %-40s" (inc i) total opponent))
                         (flush)
-                        (let [result (run-pairing! bot opponent rounds match-length)]
+                        (let [result (run-pairing! bot opponent rounds match-length roster-data)]
                           (if result
                             (do (println (format "%6.2f%% APS  (%.1f–%.1f ±%.1f)"
                                                 (:aps result) (:min-aps result) (:max-aps result) (:stddev result)))
@@ -272,7 +249,7 @@
               cat-avgs (doall (map (fn [cat]
                                     (when-let [pairings (get by-cat cat)]
                                       [cat (print-category-results cat pairings)]))
-                                  [:shielders :top-minis :underperform :regression :canaries]))]
+                                  (keys roster-data)))]
           (println (str "\n  " (apply str (repeat 60 "="))))
           (let [overall (/ (reduce + (map :aps results)) (count results))]
             (println (format "  %-40s %6.2f%% OVERALL APS" "" overall))

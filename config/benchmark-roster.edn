@@ -1,0 +1,31 @@
+{;; Bullet shielder — keep one to track anti-shielder
+ :shielders
+ ["wiki.BasicBulletShielder"]
+
+ ;; Top mini bots — competitive peers
+ :top-minis
+ ["sheldor.mini.FoilistMC"
+  "sheldor.mini.Foilist"
+  "voidious.mini.Komarious"
+  "simonton.mini.WeeksOnEnd"
+  "mld.LittleBlackBook"]
+
+ ;; Bots where we underperform (negative KNNPBI)
+ :underperform
+ ["dft.Guppy"
+  "exauge.Leopard"
+  "nz.jdc.nano.PatternAdept"
+  "wiki.mini.GouldingiHT"]
+
+ ;; Bots where 2.5.5 regressed vs 2.5.4
+ :regression
+ ["oog.nano.Caligula"
+  "awesomeness.Elite"
+  "mn.nano.perceptual.Impact"
+  "bvh.mini.Wodan"
+  "ary.mini.Nimi"
+  "gh.micro.GrubbmThree 1.01"]
+
+ ;; Bots we beat well — regression canaries
+ :canaries
+ ["sample.Crazy"]}

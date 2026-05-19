@@ -24,11 +24,13 @@
                                           (first *command-line-args*))
                                       :all (= "--all" (first *command-line-args*))})}
 
-    benchmark {:doc "Run benchmark: bb benchmark <bot> [rounds] [match-length] [commit]"
+    benchmark {:doc "Run benchmark: bb benchmark <bot> [rounds] [match-length] [commit] [roster]"
                :task (benchmark/benchmark! {:bot (first *command-line-args*)
                                             :rounds (parse-long (or (second *command-line-args*) "100"))
                                             :match-length (parse-long (or (nth *command-line-args* 2 nil) "35"))
-                                            :commit (nth *command-line-args* 3 nil)})}
+                                            :commit (let [c (nth *command-line-args* 3 nil)]
+                                                      (when-not (= "-" c) c))
+                                            :roster (nth *command-line-args* 4 nil)})}
 
   publish {:doc "Build and deploy to Netlify: bb publish [version]"
            :task (publish/publish! {:version (first *command-line-args*)})}
