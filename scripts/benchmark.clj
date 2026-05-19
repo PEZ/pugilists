@@ -180,7 +180,7 @@
       avg)))
 
 (defn- save-results! [bot rounds match-length results timestamp commit-info elapsed-s]
-  (let [path (format "research/benchmarks/logs/benchmark-%s.edn" timestamp)
+  (let [path (format "../pugilists-dev/research/benchmarks/logs/benchmark-%s.edn" timestamp)
         data (cond-> {:bot bot
                       :rounds rounds
                       :match-length match-length
