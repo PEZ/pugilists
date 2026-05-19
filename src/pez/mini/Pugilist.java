@@ -238,7 +238,7 @@ class Wave extends Condition {
             double d = 0.01;
             for (int j = 1; j < 8; j++)
                 d += Math.abs(o[j] - q[j]) * w.charAt(j - 1);
-            scores[(int) o[0]] += (w.charAt(7) + i) / (d * d + 5);
+            scores[(int) o[0]] += (w.charAt(7) + i + d) / (d * d);
         }
     }
 
