@@ -162,7 +162,7 @@ Pugilist.wallSmooth(orbitCenter, loc, direction)
 **Result**: The extra dimension dilutes the DC kernel — more dimensions spread the distance metric thinner, weakening the wall precision that beats Foilist. Foilist regressed to 35.14%, CunobelinDC also lost. The curse of dimensionality outweighs the info gain.
 
 **Byte cost**: 1494 bytes (5 bytes headroom)
-**Status**: Tested — -0.94% (20-bot). Foilist 35.14% (loss), CunobelinDC 45.17% (loss), 18/20 wins
+**Status**: Tested — -0.94% (20-bot), +1.33% (worst-drops). Foilist 35.14% (loss), CunobelinDC 45.17% (loss), 18/20 wins
 
 ---
 
@@ -173,7 +173,7 @@ Pugilist.wallSmooth(orbitCenter, loc, direction)
 **Result**: Soft kernel helps the 8-dim framework (67.55% vs 66.97% raw G+F) but not enough to beat G alone. Lost Sedan (47.55%). Foilist improved to 43.42% but still a loss.
 
 **Byte cost**: 1498 bytes (1 byte headroom)
-**Status**: Tested — -0.36% (20-bot). 17/20 wins
+**Status**: Tested — -0.36% (20-bot), +2.35% (worst-drops, 15/15 wins!). 17/20 wins on 20-bot
 
 ---
 
@@ -199,8 +199,8 @@ Pugilist.wallSmooth(orbitCenter, loc, direction)
 | C. +i      | 1484  | 54.66%       | —                  | FAILED: +i overwhelms DC, 11/20 wins |
 | G. revWS   | 1479  | 67.91%       | 63.33%             | Foilist 38.54→50.36 (WIN!), 19/20 wins |
 | G+A        | 1483  | 67.29%       | 64.20%             | Foilist back to loss; soft kernel blurs wall info |
-| G+F        | 1494  | 66.97%       | —                  | 8th dim dilutes kernel; Foilist 35.14%, 18/20 wins |
-| A+G+F      | 1498  | 67.55%       | —                  | Soft kernel helps 8-dim but not enough; 17/20 wins |
+| G+F        | 1494  | 66.97%       | 64.60%             | 8th dim dilutes kernel; Foilist 35.14%, 18/20 wins |
+| A+G+F      | 1498  | 67.55%       | 65.62%             | 15/15 worst-drops wins! Spark flipped; 17/20 wins |
 | B+G+F      | 1497  | 68.34%       | 65.71%             | Best 8-dim combo; +d scales with dimensions, 18/20 |
 
 ## Benchmark Commands
