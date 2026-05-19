@@ -248,10 +248,10 @@ class Wave extends Condition {
 
     static int bestGF() {
         int best = MIDDLE_FACTOR;
-        for (int i = 0; i < FACTORS; i++) {
+        try { for (int i = 0; ; i++) {
             if (scores[i] > scores[best])
                 best = i;
-        }
+        } } catch (Exception e) {}
         return best;
     }
 
