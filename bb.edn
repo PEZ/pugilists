@@ -7,7 +7,7 @@
 
   build {:doc "Compile bots (delegates to Gradle)"
          :task (babashka.process/shell
-                {:extra-env {"JAVA_HOME" "/Users/pez/.sdkman/candidates/java/17.0.17-tem"}}
+                {:extra-env {"JAVA_HOME" "/Users/pez/.sdkman/candidates/java/21.0.11-amzn"}}
                 "./gradlew" "build")}
 
   codesize {:doc "Check codesize of a bot: bb codesize pez.mini.Pugilist"

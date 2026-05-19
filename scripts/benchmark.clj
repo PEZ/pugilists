@@ -8,7 +8,7 @@
 (def ^:dynamic *robocode-home* (str (fs/expand-home "~/robocode")))
 (def ^:dynamic *worker-id* 0)
 (def num-workers 5)
-(def java-home "/Users/pez/.sdkman/candidates/java/17.0.17-tem")
+(def java-home "/Users/pez/.sdkman/candidates/java/21.0.11-amzn")
 
 (defn- resolve-commit
   "Resolve a commit ref to its short hash and subject line."

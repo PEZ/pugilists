@@ -141,7 +141,7 @@ public class Pugilist extends AdvancedRobot {
 
     static Point2D orbitProject(Point2D from, Point2D toward, double direction, double w) {
         return project(from, absoluteBearing(from, toward)
-                - direction * (Math.PI / 2 + 0.25 - (w / 100.0)), Math.max(40, Math.min(150, enemyDistance / 1.7)));
+                - direction * (Math.PI / 2 + 0.25 - (w / 100.0)), Math.clamp(enemyDistance / 1.7, 40.0, 150.0));
     }
 
     static double wallSmooth(Point2D from, Point2D toward, double direction) {
@@ -269,10 +269,9 @@ class Wave extends Condition {
     }
 
     int visitingIndex(Point2D target) {
-        return Math.max(0,
-                Math.min(FACTORS - 1,
-                        (int) (((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection)
-                                + (FACTORS - 1) / 2 + 0.5)));
+        return (int) Math.clamp((long)
+                        (((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection)
+                                + (FACTORS - 1) / 2 + 0.5), 0, FACTORS - 1);
     }
 
     double gunBearing(Point2D target) {

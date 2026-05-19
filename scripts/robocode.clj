@@ -42,11 +42,11 @@
 
 (defn roborumble! [_opts]
   (let [java-opts (java-options)
-        env (cond-> {"JAVA_HOME" "/Users/pez/.sdkman/candidates/java/17.0.17-tem"}
+        env (cond-> {"JAVA_HOME" "/Users/pez/.sdkman/candidates/java/21.0.11-amzn"}
               java-opts (assoc "_JAVA_OPTIONS" (clojure.string/join " " java-opts)))]
     (p/shell {:dir robocode-home
               :extra-env env}
-             (str "/Users/pez/.sdkman/candidates/java/17.0.17-tem/bin/java")
+             (str "/Users/pez/.sdkman/candidates/java/21.0.11-amzn/bin/java")
              "-cp" "libs/*"
              "-Xmx512M"
              "-XX:+IgnoreUnrecognizedVMOptions"
