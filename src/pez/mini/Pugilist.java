@@ -184,6 +184,8 @@ public class Pugilist extends AdvancedRobot {
 class Wave extends Condition {
     static final int FACTORS = 29;
     static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
+    static final int DIM_GF = 0, DIM_DIST = 1, DIM_ACCEL = 2, DIM_VEL = 3,
+        DIM_WALL1 = 4, DIM_WALL2 = 5, DIM_TSVC = 6, NUM_DIMS = 7;
     static final String GW = "" + (char)1 + (char)200 + (char)50 + (char)12 + (char)12 + (char)3 + (char)20;
     static final String SW = "" + (char)1 + (char)200 + (char)50 + (char)12 + (char)12 + (char)3 + (char)1;
 
@@ -224,7 +226,7 @@ class Wave extends Condition {
     }
 
     void record(ArrayList<double[]> obss) {
-        obs[0] = visitingIndex(targetLocation);
+        obs[DIM_GF] = visitingIndex(targetLocation);
         obss.add(obs);
     }
 
@@ -237,9 +239,9 @@ class Wave extends Condition {
         for (int i = 0; i < obss.size(); i++) {
             double[] o = obss.get(i);
             double d = 0.01;
-            for (int j = 1; j < 7; j++)
+            for (int j = DIM_DIST; j < NUM_DIMS; j++)
                 d += Math.abs(o[j] - q[j]) * w.charAt(j - 1);
-            scores[(int) o[0]] += (w.charAt(6) + i) / (d * d);
+            scores[(int) o[DIM_GF]] += (w.charAt(NUM_DIMS - 1) + i) / (d * d);
         }
     }
 
@@ -266,6 +268,7 @@ class Wave extends Condition {
         obs = new double[] { 0, Pugilist.enemyDistance, prevVel - vel,
             vel, Pugilist.wallSmooth(loc, orbitCenter, direction),
             Pugilist.wallSmooth(orbitCenter, loc, direction), tSVC };
+        // indices: DIM_GF, DIM_DIST, DIM_ACCEL, DIM_VEL, DIM_WALL1, DIM_WALL2, DIM_TSVC
     }
 
     int visitingIndex(Point2D target) {
