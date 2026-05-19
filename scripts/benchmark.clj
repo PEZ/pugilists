@@ -7,6 +7,7 @@
 
 (def ^:dynamic *robocode-home* (str (fs/expand-home "~/robocode")))
 (def ^:dynamic *worker-id* 0)
+(def num-workers 5)
 (def java-home "/Users/pez/.sdkman/candidates/java/17.0.17-tem")
 
 (defn- resolve-commit
@@ -194,6 +195,17 @@
     (spit path (pr-str data))
     (println (format "\nResults saved to %s" path))))
 
+(defn- ensure-robocode-copy!
+  "Create an APFS clone of the robocode installation for a worker."
+  [worker-id]
+  (let [target (format ".tmp/robocode-%d" worker-id)
+        abs-target (str (fs/absolutize target))]
+    (fs/delete-tree target)
+    (fs/create-dirs ".tmp")
+    (p/shell {:out :string :err :string}
+             "cp" "-Rc" (str (fs/expand-home "~/robocode")) target)
+    abs-target))
+
 (defn benchmark!
   "Run benchmark battles and report APS per category.
    Options: :bot - fully qualified bot name
@@ -220,57 +232,72 @@
           bot-codesize (codesize/get-size jar-path)
           opponents (into [] cat (vals roster-data))
           total (count opponents)
+          n-workers (min num-workers total)
           start-ms (System/currentTimeMillis)
           timestamp (.format (java.time.LocalDateTime/now)
-                             (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd_HHmmss"))]
-      (println (format "Benchmark: %d opponents, %d×%d rounds each, bot: %s%s%s\n"
-                       total num-matches match-length bot
+                             (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd_HHmmss"))
+          ;; Worker 0 = original ~/robocode, workers 1..n-1 = APFS clones
+          _ (when (> n-workers 1)
+              (println (format "Setting up %d robocode instances..." n-workers)))
+          worker-homes (into [*robocode-home*]
+                             (map ensure-robocode-copy!)
+                             (range 1 n-workers))
+          ;; Round-robin shard opponents across workers
+          shards (reduce (fn [acc [i opp]]
+                           (update acc (mod i n-workers) conj opp))
+                         (vec (repeat n-workers []))
+                         (map-indexed vector opponents))
+          opp->index (into {} (map-indexed (fn [i o] [o i]) opponents))]
+      (println (format "Benchmark: %d opponents, %d×%d rounds each, %d workers, bot: %s%s%s\n"
+                       total num-matches match-length n-workers bot
                        (if commit-info (str " @ " commit-info) "")
                        (if bot-codesize (str " [" bot-codesize " bytes]") "")))
-      (let [results (doall
-                     (keep-indexed
-                      (fn [i opponent]
-                        (print (format "  [%2d/%d] vs %-40s" (inc i) total opponent))
-                        (flush)
-                        (let [result (run-pairing! bot opponent rounds match-length roster-data)]
-                          (if result
-                            (do (println (format "%6.2f%% APS  (%.1f–%.1f ±%.1f)"
-                                                (:aps result) (:min-aps result) (:max-aps result) (:stddev result)))
-                                result)
-                            (do (println "FAILED")
-                                nil))))
-                      opponents))]
+      (let [progress (atom 0)
+            futures (mapv (fn [wid]
+                            (let [shard (nth shards wid)
+                                  home (nth worker-homes wid)]
+                              (future
+                                (binding [*robocode-home* home
+                                          *worker-id* wid]
+                                  (doall
+                                   (keep (fn [opponent]
+                                           (let [result (run-pairing! bot opponent rounds match-length roster-data)
+                                                 done (swap! progress inc)]
+                                             (locking *out*
+                                               (if result
+                                                 (println (format "  [%2d/%d] vs %-40s %6.2f%% APS  (%.1f–%.1f ±%.1f)"
+                                                                  done total opponent
+                                                                  (:aps result) (:min-aps result) (:max-aps result) (:stddev result)))
+                                                 (println (format "  [%2d/%d] vs %-40s FAILED"
+                                                                  done total opponent)))
+                                               (flush))
+                                             result))
+                                         shard))))))
+                          (range n-workers))
+            results-by-worker (mapv deref futures)
+            all-results (sort-by #(get opp->index (:opponent %))
+                                 (into [] cat results-by-worker))]
         (println (str "\n" (apply str (repeat 66 "="))))
         (println (format "BENCHMARK RESULTS — %s — %d×%d rounds%s"
                          bot num-matches match-length
                          (if commit-info (str " — " commit-info) "")))
         (println (apply str (repeat 66 "=")))
-        (let [by-cat (group-by :category results)
+        (let [by-cat (group-by :category all-results)
               cat-avgs (doall (map (fn [cat]
                                     (when-let [pairings (get by-cat cat)]
                                       [cat (print-category-results cat pairings)]))
                                   (keys roster-data)))]
           (println (str "\n  " (apply str (repeat 60 "="))))
-          (let [overall (/ (reduce + (map :aps results)) (count results))]
+          (let [overall (/ (reduce + (map :aps all-results)) (count all-results))]
             (println (format "  %-40s %6.2f%% OVERALL APS" "" overall))
-            (println (format "  %-40s %d/%d wins" "" (count (filter :win? results)) (count results))))
+            (println (format "  %-40s %d/%d wins" "" (count (filter :win? all-results)) (count all-results))))
           (let [elapsed-s (/ (- (System/currentTimeMillis) start-ms) 1000.0)]
             (println (format "  %-40s %s elapsed" "" (format "%d:%02d" (int (/ elapsed-s 60)) (int (mod elapsed-s 60)))))
             (println)
-            (save-results! bot rounds match-length results timestamp commit-info elapsed-s)))
-          (fs/delete-if-exists (format ".tmp/benchmark-%d.battle" *worker-id*))
-          (fs/delete-if-exists (format ".tmp/benchmark-results-%d.txt" *worker-id*))))))
-
-(defn- ensure-robocode-copy!
-  "Create an APFS clone of the robocode installation for a worker."
-  [worker-id]
-  (let [target (format ".tmp/robocode-%d" worker-id)
-        abs-target (str (fs/absolutize target))]
-    (fs/delete-tree target)
-    (fs/create-dirs ".tmp")
-    (p/shell {:out :string :err :string}
-             "cp" "-Rc" (str (fs/expand-home "~/robocode")) target)
-    abs-target))
+            (save-results! bot rounds match-length all-results timestamp commit-info elapsed-s)))
+        (doseq [wid (range n-workers)]
+          (fs/delete-if-exists (format ".tmp/benchmark-%d.battle" wid))
+          (fs/delete-if-exists (format ".tmp/benchmark-results-%d.txt" wid)))))))
 
 (defn- run-benchmark-worker!
   "Run a complete benchmark for a single ref using a specific robocode copy.
