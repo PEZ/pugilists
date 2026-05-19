@@ -9,7 +9,7 @@ All codesizes below from clean builds (`./gradlew clean build`).
 
 The original Pugilist used `fastMoveFactors` (unsegmented, rolling depth 1) alongside segmented arrays for surf. The new DC-based Pugilist has no equivalent global regularization. Three subagent analyses converge: DC's `1/d²` kernel over-segments from tick 1 — no global prior. This gap disproportionately hurts against weak/nano bots with situation-independent targeting, and likely explains the 84% rumble regression (237/281 negative in BotCompare 2.5.6 vs 2.5.4).
 
-Additionally, the observation vector lacks approach/retreat information (radial velocity component). This is orthogonal to existing dimensions — velocity captures speed along the bot's heading, but not toward/away from us. Obs[5] is always 0 for surf, making it a free slot.
+Additionally, the observation vector lacks approach/retreat information (radial velocity component). This is orthogonal to existing dimensions — velocity captures speed along the bot's heading, but not toward/away from us. Obs[5] (wallSmooth reverse for gun, always 0 for surf) is a free slot for surf.
 
 ## Experiments
 
@@ -68,7 +68,7 @@ scores[(int) o[0]] += (w.charAt(6) + i) / (d * d) + i;
 
 ### D. Approach/Retreat in Obs[5] (Both Gun and Surf)
 
-**Hypothesis**: Delta distance (approaching vs retreating) is orthogonal to existing dimensions. Velocity captures speed along the bot's heading but doesn't decompose into radial vs lateral. A bot at distance=400 approaching has very different future positions than one retreating. Obs[5] is always 0 for surf (wasted) — replacing the ternary with `dD` for both gun and surf removes the wallSmooth reverse call (saving bytes) and adds approach/retreat info.
+**Hypothesis**: Delta distance (approaching vs retreating) is orthogonal to existing dimensions. Velocity captures speed along the bot's heading but doesn't decompose into radial vs lateral. A bot at distance=400 approaching has very different future positions than one retreating. Obs[5] stores wallSmooth reverse for gun but is always 0 for surf (wasted) — replacing it with `dD` for both gun and surf removes the wallSmooth reverse call (saving bytes) and adds approach/retreat info.
 
 **Changes**:
 ```java
@@ -95,7 +95,7 @@ Loses wallSmooth reverse for gun — trades a moderate-value gun dimension for a
 
 ### E. Approach/Retreat in Obs[5] (Surf Only)
 
-**Hypothesis**: Same as D but only for surf — keep wallSmooth reverse for gun. Assign `ew.obs[5]` after initObs instead of modifying initObs.
+**Hypothesis**: Same as D but only for surf — keep wallSmooth reverse in obs[5] for gun. Override surf's obs[5] (normally 0) with dD after initObs.
 
 **Changes**:
 ```java
