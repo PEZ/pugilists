@@ -45,7 +45,11 @@ scores[(int) o[0]] += (w.charAt(6) + i + d) / (d * d);
 Decomposes to: `(recency+i)/d² + 1/d`
 
 **Estimated byte cost**: ~3 bytes
-**Status**: Tested — +0.51% (20-bot), +2.48% (worst-drops), lost Sedan Unsegmented Recency (`+i`)
+**Status**: Tested — +0.51% (20-bot), +2.48% (worst-drops), lost Sedan
+
+---
+
+### C. Unsegmented Recency (`+i`)
 
 **Hypothesis**: Adding a pure `i` term (no dependence on distance `d`) provides a completely unsegmented recency-weighted channel. Self-balancing: when situational match is good (d small), segmented dominates; when poor (d large), unsegmented takes over.
 
