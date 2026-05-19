@@ -96,11 +96,12 @@
     path))
 
 (defn- run-battle! [battle-file]
-    (let [results-path (str (fs/absolutize (format ".tmp/benchmark-results-%d.txt" *worker-id*)))]
+    (let [results-path (str (fs/absolutize (format ".tmp/benchmark-results-%d.txt" *worker-id*)))
+          java-cmd (str java-home "/bin/java")]
       (p/shell {:dir *robocode-home*
               :out :string
               :err :string}
-             "java"
+             java-cmd
              "-Djava.awt.headless=true"
              "-cp" "libs/*"
              "-Xmx512M"
