@@ -5,7 +5,8 @@
             [clojure.string :as str]
             [codesize]))
 
-(def robocode-home (str (fs/expand-home "~/robocode")))
+(def ^:dynamic *robocode-home* (str (fs/expand-home "~/robocode")))
+(def ^:dynamic *worker-id* 0)
 (def java-home "/Users/pez/.sdkman/candidates/java/17.0.17-tem")
 
 (defn- resolve-commit
@@ -25,21 +26,20 @@
                          (filter #(str/ends-with? % ".class")))
         props-file (str build-dir "/classes/java/main/" ns-path ".properties")
         jar-name (str bot "_2.5.5.jar")
-        jar-path (str robocode-home "/robots/" jar-name)
+          jar-path (str *robocode-home* "/robots/" jar-name)
         classes-root (str build-dir "/classes/java/main")
         abs-root (str (fs/absolutize classes-root))
         entries (cond-> (mapv #(subs (str (fs/absolutize %)) (inc (count abs-root))) class-files)
                   (fs/exists? props-file) (conj (subs (str (fs/absolutize props-file))
                                                       (inc (count abs-root)))))]
     (apply p/shell {:dir classes-root} "jar" "cf" jar-path entries)
-    (fs/delete-if-exists (str robocode-home "/robots/robot.database"))))
-
+      (fs/delete-if-exists (str *robocode-home* "/robots/robot.database"))))
 (defn- build-and-deploy!
   "Build the bot and deploy its jar to Robocode. If commit is provided,
    uses git worktree to build in an isolated directory."
   [bot commit]
   (if commit
-    (let [worktree-dir (str (fs/absolutize ".tmp/benchmark-worktree"))]
+      (let [worktree-dir (str (fs/absolutize (format ".tmp/benchmark-worktree-%d" *worker-id*)))]
       (try
         (println (format "Creating worktree for %s..." commit))
         (fs/delete-tree worktree-dir)
@@ -81,7 +81,7 @@
         roster))
 
 (defn- create-battle-file! [bot opponent rounds]
-  (let [path (str (fs/absolutize ".tmp/benchmark.battle"))
+    (let [path (str (fs/absolutize (format ".tmp/benchmark-%d.battle" *worker-id*)))
         content (str "#Battle Properties\n"
                      "robocode.battleField.width=800\n"
                      "robocode.battleField.height=600\n"
@@ -95,8 +95,8 @@
     path))
 
 (defn- run-battle! [battle-file]
-  (let [results-path (str (fs/absolutize ".tmp/benchmark-results.txt"))]
-    (p/shell {:dir robocode-home
+    (let [results-path (str (fs/absolutize (format ".tmp/benchmark-results-%d.txt" *worker-id*)))]
+      (p/shell {:dir *robocode-home*
               :out :string
               :err :string}
              "java"
@@ -216,7 +216,7 @@
         commit-info (when commit (resolve-commit commit))
         num-matches (max 1 (quot rounds match-length))]
     (build-and-deploy! bot commit)
-    (let [jar-path (str robocode-home "/robots/" bot "_2.5.5.jar")
+    (let [jar-path (str *robocode-home* "/robots/" bot "_2.5.5.jar")
           bot-codesize (codesize/get-size jar-path)
           opponents (into [] cat (vals roster-data))
           total (count opponents)
@@ -258,5 +258,115 @@
             (println (format "  %-40s %s elapsed" "" (format "%d:%02d" (int (/ elapsed-s 60)) (int (mod elapsed-s 60)))))
             (println)
             (save-results! bot rounds match-length results timestamp commit-info elapsed-s)))
-        (fs/delete-if-exists ".tmp/benchmark.battle")
-        (fs/delete-if-exists ".tmp/benchmark-results.txt")))))
+          (fs/delete-if-exists (format ".tmp/benchmark-%d.battle" *worker-id*))
+          (fs/delete-if-exists (format ".tmp/benchmark-results-%d.txt" *worker-id*))))))
+
+(defn- ensure-robocode-copy!
+  "Create an APFS clone of the robocode installation for a worker."
+  [worker-id]
+  (let [target (format ".tmp/robocode-%d" worker-id)
+        abs-target (str (fs/absolutize target))]
+    (fs/delete-tree target)
+    (fs/create-dirs ".tmp")
+    (p/shell {:out :string :err :string}
+             "cp" "-Rc" (str (fs/expand-home "~/robocode")) target)
+    abs-target))
+
+(defn- run-benchmark-worker!
+  "Run a complete benchmark for a single ref using a specific robocode copy.
+   Designed for parallel execution - minimal stdout output."
+  [bot rounds match-length ref worker-id robo-home roster-data timestamp]
+  (binding [*robocode-home* robo-home
+            *worker-id* worker-id]
+    (let [label (or ref "current")
+          jar-path (str robo-home "/robots/" bot "_2.5.5.jar")
+          bot-codesize (codesize/get-size jar-path)
+          opponents (into [] cat (vals roster-data))
+          total (count opponents)
+          num-matches (max 1 (quot rounds match-length))
+          start-ms (System/currentTimeMillis)]
+      (locking *out*
+        (println (format "  [%d] %s: %d opponents, %d×%d rounds%s"
+                         worker-id label total num-matches match-length
+                         (if bot-codesize (str " [" bot-codesize " bytes]") ""))))
+      (let [results (doall
+                     (keep-indexed
+                      (fn [i opponent]
+                        (run-pairing! bot opponent rounds match-length roster-data))
+                      opponents))
+            elapsed-s (/ (- (System/currentTimeMillis) start-ms) 1000.0)
+            overall (/ (reduce + (map :aps results)) (count results))
+            wins (count (filter :win? results))
+            commit-info (when ref (resolve-commit ref))
+            save-ts (format "%s-%s" timestamp (str/replace label #"[^a-zA-Z0-9._-]" "_"))]
+        (save-results! bot rounds match-length results save-ts commit-info elapsed-s)
+        (fs/delete-if-exists (format ".tmp/benchmark-%d.battle" worker-id))
+        (fs/delete-if-exists (format ".tmp/benchmark-results-%d.txt" worker-id))
+        (locking *out*
+          (println (format "  [%d] %s: %.2f%% APS, %d/%d wins (%.0fs)"
+                           worker-id label overall wins (count results) elapsed-s)))
+        {:label label
+         :overall overall
+         :wins wins
+         :total (count results)
+         :codesize bot-codesize
+         :elapsed elapsed-s}))))
+
+(defn benchmark-parallel!
+  "Run benchmarks for multiple git refs in parallel.
+   Options: :bot - fully qualified bot name
+            :rounds - total rounds per opponent (default: 105)
+            :match-length - rounds per match (default: 35)
+            :refs - vector of git refs (nil = current working tree)"
+  [{:keys [bot rounds match-length refs]
+    :or {rounds 105 match-length 35}}]
+  (when (or (not bot) (empty? refs))
+    (println "Usage: bb benchmark-parallel <bot> <rounds> <ref1> [ref2] ... [current]")
+    (println "Example: bb benchmark-parallel pez.mini.Pugilist 105 pez.mini.Pugilist_2.5.4 current")
+    (System/exit 1))
+  (let [roster-data (load-roster default-roster)
+        n (count refs)
+        num-matches (max 1 (quot rounds match-length))
+        opponents (into [] cat (vals roster-data))
+        timestamp (.format (java.time.LocalDateTime/now)
+                           (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd_HHmmss"))]
+    (println (format "Parallel benchmark: %d versions, %d opponents, %d×%d rounds\n"
+                     n (count opponents) num-matches match-length))
+    ;; Phase 1: Setup robocode copies and build all versions (sequential)
+    (println "Phase 1: Build")
+    (let [robo-homes
+          (mapv (fn [[i ref]]
+                  (let [label (or ref "current")
+                        _ (println (format "  [%d] Setting up robocode copy for %s..." i label))
+                        robo-home (ensure-robocode-copy! i)]
+                    (println (format "  [%d] Building %s..." i label))
+                    (binding [*robocode-home* robo-home
+                              *worker-id* i]
+                      (build-and-deploy! bot ref))
+                    (println (format "  [%d] %s ready" i label))
+                    robo-home))
+                (map-indexed vector refs))]
+      ;; Phase 2: Run benchmarks in parallel
+      (println "\nPhase 2: Benchmark (parallel)")
+      (let [futures
+            (mapv (fn [[i ref]]
+                    (let [robo-home (nth robo-homes i)]
+                      (future
+                        (try
+                          (run-benchmark-worker! bot rounds match-length ref i robo-home roster-data timestamp)
+                          (catch Exception e
+                            (locking *out*
+                              (println (format "  [%d] %s FAILED: %s" i (or ref "current") (.getMessage e))))
+                            nil)))))
+                  (map-indexed vector refs))
+            results (mapv deref futures)]
+        ;; Phase 3: Summary
+        (println (str "\n" (apply str (repeat 66 "="))))
+        (println "PARALLEL BENCHMARK SUMMARY")
+        (println (apply str (repeat 66 "=")))
+        (doseq [r (remove nil? results)]
+          (println (format "  %-20s %6.2f%% APS  %d/%d wins  [%s bytes]  (%.0fs)"
+                           (:label r) (:overall r) (:wins r) (:total r)
+                           (or (:codesize r) "?") (:elapsed r))))
+        (println (format "\n  Robocode copies in .tmp/robocode-{0..%d} (rm -rf .tmp/robocode-* to clean)" (dec n)))
+        (println)))))

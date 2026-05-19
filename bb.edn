@@ -32,6 +32,14 @@
                                                       (when-not (= "-" c) c))
                                             :roster (nth *command-line-args* 4 nil)})}
 
+    benchmark-parallel {:doc "Run parallel benchmarks: bb benchmark-parallel <bot> <rounds> <ref1> [ref2] ... [current]"
+                        :task (let [[bot rounds & refs] *command-line-args*]
+                                (benchmark/benchmark-parallel!
+                                 {:bot bot
+                                  :rounds (parse-long (or rounds "105"))
+                                  :match-length 35
+                                  :refs (mapv (fn [r] (when-not (= "current" r) r)) refs)}))}
+
   publish {:doc "Build and deploy to Netlify: bb publish [version]"
            :task (publish/publish! {:version (first *command-line-args*)})}
 
