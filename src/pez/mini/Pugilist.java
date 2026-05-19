@@ -124,12 +124,8 @@ public class Pugilist extends AdvancedRobot {
     void updateDirectionStats(Wave wave) {
         wave.query(Wave.surfObss);
         double d = Math.abs(wave.distanceFromTarget(wave.targetLocation, 0)) * wave.bulletVelocity;
-        int fwdIdx = wave.visitingIndex(waveImpactLocation(wave, 1.0, 0));
-        int revIdx = wave.visitingIndex(waveImpactLocation(wave, -1.0, 5));
-        for (int b = 0; b < Wave.FACTORS; b++) {
-            Wave.dangerForward += Wave.scores[b] / (Math.sqrt(Math.abs(fwdIdx - b) + 1.0) * d);
-            Wave.dangerReverse += Wave.scores[b] / (Math.sqrt(Math.abs(revIdx - b) + 1.0) * d);
-        }
+        Wave.dangerForward += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, 1.0, 0))] / d;
+        Wave.dangerReverse += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, -1.0, 5))] / d;
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
