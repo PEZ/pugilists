@@ -1,6 +1,6 @@
 {:paths ["scripts"]
  :tasks
- {:requires ([robocode] [codesize] [battle] [install] [benchmark] [publish])
+ {:requires ([robocode] [codesize] [battle] [install] [benchmark] [publish] [extract-bot])
 
   robocode {:doc "Launch Robocode"
             :task (robocode/launch! nil)}
@@ -36,4 +36,7 @@
            :task (publish/publish! {:version (first *command-line-args*)})}
 
   roborumble {:doc "Run the RoboRumble client"
-              :task (robocode/roborumble! nil)}}}
+              :task (robocode/roborumble! nil)}
+
+  extract-bot {:doc "Copy a bot jar to research/bots: bb extract-bot sheldor.mini.Foilist"
+               :task (extract-bot/extract! {:bot (first *command-line-args*)})}}}
