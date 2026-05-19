@@ -179,8 +179,8 @@ public class Pugilist extends AdvancedRobot {
 class Wave extends Condition {
     static final int FACTORS = 29;
     static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
-    static final String GW = "" + (char)1 + (char)200 + (char)50 + (char)12 + (char)12;
-    static final String SW = "" + (char)1 + (char)200 + (char)50 + (char)12 + (char)12;
+    static final String GW = "" + (char)1 + (char)200 + (char)50 + (char)12 + (char)12 + (char)20;
+    static final String SW = "" + (char)1 + (char)200 + (char)50 + (char)12 + (char)12 + (char)1;
 
     static ArrayList<double[]> gunObss = new ArrayList<double[]>();
     static ArrayList<double[]> surfObss = new ArrayList<double[]>();
@@ -234,7 +234,7 @@ class Wave extends Condition {
             double d = 0.01;
             for (int j = 1; j < 6; j++)
                 d += Math.abs(o[j] - q[j]) * w.charAt(j - 1);
-            scores[(int) o[0]] += (20 + i) / (d * d);
+            scores[(int) o[0]] += (w.charAt(5) + i) / (d * d);
         }
     }
 
