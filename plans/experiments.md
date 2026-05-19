@@ -125,6 +125,36 @@ ew.obs[5] = dD;
 
 ---
 
+### G. Reverse WallSmooth for Both Gun and Surf (no dD)
+
+**Hypothesis**: The original code gave surf 0 for obs[5] while gun got reverse wallSmooth. Surf might benefit from knowing the enemy's wall constraint — a wall-pinned enemy has more predictable firing angles. Test by removing the ternary entirely: unconditional `wallSmooth(orbitCenter, loc, direction)` for both. This drops dD to test reverse wallSmooth in isolation.
+
+**Changes**:
+```java
+// In initObs, replace obs[5]:
+// From (dD baseline):
+Pugilist.dD
+// To:
+Pugilist.wallSmooth(orbitCenter, loc, direction)
+// Also: remove dD field and revert enemyDistance assignment
+```
+
+**Byte cost**: -11 bytes vs original (1490 → 1479), -2 bytes vs dD baseline
+**Status**: Tested — +0.24% (20-bot), +0.06% (worst-drops). Foilist 38.54→50.36 (flipped to WIN)
+
+---
+
+### G+A. Reverse WallSmooth + Soft Kernel
+
+**Hypothesis**: Combine G (reverse wallSmooth for surf) with A (soft kernel d*d+5). Should get Foilist benefit from wall info AND weak-bot benefit from regularization.
+
+**Result**: The soft kernel blurs the wall segmentation that helps against Foilist. CunobelinDC flipped to win (52.92%) but Foilist went back to loss (38.21%). The two modifications pull in opposite directions.
+
+**Byte cost**: 1483 bytes (16 bytes headroom)
+**Status**: Tested — -0.38% (20-bot), +0.93% (worst-drops). Foilist regressed to 38.21% (loss)
+
+---
+
 ## Results
 
 | Experiment | Bytes | APS (20-bot) | APS (worst-drops) | Notes |
@@ -134,6 +164,8 @@ ew.obs[5] = dD;
 | A. d*d+5   | 1485  | 68.33%       | 65.07%             | NeophytePRAL 52.71→61.81 |
 | B. +d num  | 1484  | 68.18%       | 65.75%             | Lost Sedan+Spark; best worst-drops |
 | C. +i      | 1484  | 54.66%       | —                  | FAILED: +i overwhelms DC, 11/20 wins |
+| G. revWS   | 1479  | 67.91%       | 63.33%             | Foilist 38.54→50.36 (WIN!), 19/20 wins |
+| G+A        | 1483  | 67.29%       | 64.20%             | Foilist back to loss; soft kernel blurs wall info |
 
 ## Benchmark Commands
 
