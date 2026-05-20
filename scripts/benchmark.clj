@@ -195,8 +195,13 @@
                          (:stddev p)
                          (if (:win? p) "WIN" "LOSS")
                          diff-str))))
-    (let [avg (/ (reduce + (map :aps pairings)) (count pairings))]
-      (println (format "  %-40s %6.2f%% avg" "" avg))
+    (let [avg (/ (reduce + (map :aps pairings)) (count pairings))
+          with-roster (filter :roster-aps pairings)
+          avg-delta (when (seq with-roster)
+                      (/ (reduce + (map #(- (:aps %) (:roster-aps %)) with-roster))
+                         (count with-roster)))]
+      (println (format "  %-40s %6.2f%% avg%s" "" avg
+                       (if avg-delta (format "  Δ%+.1f avg" avg-delta) "")))
       avg)))
 
 (defn- save-results! [bot rounds match-length results timestamp commit-info elapsed-s]
@@ -313,8 +318,13 @@
                                       [cat (print-category-results cat pairings)]))
                                   (keys roster-data)))]
           (println (str "\n  " (apply str (repeat 60 "="))))
-          (let [overall (/ (reduce + (map :aps all-results)) (count all-results))]
-            (println (format "  %-40s %6.2f%% OVERALL APS" "" overall))
+          (let [overall (/ (reduce + (map :aps all-results)) (count all-results))
+                with-roster (filter :roster-aps all-results)
+                avg-delta (when (seq with-roster)
+                            (/ (reduce + (map #(- (:aps %) (:roster-aps %)) with-roster))
+                               (count with-roster)))]
+            (println (format "  %-40s %6.2f%% OVERALL APS%s" "" overall
+                             (if avg-delta (format "  Δ%+.1f avg" avg-delta) "")))
             (println (format "  %-40s %d/%d wins" "" (count (filter :win? all-results)) (count all-results))))
           (let [elapsed-s (/ (- (System/currentTimeMillis) start-ms) 1000.0)]
             (println (format "  %-40s %s elapsed" "" (format "%d:%02d" (int (/ elapsed-s 60)) (int (mod elapsed-s 60)))))
