@@ -1,0 +1,20 @@
+{;; Top 10 minirumble competitors (by LiteRumble APS ranking)
+ :top-minis
+ [{:bot "sheldor.mini.FoilistMC 1.0", :aps 54.79}
+  {:bot "jk.mini.CunobelinDC 1.2", :aps 50.70}
+  {:bot "sheldor.mini.Foilist 1.3.1", :aps 39.91}
+  {:bot "voidious.mini.Komarious 1.88", :aps 47.34}
+  {:bot "simonton.mini.WeeksOnEnd 1.10.4", :aps 47.36}
+  {:bot "slugzilla.Basilisk 3.9", :aps 46.55}
+  {:bot "jk.micro.Cotillion 0.8", :aps 49.52}
+  {:bot "rz.Apollon 0.23", :aps 61.83}
+  {:bot "kc.micro.WaveShark 0.5", :aps 48.24}
+  {:bot "sheldor.micro.Continuation 1.1", :aps 48.39}]
+
+ ;; Canaries: shielder, rammer, DC-improved, flip-indicator, simple movement
+ :canaries
+ [{:bot "wiki.BasicBulletShielder 1.0", :aps 99.55}
+  {:bot "oog.nano.Caligula 1.15", :aps 58.95}
+  {:bot "dft.Guppy 1.0", :aps 77.72}
+  {:bot "cx.micro.Spark 0.6", :aps 58.19}
+  {:bot "sample.Walls 1.0", :aps 98.99}]}
