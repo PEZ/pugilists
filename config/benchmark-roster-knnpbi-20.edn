@@ -1,25 +1,27 @@
-;; LiteRumble minirumble roster for pez.mini.Pugilist 2.5.7
-;; Sorted by -KNNPBI: top 5 + middle 5 + random 5 + bottom 5 = 20
-;; Generated 2026-05-20T15:21:14.262039
-[
- "wiki.nano.Flick 1.0" ;; KNNPBI -23.82
- "mld.LittleBlackBook 1.69e" ;; KNNPBI -20.92
- "nz.jdc.nano.AralR 1.1" ;; KNNPBI -19.69
- "mld.jdc.nano.LittleBlackBook 1.0" ;; KNNPBI -19.09
- "tkt.RedShift 1.1.CS.0" ;; KNNPBI -16.61
- "yarghard.Y101 1.0" ;; KNNPBI -3.11
- "arthord.MannyPacquiao Delta2" ;; KNNPBI -0.81
- "davv.DOne b002" ;; KNNPBI -0.01
- "is.fon.rs.Kamikaza 1.0" ;; KNNPBI -0.01
- "amc.ROBv400 1.0" ;; KNNPBI -0.01
- "extra.LightSauce 0.01" ;; KNNPBI -0.01
- "nova.Snow 1.0" ;; KNNPBI -0.00
- "ap.Frederick 1.1" ;; KNNPBI 0.55
- "WidowMakersAtWar.EpicCow 1.0" ;; KNNPBI 0.89
- "slugzilla.OrbitPattern 1.1" ;; KNNPBI 3.61
- "wiki.mini.GouldingiHT 1.0" ;; KNNPBI 15.72
- "slugzilla.Parallax 0.1" ;; KNNPBI 16.36
- "nkn.mini.Jskr0 0.1" ;; KNNPBI 16.39
- "sheldor.micro.PointInLineRRAL 1.0" ;; KNNPBI 17.77
- "dsekercioglu.shield.ColdBreath 1.0" ;; KNNPBI 20.02
-]
+;; LiteRumble minirumble roster from BotDetails for pez.mini.Pugilist 2.5.7
+;; Sorted by KNNPBI: top 5 + middle 5 + random 5 + bottom 5 = 20
+;; Generated 2026-05-20T15:58:20.411306
+{:top
+ [{:bot "wiki.nano.Flick 1.0", :aps 47.97}
+  {:bot "mld.LittleBlackBook 1.69e", :aps 55.64}
+  {:bot "nz.jdc.nano.AralR 1.1", :aps 60.82}
+  {:bot "mld.jdc.nano.LittleBlackBook 1.0", :aps 57.95}
+  {:bot "tkt.RedShift 1.1.CS.0", :aps 74.81}],
+ :middle
+ [{:bot "davv.DOne b002", :aps 99.78}
+  {:bot "is.fon.rs.Kamikaza 1.0", :aps 98.86}
+  {:bot "amc.ROBv400 1.0", :aps 96.25}
+  {:bot "extra.LightSauce 0.01", :aps 96.04}
+  {:bot "nova.Snow 1.0", :aps 70.78}],
+ :random
+ [{:bot "mld.Wisdom 1.0", :aps 90.11}
+  {:bot "ph.micro.Pikeman 0.4.5", :aps 63.69}
+  {:bot "sheldor.nano.PointInLine 1.0", :aps 80.43}
+  {:bot "ahf.NanoAndrew .4", :aps 91.74}
+  {:bot "robin.ScalpBotC 1.0", :aps 93.33}],
+ :bottom
+ [{:bot "wiki.mini.GouldingiHT 1.0", :aps 93.45}
+  {:bot "slugzilla.Parallax 0.1", :aps 83.07}
+  {:bot "nkn.mini.Jskr0 0.1", :aps 78.99}
+  {:bot "sheldor.micro.PointInLineRRAL 1.0", :aps 80.69}
+  {:bot "dsekercioglu.shield.ColdBreath 1.0", :aps 98.86}]}

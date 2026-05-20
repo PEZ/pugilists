@@ -50,5 +50,5 @@
   extract-bot {:doc "Copy a bot jar to research/bots: bb extract-bot sheldor.mini.Foilist"
                :task (extract-bot/extract! {:bot (first *command-line-args*)})}
 
-  rumble-roster {:doc "Generate benchmark roster from LiteRumble: bb rumble-roster 'pez.mini.Pugilist 2.5.7' [options]"
+  rumble-roster {:doc "Generate benchmark roster from LiteRumble: bb rumble-roster [--bot 'Bot 1.0'] [--column APS] [--game minirumble] [--output file.edn]"
                  :task (rumble-roster/generate! *command-line-args*)}}}

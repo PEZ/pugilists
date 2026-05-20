@@ -69,15 +69,20 @@
 
 (def default-roster "config/benchmark-roster.edn")
 
+(defn- bot-name
+  "Extract bot name from a roster entry (string or {:bot name} map)."
+  [entry]
+  (if (map? entry) (:bot entry) entry))
+
 (defn- load-roster [path]
   (let [roster (edn/read-string (slurp path))]
     (when-not (and (map? roster) (every? vector? (vals roster)))
-      (throw (ex-info "Roster must be a map of category keywords to vectors of bot names" {:path path})))
+      (throw (ex-info "Roster must be a map of category keywords to vectors" {:path path})))
     roster))
 
 (defn- find-category [opponent roster]
   (some (fn [[cat bots]]
-          (when (some #(= opponent %) bots)
+          (when (some #(= opponent (bot-name %)) bots)
             cat))
         roster))
 
@@ -231,7 +236,7 @@
     (build-and-deploy! bot commit)
     (let [jar-path (str *robocode-home* "/robots/" bot "_2.5.5.jar")
           bot-codesize (codesize/get-size jar-path)
-          opponents (into [] cat (vals roster-data))
+          opponents (into [] (comp cat (map bot-name)) (vals roster-data))
           total (count opponents)
           n-workers (min num-workers total)
           start-ms (System/currentTimeMillis)
@@ -309,7 +314,7 @@
     (let [label (or ref "current")
           jar-path (str robo-home "/robots/" bot "_2.5.5.jar")
           bot-codesize (codesize/get-size jar-path)
-          opponents (into [] cat (vals roster-data))
+          opponents (into [] (comp cat (map bot-name)) (vals roster-data))
           total (count opponents)
           num-matches (max 1 (quot rounds match-length))
           start-ms (System/currentTimeMillis)]
@@ -355,7 +360,7 @@
   (let [roster-data (load-roster default-roster)
         n (count refs)
         num-matches (max 1 (quot rounds match-length))
-        opponents (into [] cat (vals roster-data))
+        opponents (into [] (comp cat (map bot-name)) (vals roster-data))
         timestamp (.format (java.time.LocalDateTime/now)
                            (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd_HHmmss"))]
     (println (format "Parallel benchmark: %d versions, %d opponents, %d×%d rounds\n"
