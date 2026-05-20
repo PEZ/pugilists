@@ -1,6 +1,7 @@
 {:paths ["scripts"]
+ :deps {org.babashka/http-client {:mvn/version "0.4.22"}}
  :tasks
- {:requires ([robocode] [codesize] [battle] [install] [benchmark] [publish] [extract-bot])
+ {:requires ([robocode] [codesize] [battle] [install] [benchmark] [publish] [extract-bot] [rumble-roster])
 
   robocode {:doc "Launch Robocode"
             :task (robocode/launch! nil)}
@@ -47,4 +48,7 @@
               :task (robocode/roborumble! nil)}
 
   extract-bot {:doc "Copy a bot jar to research/bots: bb extract-bot sheldor.mini.Foilist"
-               :task (extract-bot/extract! {:bot (first *command-line-args*)})}}}
+               :task (extract-bot/extract! {:bot (first *command-line-args*)})}
+
+  rumble-roster {:doc "Generate benchmark roster from LiteRumble: bb rumble-roster 'pez.mini.Pugilist 2.5.7' [options]"
+                 :task (rumble-roster/generate! *command-line-args*)}}}
