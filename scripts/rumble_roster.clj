@@ -1,55 +1,40 @@
 (ns rumble-roster
   (:require [babashka.http-client :as http]
+            [cheshire.core :as json]
             [clojure.pprint :as pp]
             [clojure.string :as str]))
 
-;; Column definitions for each page type
-;; Index is 0-based position in the <td> cells after the rank cell
+;; Column definitions: user-facing name → JSON key
 (def ^:private rankings-columns
-  {"APS" 3, "PWIN" 4, "ANPP" 5, "Vote" 6, "Survival" 7})
+  {"APS" :APS, "PWIN" :PWIN, "ANPP" :ANPP, "Vote" :vote, "Survival" :survival})
 
 (def ^:private bot-details-columns
-  {"APS" 4, "NPP" 5, "Survival" 6, "KNNPBI" 7})
+  {"APS" :APS, "NPP" :NPP, "Survival" :survival, "KNNPBI" :KNNPBI})
 
 (defn- url-encode [s]
   (-> (java.net.URLEncoder/encode s "UTF-8")
       (str/replace "+" "%20")))
 
 (defn- fetch-rankings [game order]
-  (let [url (format "https://literumble.appspot.com/Rankings?game=%s&order=%s"
+  (let [url (format "https://literumble.appspot.com/Rankings?game=%s&order=%s&api=1"
                     game (url-encode order))]
-    (:body (http/get url))))
+    (json/parse-string (:body (http/get url)) true)))
 
 (defn- fetch-bot-details [game bot-version order]
-  (let [url (format "https://literumble.appspot.com/BotDetails?game=%s&name=%s&order=%s"
+  (let [url (format "https://literumble.appspot.com/BotDetails?game=%s&name=%s&order=%s&api=1"
                     game (url-encode bot-version) (url-encode order))]
-    (:body (http/get url))))
+    (:pairingsList (json/parse-string (:body (http/get url)) true))))
 
-(defn- extract-name [cell-html]
-  (-> (re-find #">([^<]+)<" cell-html) second str/trim))
-
-(defn- parse-rows
-  "Parse table rows from LiteRumble HTML.
-   column-index is the 0-based <td> position of the sort column.
-   aps-index is the position of the APS column (always extracted)."
-  [html column-index aps-index]
-  (->> (re-seq #"(?s)<tr>\s*<td>(\d+)</td>.*?</tr>" html)
-       (keep (fn [[row-html rank-str]]
-               (let [cells (->> (re-seq #"(?s)<td[^>]*>(.*?)</td>" row-html)
-                                (mapv second))
-                     rank (parse-long rank-str)]
-                 (when (> (count cells) (max column-index aps-index))
-                   (let [name     (extract-name (nth cells 2))
-                         col-raw  (-> (nth cells column-index)
-                                      (str/replace #"<[^>]+>" "")
-                                      str/trim)
-                         col-val  (parse-double col-raw)
-                         aps-raw  (-> (nth cells aps-index)
-                                      (str/replace #"<[^>]+>" "")
-                                      str/trim)
-                         aps      (parse-double aps-raw)]
-                     {:rank rank :name name :col-val col-val :aps aps})))))
-       vec))
+(defn- parse-bots
+  "Extract bot entries from JSON data.
+   col-key is the keyword for the sort column (e.g. :KNNPBI)."
+  [data col-key]
+  (mapv (fn [entry]
+          {:rank    (:rank entry)
+           :name    (:name entry)
+           :col-val (get entry col-key)
+           :aps     (:APS entry)})
+        data))
 
 (defn- select-roster
   "Select top N, middle N, bottom N, and random N from the sorted list.
@@ -106,9 +91,8 @@
                          (and (contains? bot-details-columns column)
                               (not (contains? rankings-columns column))))
         col-map (if use-details? bot-details-columns rankings-columns)
-        col-idx (get col-map column)
-        aps-idx (get col-map "APS")]
-    (when-not col-idx
+        col-key (get col-map column)]
+    (when-not col-key
       (println (format "Unknown column '%s' for %s page." column (if use-details? "BotDetails" "Rankings")))
       (println (format "Available: %s" (str/join ", " (keys col-map))))
       (System/exit 1))
@@ -119,10 +103,10 @@
     (let [order  (str "-" column)
           source (if use-details? (str "BotDetails for " bot) "Rankings")
           _      (println (format "Fetching %s %s (column: %s)..." game source column))
-          html   (if use-details?
+          data   (if use-details?
                    (fetch-bot-details game bot order)
                    (fetch-rankings game order))
-          bots   (parse-rows html col-idx aps-idx)
+          bots   (parse-bots data col-key)
           _      (println (format "Parsed %d bots" (count bots)))
           roster (select-roster bots {:top top :middle middle :bottom bottom :random random})
           edn    (format-edn roster {:game game :source source :column column
