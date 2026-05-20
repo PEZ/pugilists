@@ -86,6 +86,16 @@
             cat))
         roster))
 
+(defn- find-roster-aps
+  "Look up the LiteRumble APS for an opponent from roster data."
+  [opponent roster]
+  (some (fn [[_ bots]]
+          (some (fn [entry]
+                  (when (and (map? entry) (= opponent (:bot entry)))
+                    (:aps entry)))
+                bots))
+        roster))
+
 (defn- create-battle-file! [bot opponent rounds]
     (let [path (str (fs/absolutize (format ".tmp/benchmark-%d.battle" *worker-id*)))
         content (str "#Battle Properties\n"
@@ -161,6 +171,7 @@
             sd (stddev aps-values mean)]
         {:opponent opponent
          :category (find-category opponent roster)
+         :roster-aps (find-roster-aps opponent roster)
          :aps mean
          :min-aps (apply min aps-values)
          :max-aps (apply max aps-values)
@@ -173,13 +184,17 @@
     (println (format "\n  %s" (str/upper-case label)))
     (println (str "  " (apply str (repeat 60 "-"))))
     (doseq [p (sort-by :aps pairings)]
-      (println (format "  %-40s %6.2f%% APS  (%.1f-%.1f ±%.1f)  %s"
-                       (:opponent p)
-                       (:aps p)
-                       (:min-aps p)
-                       (:max-aps p)
-                       (:stddev p)
-                       (if (:win? p) "WIN" "LOSS"))))
+      (let [diff-str (if-let [ra (:roster-aps p)]
+                       (format "  Δ%+.1f" (- (:aps p) ra))
+                       "")]
+        (println (format "  %-40s %6.2f%% APS  (%.1f-%.1f ±%.1f)  %s%s"
+                         (:opponent p)
+                         (:aps p)
+                         (:min-aps p)
+                         (:max-aps p)
+                         (:stddev p)
+                         (if (:win? p) "WIN" "LOSS")
+                         diff-str))))
     (let [avg (/ (reduce + (map :aps pairings)) (count pairings))]
       (println (format "  %-40s %6.2f%% avg" "" avg))
       avg)))
@@ -271,9 +286,13 @@
                                                  done (swap! progress inc)]
                                              (locking *out*
                                                (if result
-                                                 (println (format "  [%2d/%d] vs %-40s %6.2f%% APS  (%.1f–%.1f ±%.1f)"
-                                                                  done total opponent
-                                                                  (:aps result) (:min-aps result) (:max-aps result) (:stddev result)))
+                                                 (let [diff-str (if-let [ra (:roster-aps result)]
+                                                                  (format "  Δ%+.1f" (- (:aps result) ra))
+                                                                  "")]
+                                                   (println (format "  [%2d/%d] vs %-40s %6.2f%% APS  (%.1f–%.1f ±%.1f)%s"
+                                                                    done total opponent
+                                                                    (:aps result) (:min-aps result) (:max-aps result) (:stddev result)
+                                                                    diff-str)))
                                                  (println (format "  [%2d/%d] vs %-40s FAILED"
                                                                   done total opponent)))
                                                (flush))
