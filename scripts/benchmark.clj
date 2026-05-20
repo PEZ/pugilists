@@ -26,7 +26,7 @@
                          (map str)
                          (filter #(str/ends-with? % ".class")))
         props-file (str build-dir "/classes/java/main/" ns-path ".properties")
-        jar-name (str bot "_2.5.5.jar")
+        jar-name (str bot "_benched.jar")
           jar-path (str *robocode-home* "/robots/" jar-name)
         classes-root (str build-dir "/classes/java/main")
         abs-root (str (fs/absolutize classes-root))
@@ -249,7 +249,7 @@
         commit-info (when commit (resolve-commit commit))
         num-matches (max 1 (quot rounds match-length))]
     (build-and-deploy! bot commit)
-    (let [jar-path (str *robocode-home* "/robots/" bot "_2.5.5.jar")
+    (let [jar-path (str *robocode-home* "/robots/" bot "_benched.jar")
           bot-codesize (codesize/get-size jar-path)
           opponents (into [] (comp cat (map bot-name)) (vals roster-data))
           total (count opponents)
@@ -331,7 +331,7 @@
   (binding [*robocode-home* robo-home
             *worker-id* worker-id]
     (let [label (or ref "current")
-          jar-path (str robo-home "/robots/" bot "_2.5.5.jar")
+          jar-path (str robo-home "/robots/" bot "_benched.jar")
           bot-codesize (codesize/get-size jar-path)
           opponents (into [] (comp cat (map bot-name)) (vals roster-data))
           total (count opponents)
