@@ -63,11 +63,8 @@
           (p/shell "curl" "-sfo" local-path (str site-url "/" jar-name)))))))
 
 (defn publish!
-  "Build and deploy per-bot JARs to Netlify.
-   bb publish [version] — version applies to Pugilist."
-  [{:keys [version]}]
-  (when version
-    (set-version! "pez.mini.Pugilist" version))
+  "Build and deploy per-bot JARs to Netlify."
+  []
 
   (println "Building...")
   (p/shell {:extra-env {"JAVA_HOME" "/Library/Java/JavaVirtualMachines/graalvm-23.jdk/Contents/Home"}}
@@ -91,7 +88,7 @@
     (doseq [{:keys [classname version]} bots]
       (let [tag (str classname "_" version)]
         (println (str "  " tag))
-        (if (zero? (:exit (p/process ["git" "tag" tag] {:inherit true})))
+        (if (zero? (:exit @(p/process ["git" "tag" tag] {:inherit true})))
           (p/shell "git" "push" "origin" tag)
           (println (str "    (tag already exists, skipping)")))))
 

@@ -40,8 +40,8 @@
                                   :match-length 35
                                   :refs (mapv (fn [r] (when-not (= "current" r) r)) refs)}))}
 
-  publish {:doc "Build and deploy to Netlify: bb publish [version]"
-           :task (publish/publish! {:version (first *command-line-args*)})}
+  publish {:doc "Build and deploy to Netlify"
+           :task (publish/publish!)}
 
   roborumble {:doc "Run the RoboRumble client"
               :task (robocode/roborumble! nil)}
