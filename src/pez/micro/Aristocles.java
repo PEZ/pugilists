@@ -24,15 +24,13 @@ public class Aristocles extends AdvancedRobot {
 	static final int DISTANCE_INDEXES = 5;
 	static final int VELOCITY_INDEXES = 5;
 	static final int LAST_VELOCITY_INDEXES = 5;
-	static final int DECCEL_TIME_INDEXES = 6;
 	static final int AIM_FACTORS = 25;
 	static final int MIDDLE_FACTOR = (AIM_FACTORS - 1) / 2;
 
 	static Point2D enemyLocation;
 	static int lastVelocityIndex;
-	static int timeSinceDeccel;
 	static double bearingDirection;
-	static int[][][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][LAST_VELOCITY_INDEXES][DECCEL_TIME_INDEXES][AIM_FACTORS];
+	static int[][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][LAST_VELOCITY_INDEXES][AIM_FACTORS];
 	static double direction = 0.4;
 	static double enemyFirePower;
 	static int GF1Hits;
@@ -76,9 +74,6 @@ public class Aristocles extends AdvancedRobot {
 		// <gun>
 		double enemyVelocity = e.getVelocity();
 		int velocityIndex = (int)Math.abs(enemyVelocity) / 2;
-		if (velocityIndex < lastVelocityIndex) {
-			timeSinceDeccel = 0;
-		}
 
 		if (enemyVelocity != 0) {
 			bearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR, enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
@@ -90,7 +85,7 @@ public class Aristocles extends AdvancedRobot {
 				(distanceIndex = (int)(enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER : MAX_BULLET_POWER);
 		//wave.wBulletPower = MAX_BULLET_POWER; // TargetingChallenge
 
-		wave.wAimFactors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(5, timeSinceDeccel++ / 13)];
+		wave.wAimFactors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex];
 		lastVelocityIndex = velocityIndex;
 
 		wave.wBearing = enemyAbsoluteBearing;
