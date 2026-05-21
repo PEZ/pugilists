@@ -18,3 +18,9 @@ sourceSets {
 dependencies {
     compileOnly files("${System.getProperty('user.home')}/robocode/libs/robocode.jar")
 }
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
