@@ -1,0 +1,27 @@
+;; LiteRumble microrumble roster from Rankings
+;; Sorted by APS: top 5 + middle 5 + random 5 + bottom 5 = 20
+;; Generated 2026-05-21T20:45:51.958507
+{:top
+ [{:bot "mn.nano.SkippedTurns 1.1.0", :aps 0.0}
+  {:bot "suh.nano.Worst 1.02", :aps 0.77}
+  {:bot "suzushin7.nano.Galaxy01 1.01", :aps 0.78}
+  {:bot "eem.awful v1.2", :aps 0.8}
+  {:bot "sheldor.nano.Retreat 1.0", :aps 0.91}],
+ :middle
+ [{:bot "amc.ROBv203 1.0", :aps 52.91}
+  {:bot "kawigi.micro.Shiz 1.1", :aps 52.98}
+  {:bot "jaw.Mouse 0.11", :aps 53.03}
+  {:bot "buba.Buba 0.3", :aps 53.04}
+  {:bot "maribo.FollowFire 1.11", :aps 53.06}],
+ :random
+ [{:bot "lechu.Lechu 1.1", :aps 56.61}
+  {:bot "etienne72230.Wall_street 1.0", :aps 31.02}
+  {:bot "zyx.nano.EscherichiaColi 1.0", :aps 41.99}
+  {:bot "robar.nano.MosquitoPM 1.0", :aps 67.68}
+  {:bot "sp.AstherNano 1.0", :aps 40.7}],
+ :bottom
+ [{:bot "nz.jdc.micro.HedgehogGF 1.5", :aps 84.97}
+  {:bot "sheldor.micro.Epeeist 3.7", :aps 85.03}
+  {:bot "sheldor.micro.Continuation 1.1", :aps 85.24}
+  {:bot "jk.micro.Cotillion 0.8", :aps 85.61}
+  {:bot "kc.micro.WaveShark 0.5", :aps 85.62}]}
