@@ -63,8 +63,7 @@ public class Pugilist extends AdvancedRobot {
 
         double direction = robotBearingDirection(ew.startBearing);
         if (prevRobotVelocity != robotVelocity) robotTSVC = 0; else robotTSVC++;
-        ew.initObs(enemyFirePower, robotVelocity, prevRobotVelocity, robotLocation, direction, enemyLocation, robotTSVC,
-                Math.cos(getHeadingRadians() - ew.startBearing));
+        ew.initObs(enemyFirePower, robotVelocity, prevRobotVelocity, robotLocation, direction, enemyLocation, robotTSVC);
         prevRobotVelocity = robotVelocity;
         robotVelocity = getVelocity();
         ew.targetLocation = robotLocation;
@@ -91,8 +90,7 @@ public class Pugilist extends AdvancedRobot {
         }
         if (prevEnemyVelocity != enemyVelocity) enemyTSVC = 0; else enemyTSVC++;
         wave.initObs(bulletPower, enemyVelocity, prevEnemyVelocity, enemyLocation, enemyBearingDirection,
-                robotLocation, enemyTSVC,
-                Math.cos(e.getHeadingRadians() - enemyAbsoluteBearing));
+                robotLocation, enemyTSVC);
         prevEnemyVelocity = enemyVelocity;
 
         wave.query(Wave.gunObss);
@@ -187,9 +185,9 @@ class Wave extends Condition {
     static final int FACTORS = 29;
     static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
     static final int DIM_GF = 0, DIM_DIST = 1, DIM_ACCEL = 2, DIM_VEL = 3,
-        DIM_WALL1 = 4, DIM_AR = 5, DIM_TSVC = 6, NUM_DIMS = 7;
-    static final String GW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)400 + (char)16 + (char)20;
-    static final String SW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)400 + (char)16 + (char)1;
+        DIM_WALL1 = 4, DIM_WALL2 = 5, DIM_TSVC = 6, NUM_DIMS = 7;
+    static final String GW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)18 + (char)16 + (char)20;
+    static final String SW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)18 + (char)16 + (char)1;
 
     static ArrayList<double[]> gunObss = new ArrayList<double[]>();
     static ArrayList<double[]> surfObss = new ArrayList<double[]>();
@@ -273,14 +271,13 @@ class Wave extends Condition {
         distanceFromGun += ticks * bulletVelocity;
     }
 
-    void initObs(double power, double vel, double prevVel, Point2D loc, double direction, Point2D orbitCenter, int tSVC,
-                  double cosAngle) {
+    void initObs(double power, double vel, double prevVel, Point2D loc, double direction, Point2D orbitCenter, int tSVC) {
         bulletVelocity = 20 - 3 * power;
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
         obs = new double[] { 0, Pugilist.enemyDistance, prevVel - vel,
             vel, Pugilist.wallSmooth(loc, orbitCenter, direction),
-            cosAngle, tSVC };
-        // indices: DIM_GF, DIM_DIST, DIM_ACCEL, DIM_VEL, DIM_WALL1, DIM_AR, DIM_TSVC
+            Pugilist.wallSmooth(orbitCenter, loc, direction), tSVC };
+        // indices: DIM_GF, DIM_DIST, DIM_ACCEL, DIM_VEL, DIM_WALL1, DIM_WALL2, DIM_TSVC
     }
 
     int visitingIndex(Point2D target) {
