@@ -34,7 +34,7 @@ public class Aristocles extends AdvancedRobot {
 	static int timeSinceDeccel;
 	static double bearingDirection;
 	static int[][][][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][LAST_VELOCITY_INDEXES][DECCEL_TIME_INDEXES][WALL_INDEXES][AIM_FACTORS];
-	static double direction = 0.4;
+	static double direction = 1.0;
 	static double enemyFirePower;
 	static int GF1Hits;
 	static int tries;
@@ -117,9 +117,7 @@ public class Aristocles extends AdvancedRobot {
 	}
 
 	public void onHitByBullet(HitByBulletEvent e) {
-		if (tries < 30) {
-			GF1Hits++;
-		}
+		GF1Hits++;
 		enemyFirePower = e.getPower();
 	}
 
