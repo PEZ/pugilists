@@ -373,6 +373,9 @@
                                           *worker-id* wid]
                                   (doall
                                    (keep (fn [opponent]
+                                           (locking *out*
+                                             (print (format "        battling %s...\r" opponent))
+                                             (flush))
                                            (let [result (run-pairing! bot opponent rounds match-length roster-data)
                                                  done (swap! progress inc)]
                                              (locking *out*
