@@ -179,30 +179,116 @@
          :matches (count aps-values)
          :win? (> mean 50.0)}))))
 
-(defn- print-category-results [category pairings]
-  (let [label (str/replace (name category) "-" " ")]
-    (println (format "\n  %s" (str/upper-case label)))
-    (println (str "  " (apply str (repeat 60 "-"))))
-    (doseq [p (sort-by :aps pairings)]
-      (let [diff-str (if-let [ra (:roster-aps p)]
-                       (format "  Δ%+.1f" (- (:aps p) ra))
-                       "")]
-        (println (format "  %-40s %6.2f%% APS  (%.1f-%.1f ±%.1f)  %s%s"
-                         (:opponent p)
-                         (:aps p)
-                         (:min-aps p)
-                         (:max-aps p)
-                         (:stddev p)
-                         (if (:win? p) "WIN" "LOSS")
-                         diff-str))))
-    (let [avg (/ (reduce + (map :aps pairings)) (count pairings))
-          with-roster (filter :roster-aps pairings)
-          avg-delta (when (seq with-roster)
-                      (/ (reduce + (map #(- (:aps %) (:roster-aps %)) with-roster))
-                         (count with-roster)))]
-      (println (format "  %-40s %6.2f%% avg%s" "" avg
-                       (if avg-delta (format "  Δ%+.1f avg" avg-delta) "")))
-      avg)))
+(defn- with-win-flag
+  "Ensure a pairing has a :win? key (saved logs omit it)."
+  [pairing]
+  (if (contains? pairing :win?)
+    pairing
+    (assoc pairing :win? (> (:aps pairing) 50.0))))
+
+(defn- category-order
+  "Keep categories in first-seen order from pairings."
+  [pairings]
+  (->> pairings (map :category) distinct vec))
+
+(defn- format-category-section
+  "Render one category section in benchmark-output style.
+   Returns {:lines [...] :avg n :avg-delta n?}."
+  [category pairings]
+  (let [label (str/replace (name category) "-" " ")
+        sorted-pairings (sort-by :aps pairings)
+        item-lines (mapv (fn [p]
+                           (let [diff-str (if-let [ra (:roster-aps p)]
+                                            (format "  Δ%+.1f" (- (:aps p) ra))
+                                            "")]
+                             (format "  %-40s %6.2f%% APS  (%.1f-%.1f ±%.1f)  %s%s"
+                                     (:opponent p)
+                                     (:aps p)
+                                     (:min-aps p)
+                                     (:max-aps p)
+                                     (:stddev p)
+                                     (if (:win? p) "WIN" "LOSS")
+                                     diff-str)))
+                         sorted-pairings)
+        avg (/ (reduce + (map :aps pairings)) (count pairings))
+        with-roster (filter :roster-aps pairings)
+        avg-delta (when (seq with-roster)
+                    (/ (reduce + (map #(- (:aps %) (:roster-aps %)) with-roster))
+                       (count with-roster)))
+        avg-line (format "  %-40s %6.2f%% avg%s" "" avg
+                         (if avg-delta (format "  Δ%+.1f avg" avg-delta) ""))]
+    {:lines (into [(format "")
+                   (format "  %s" (str/upper-case label))
+                   (str "  " (apply str (repeat 60 "-")))]
+                  (conj item-lines avg-line))
+     :avg avg
+     :avg-delta avg-delta}))
+
+(defn- format-benchmark-report-lines
+  "Render benchmark results into the same textual report format used by benchmark!"
+  [{:keys [bot rounds match-length pairings commit elapsed-seconds]}]
+  (let [pairings (mapv with-win-flag pairings)
+        num-matches (max 1 (quot rounds match-length))
+        header-lines [(str "" (apply str (repeat 66 "=")))
+                      (format "BENCHMARK RESULTS — %s — %d×%d rounds%s"
+                              bot num-matches match-length
+                              (if commit (str " — " commit) ""))
+                      (apply str (repeat 66 "="))]
+        by-cat (group-by :category pairings)
+        ordered-cats (category-order pairings)
+        sections (mapcat (fn [cat]
+                           (when-let [cat-pairings (get by-cat cat)]
+                             (:lines (format-category-section cat cat-pairings))))
+                         ordered-cats)
+        overall (/ (reduce + (map :aps pairings)) (count pairings))
+        with-roster (filter :roster-aps pairings)
+        avg-delta (when (seq with-roster)
+                    (/ (reduce + (map #(- (:aps %) (:roster-aps %)) with-roster))
+                       (count with-roster)))
+        wins (count (filter :win? pairings))
+        footer-lines (cond-> [(str "")
+                              (str "  " (apply str (repeat 60 "=")))
+                              (format "  %-40s %6.2f%% OVERALL APS%s" "" overall
+                                      (if avg-delta (format "  Δ%+.1f avg" avg-delta) ""))
+                              (format "  %-40s %d/%d wins" "" wins (count pairings))]
+                       elapsed-seconds
+                       (conj (format "  %-40s %s elapsed"
+                                     ""
+                                     (format "%d:%02d"
+                                             (int (/ elapsed-seconds 60))
+                                             (int (mod elapsed-seconds 60))))))]
+    (vec (concat header-lines sections footer-lines))))
+
+(defn- print-benchmark-report!
+  [data]
+  (doseq [line (format-benchmark-report-lines data)]
+    (println line)))
+
+(defn report-log!
+  "Render a saved benchmark EDN log in the same report format as benchmark output.
+   Usage: bb benchmark-report <log.edn> [output.md]"
+  [{:keys [log output]}]
+  (when-not log
+    (println "Usage: bb benchmark-report <log.edn> [output.md]")
+    (System/exit 1))
+  (let [data (edn/read-string (slurp log))
+        report-data {:bot (:bot data)
+                     :rounds (:rounds data)
+                     :match-length (:match-length data)
+                     :pairings (:pairings data)
+                     :commit (:commit data)
+                     :elapsed-seconds (:elapsed-seconds data)}
+        lines (format-benchmark-report-lines report-data)]
+    (if output
+      (let [md (str "## " (or (:commit data) (:bot data)) "\n\n"
+                    "Source: " log "\n\n"
+                    "```text\n"
+                    (str/join "\n" lines)
+                    "\n```\n")]
+        (spit output md)
+        (println (format "Wrote report to %s" output)))
+      (doseq [line lines]
+        (println line)))))
 
 (defn- save-results! [bot rounds match-length results timestamp commit-info elapsed-s]
   (let [path (format "../pugilists-dev/research/benchmarks/logs/benchmark-%s.edn" timestamp)
@@ -307,29 +393,15 @@
             results-by-worker (mapv deref futures)
             all-results (sort-by #(get opp->index (:opponent %))
                                  (into [] cat results-by-worker))]
-        (println (str "\n" (apply str (repeat 66 "="))))
-        (println (format "BENCHMARK RESULTS — %s — %d×%d rounds%s"
-                         bot num-matches match-length
-                         (if commit-info (str " — " commit-info) "")))
-        (println (apply str (repeat 66 "=")))
-        (let [by-cat (group-by :category all-results)
-              cat-avgs (doall (map (fn [cat]
-                                    (when-let [pairings (get by-cat cat)]
-                                      [cat (print-category-results cat pairings)]))
-                                  (keys roster-data)))]
-          (println (str "\n  " (apply str (repeat 60 "="))))
-          (let [overall (/ (reduce + (map :aps all-results)) (count all-results))
-                with-roster (filter :roster-aps all-results)
-                avg-delta (when (seq with-roster)
-                            (/ (reduce + (map #(- (:aps %) (:roster-aps %)) with-roster))
-                               (count with-roster)))]
-            (println (format "  %-40s %6.2f%% OVERALL APS%s" "" overall
-                             (if avg-delta (format "  Δ%+.1f avg" avg-delta) "")))
-            (println (format "  %-40s %d/%d wins" "" (count (filter :win? all-results)) (count all-results))))
-          (let [elapsed-s (/ (- (System/currentTimeMillis) start-ms) 1000.0)]
-            (println (format "  %-40s %s elapsed" "" (format "%d:%02d" (int (/ elapsed-s 60)) (int (mod elapsed-s 60)))))
-            (println)
-            (save-results! bot rounds match-length all-results timestamp commit-info elapsed-s)))
+        (let [elapsed-s (/ (- (System/currentTimeMillis) start-ms) 1000.0)]
+          (print-benchmark-report! {:bot bot
+                                    :rounds rounds
+                                    :match-length match-length
+                                    :pairings all-results
+                                    :commit commit-info
+                                    :elapsed-seconds elapsed-s})
+          (println)
+          (save-results! bot rounds match-length all-results timestamp commit-info elapsed-s))
         (doseq [wid (range n-workers)]
           (fs/delete-if-exists (format ".tmp/benchmark-%d.battle" wid))
           (fs/delete-if-exists (format ".tmp/benchmark-results-%d.txt" wid)))))))
@@ -352,10 +424,9 @@
                          worker-id label total num-matches match-length
                          (if bot-codesize (str " [" bot-codesize " bytes]") ""))))
       (let [results (doall
-                     (keep-indexed
-                      (fn [i opponent]
-                        (run-pairing! bot opponent rounds match-length roster-data))
-                      opponents))
+                     (map (fn [opponent]
+                            (run-pairing! bot opponent rounds match-length roster-data))
+                          opponents))
             elapsed-s (/ (- (System/currentTimeMillis) start-ms) 1000.0)
             overall (/ (reduce + (map :aps results)) (count results))
             wins (count (filter :win? results))

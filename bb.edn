@@ -33,6 +33,10 @@
                                                       (when-not (= "-" c) c))
                                             :roster (nth *command-line-args* 4 nil)})}
 
+   benchmark-report {:doc "Render benchmark log in report format: bb benchmark-report <log.edn> [output.md]"
+                     :task (benchmark/report-log! {:log (first *command-line-args*)
+                                                   :output (second *command-line-args*)})}
+
     benchmark-parallel {:doc "Run parallel benchmarks: bb benchmark-parallel <bot> <rounds> <ref1> [ref2] ... [current]"
                         :task (let [[bot rounds & refs] *command-line-args*]
                                 (benchmark/benchmark-parallel!
