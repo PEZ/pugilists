@@ -187,7 +187,7 @@ class Wave extends Condition {
     static final int DIM_GF = 0, DIM_DIST = 1, DIM_ACCEL = 2, DIM_VEL = 3,
         DIM_WALL1 = 4, DIM_WALL2 = 5, DIM_TSVC = 6, NUM_DIMS = 7;
     static final String GW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)18 + (char)16 + (char)20;
-    static final String SW = "" + (char)1 + (char)200 + (char)50 + (char)0 + (char)0 + (char)0 + (char)1;
+    static final String SW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)18 + (char)16 + (char)1;
 
     static ArrayList<double[]> gunObss = new ArrayList<double[]>();
     static ArrayList<double[]> surfObss = new ArrayList<double[]>();
