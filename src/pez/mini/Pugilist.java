@@ -30,7 +30,6 @@ public class Pugilist extends AdvancedRobot {
     static Point2D robotLocation = new Point2D.Double();
     static Point2D enemyLocation = new Point2D.Double();
     static double enemyDistance;
-    static double dD;
     static double enemyEnergy;
     static double enemyBearingDirection;
     static double prevEnemyVelocity;
@@ -76,7 +75,7 @@ public class Pugilist extends AdvancedRobot {
         enemyLocation.setLocation(
                 project(wave.gunLocation = (Point2D) robotLocation.clone(), enemyAbsoluteBearing, enemyDistance));
         wave.targetLocation = enemyLocation;
-        dD = enemyDistance - (enemyDistance = e.getDistance());
+        enemyDistance = e.getDistance();
 
         ew.advance(2);
         addCustomEvent(ew);
@@ -186,9 +185,9 @@ class Wave extends Condition {
     static final int FACTORS = 29;
     static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
     static final int DIM_GF = 0, DIM_DIST = 1, DIM_ACCEL = 2, DIM_VEL = 3,
-        DIM_WALL1 = 4, DIM_WALL2 = 5, DIM_TSVC = 6, DIM_DD = 7, NUM_DIMS = 8;
-    static final String GW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)18 + (char)16 + (char)50 + (char)20;
-    static final String SW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)18 + (char)16 + (char)50 + (char)1;
+        DIM_WALL1 = 4, DIM_WALL2 = 5, DIM_TSVC = 6, NUM_DIMS = 7;
+    static final String GW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)18 + (char)16 + (char)20;
+    static final String SW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)18 + (char)16 + (char)1;
 
     static ArrayList<double[]> gunObss = new ArrayList<double[]>();
     static ArrayList<double[]> surfObss = new ArrayList<double[]>();
@@ -277,8 +276,8 @@ class Wave extends Condition {
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
         obs = new double[] { 0, Pugilist.enemyDistance, prevVel - vel,
             vel, Pugilist.wallSmooth(loc, orbitCenter, direction),
-            Pugilist.wallSmooth(orbitCenter, loc, direction), tSVC, Pugilist.dD };
-        // indices: DIM_GF, DIM_DIST, DIM_ACCEL, DIM_VEL, DIM_WALL1, DIM_WALL2, DIM_TSVC, DIM_DD
+            Pugilist.wallSmooth(orbitCenter, loc, direction), tSVC };
+        // indices: DIM_GF, DIM_DIST, DIM_ACCEL, DIM_VEL, DIM_WALL1, DIM_WALL2, DIM_TSVC
     }
 
     int visitingIndex(Point2D target) {
