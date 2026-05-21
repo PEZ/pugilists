@@ -30,14 +30,14 @@ public class Aristocles extends AdvancedRobot {
 	static final int MIDDLE_FACTOR = (AIM_FACTORS - 1) / 2;
 
 	static Point2D enemyLocation;
-	static double enemyVelocity;
+	static int lastVelocityIndex;
 	static int timeSinceDeccel;
 	static double bearingDirection;
 	static int[][][][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][LAST_VELOCITY_INDEXES][DECCEL_TIME_INDEXES][WALL_INDEXES][AIM_FACTORS];
 	static double direction = 0.4;
 	static double enemyFirePower;
 	static int GF1Hits;
-	static double tries;
+	static int tries;
 
 	public void run() {
 		setAdjustRadarForGunTurn(true);
@@ -63,8 +63,9 @@ public class Aristocles extends AdvancedRobot {
 				enemyDistance * (1.2 - tries / 100.0))) && tries < MAX_TRIES) {
 			tries++;
 		}
-		if (GF1Hits > 2 && (Math.random() < (bulletVelocity(enemyFirePower) / REVERSE_TUNER) / enemyDistance ||
-				tries > (enemyDistance / bulletVelocity(enemyFirePower) / WALL_BOUNCE_TUNER))) {
+		double bv = bulletVelocity(enemyFirePower);
+		if (GF1Hits > 2 && (Math.random() < (bv / REVERSE_TUNER) / enemyDistance ||
+				tries > (enemyDistance / bv / WALL_BOUNCE_TUNER))) {
 			direction = -direction;
 		}
 		// Jamougha's cool way
@@ -74,15 +75,14 @@ public class Aristocles extends AdvancedRobot {
 		// </movement>
 
 		// <gun>
-		int lastVelocityIndex = (int)Math.abs(enemyVelocity) / 2;
-		int velocityIndex = (int)Math.abs((enemyVelocity = e.getVelocity()) / 2);
+		double enemyVelocity = e.getVelocity();
+		int velocityIndex = (int)Math.abs(enemyVelocity) / 2;
 		if (velocityIndex < lastVelocityIndex) {
 			timeSinceDeccel = 0;
 		}
 
 		if (enemyVelocity != 0) {
-			bearingDirection = enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing) > 0 ?
-					0.7 / (double)MIDDLE_FACTOR : -0.7 / (double)MIDDLE_FACTOR;
+			bearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR, enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
 		}
 		wave.wBearingDirection = bearingDirection;
 
@@ -93,6 +93,7 @@ public class Aristocles extends AdvancedRobot {
 
 		wave.wAimFactors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(5, timeSinceDeccel++ / 13)]
 				[fieldRectangle.contains(project(wave.wGunLocation, enemyAbsoluteBearing + wave.wBearingDirection * 13, enemyDistance)) ? 1 : 0];
+		lastVelocityIndex = velocityIndex;
 
 		wave.wBearing = enemyAbsoluteBearing;
 
