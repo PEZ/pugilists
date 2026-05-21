@@ -22,7 +22,6 @@ public class Aristocles extends AdvancedRobot {
 	static final double WALL_BOUNCE_TUNER = 0.699484;
 
 	static final int DISTANCE_INDEXES = 5;
-	static final int VELOCITY_INDEXES = 5;
 	static final int LAST_VELOCITY_INDEXES = 5;
 	static final int DECCEL_TIME_INDEXES = 6;
 	static final int AIM_FACTORS = 25;
@@ -32,7 +31,7 @@ public class Aristocles extends AdvancedRobot {
 	static int lastVelocityIndex;
 	static int timeSinceDeccel;
 	static double bearingDirection;
-	static int[][][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][LAST_VELOCITY_INDEXES][DECCEL_TIME_INDEXES][AIM_FACTORS];
+	static int[][][][] aimFactors = new int[DISTANCE_INDEXES][LAST_VELOCITY_INDEXES][DECCEL_TIME_INDEXES][AIM_FACTORS];
 	static double direction = 0.4;
 	static double enemyFirePower;
 	static int GF1Hits;
@@ -90,7 +89,7 @@ public class Aristocles extends AdvancedRobot {
 				(distanceIndex = (int)(enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER : MAX_BULLET_POWER);
 		//wave.wBulletPower = MAX_BULLET_POWER; // TargetingChallenge
 
-		wave.wAimFactors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(5, timeSinceDeccel++ / 13)];
+		wave.wAimFactors = aimFactors[distanceIndex][lastVelocityIndex][Math.min(5, timeSinceDeccel++ / 13)];
 		lastVelocityIndex = velocityIndex;
 
 		wave.wBearing = enemyAbsoluteBearing;
