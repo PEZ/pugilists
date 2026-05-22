@@ -11,8 +11,7 @@ public class Aristocles extends AdvancedRobot {
 	static final int M = (F - 1) / 2;
 	static final double BULLET_POWER = 1.9;
 	static final double WALL_MARGIN = 18;
-	static final String GW = "" + (char)1 + (char)100 + (char)50 + (char)20;
-	static final String SW = "" + (char)1 + (char)100 + (char)50 + (char)2;
+	static final String W = "" + (char)1 + (char)100 + (char)50 + (char)20;
 
 	static Aristocles R;
 	static Point2D eL;
@@ -42,7 +41,7 @@ public class Aristocles extends AdvancedRobot {
 
 		// <movement> Per-tick DC surf
 		if (Wave.surfWave != null && sO.size() > 3) {
-			dcFill(Wave.surfWave.o, sO, SW);
+			dcFill(Wave.surfWave.o, sO);
 			int pk = bestGF();
 			if (pk != M)
 				dir = Math.copySign(0.4, (M - pk) * Wave.surfWave.bD);
@@ -92,7 +91,7 @@ public class Aristocles extends AdvancedRobot {
 		w.o = new double[]{0, eD, pV - aV, aV};
 		pV = aV;
 
-		dcFill(w.o, obss, GW);
+		dcFill(w.o, obss);
 		int best = bestGF();
 
 		setTurnGunRightRadians(Utils.normalRelativeAngle(eAB - getGunHeadingRadians() +
@@ -117,14 +116,14 @@ public class Aristocles extends AdvancedRobot {
 		}
 	}
 
-	static void dcFill(double[] q, ArrayList<double[]> list, String w) {
+	static void dcFill(double[] q, ArrayList<double[]> list) {
 		scores = new double[F];
 		try { for (int i = 0; ; i++) {
 			double[] o = list.get(i);
 			double d = 0.01;
 			for (int j = 1; j < 4; j++)
-				d += Math.abs(o[j] - q[j]) * w.charAt(j - 1);
-			scores[(int) o[0]] += (w.charAt(3) + i) / (d * d);
+				d += Math.abs(o[j] - q[j]) * W.charAt(j - 1);
+			scores[(int) o[0]] += (W.charAt(3) + i) / (d * d);
 		} } catch (Exception e) {}
 	}
 
