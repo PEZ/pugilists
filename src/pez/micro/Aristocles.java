@@ -22,10 +22,10 @@ public class Aristocles extends AdvancedRobot {
 	static final double REVERSE_TUNER = 0.421075;
 	static final double WALL_BOUNCE_TUNER = 0.699484;
 
-	static final int DISTANCE_INDEXES = 5;
-	static final int VELOCITY_INDEXES = 5;
-	static final int LAST_VELOCITY_INDEXES = 5;
-	static final int DECCEL_TIME_INDEXES = 6;
+	static final int DISTANCE_INDEXES = 10;
+	static final int VELOCITY_INDEXES = 10;
+	static final int LAST_VELOCITY_INDEXES = 10;
+	static final int DECCEL_TIME_INDEXES = 10;
 	static final int FACTORS = 47;
 	static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
 
@@ -89,7 +89,7 @@ public class Aristocles extends AdvancedRobot {
 				(distanceIndex = (int)(enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER : MAX_BULLET_POWER));
 		//wave.bulletPower = MAX_BULLET_POWER; // TargetingChallenge
 
-		wave.factors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(5, timeSinceDeccel++ / 13)];
+		wave.factors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(DECCEL_TIME_INDEXES - 1, timeSinceDeccel++ / 13)];
 		lastVelocityIndex = velocityIndex;
 
 		wave.startBearing = enemyAbsoluteBearing;
