@@ -4,7 +4,7 @@ import robocode.util.Utils;
 import java.awt.geom.*;
 import java.util.ArrayList;
 
-// Aristocles, by PEZ. DC gun + onHitByBullet surf.
+// Aristocles, by PEZ. DC gun + per-tick DC surf.
 
 public class Aristocles extends AdvancedRobot {
 	static final int F = 25;
@@ -39,30 +39,25 @@ public class Aristocles extends AdvancedRobot {
 		Point2D gL = new Point2D.Double(getX(), getY());
 		eL = project(gL, eAB, eD);
 
-		// <movement> DC surf-informed direction
+		// <movement> Per-tick DC surf
+		if (Wave.surfWave != null && sO.size() > 3) {
+			dcFill(Wave.surfWave.o, sO);
+			int pk = bestGF();
+			if (pk != M)
+				dir = Math.copySign(0.4, (M - pk) * Wave.surfWave.bD);
+		}
+		Wave.surfWave = null;
+
 		double dE = eE - (eE = e.getEnergy());
 		if (dE > 0 && dE <= 3) {
-			// Create enemy surf wave
-			double ourLat = myV * Math.sin(getHeadingRadians() - eAB - Math.PI);
 			Wave sw = new Wave();
 			sw.gL = eL;
 			sw.b = eAB + Math.PI;
-			sw.bD = Math.copySign(0.7 / M, ourLat);
+			sw.bD = Math.copySign(0.7 / M, myV * Math.sin(getHeadingRadians() - eAB - Math.PI));
 			sw.bv = 20 - 3 * dE;
 			sw.o = new double[]{0, eD, 0, Math.abs(myV)};
 			sw.s = true;
 			addCustomEvent(sw);
-
-			// Surf direction decision
-			if (sO.size() > 2) {
-				dcFill(sw.o, sO);
-				int pk = bestGF();
-				if (Math.abs(pk - M) > 2 && (pk > M) == (ourLat > 0)) {
-					dir = -dir;
-				}
-			} else if (Math.random() < 0.3) {
-				dir = -dir;
-			}
 		}
 
 		Point2D robotDestination;
@@ -150,6 +145,7 @@ public class Aristocles extends AdvancedRobot {
 
 	static class Wave extends Condition {
 		static Wave pW;
+		static Wave surfWave;
 		double bv;
 		Point2D gL;
 		double b, bD, d;
@@ -159,9 +155,14 @@ public class Aristocles extends AdvancedRobot {
 		public boolean test() {
 			d += bv;
 			if (s) {
-				if (d > gL.distance(R.getX(), R.getY()) - 20) {
-					pW = this;
+				double dist = gL.distance(R.getX(), R.getY());
+				if (d > dist + 25) {
 					R.removeCustomEvent(this);
+				} else {
+					if (d > dist - 20) pW = this;
+					if (d < dist && (surfWave == null ||
+							dist - d < surfWave.gL.distance(R.getX(), R.getY()) - surfWave.d))
+						surfWave = this;
 				}
 			} else if (d > gL.distance(eL) - 18) {
 				o[0] = (int) Math.clamp((long)(
