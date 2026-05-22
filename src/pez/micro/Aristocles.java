@@ -26,7 +26,7 @@ public class Aristocles extends AdvancedRobot {
 	static final int DISTANCE_INDEXES = 10;
 	static final int VELOCITY_INDEXES = 10;
 	static final int VCHANGE_TIME_INDEXES = 10;
-	static final int FACTORS = 47;
+	static final int FACTORS = 37;
 	static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
 
 	static Point2D enemyLocation;
