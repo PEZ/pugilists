@@ -1,4 +1,5 @@
 package pez.micro;
+
 import robocode.*;
 import robocode.util.Utils;
 import java.awt.geom.*;
@@ -42,22 +43,25 @@ public class Aristocles extends AdvancedRobot {
 		setAdjustRadarForGunTurn(true);
 		setAdjustGunForRobotTurn(true);
 
-		turnRadarRightRadians(Double.POSITIVE_INFINITY); 
+		turnRadarRightRadians(Double.POSITIVE_INFINITY);
 	}
 
 	public void onScannedRobot(ScannedRobotEvent e) {
 		Wave wave = new Wave();
 		double enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
 		double enemyDistance;
-		enemyLocation = project(wave.gunLocation = new Point2D.Double(getX(), getY()), enemyAbsoluteBearing, enemyDistance = e.getDistance());
+		enemyLocation = project(wave.gunLocation = new Point2D.Double(getX(), getY()), enemyAbsoluteBearing,
+				enemyDistance = e.getDistance());
 
 		// <movement>
 		Point2D robotDestination;
 		Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
 				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
 		tries = 0;
-		while (!fieldRectangle.contains(robotDestination = project(enemyLocation, enemyAbsoluteBearing + Math.PI + direction,
-				enemyDistance * (1.2 - tries / 100.0))) && tries < MAX_TRIES) {
+		while (!fieldRectangle
+				.contains(robotDestination = project(enemyLocation, enemyAbsoluteBearing + Math.PI + direction,
+						enemyDistance * (1.2 - tries / 100.0)))
+				&& tries < MAX_TRIES) {
 			tries++;
 		}
 		double bv = bulletVelocity(enemyFirePower);
@@ -73,28 +77,31 @@ public class Aristocles extends AdvancedRobot {
 
 		// <gun>
 		double enemyVelocity = e.getVelocity();
-		int velocityIndex = (int)(Math.abs(enemyVelocity) / (MAX_VELOCITY / VELOCITY_INDEXES));
+		int velocityIndex = (int) (Math.abs(enemyVelocity) / (MAX_VELOCITY / VELOCITY_INDEXES));
 		if (velocityIndex != lastVelocityIndex) {
 			timeSinceVChange = 0;
 		}
 
 		if (enemyVelocity != 0) {
-			enemyBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR, enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
+			enemyBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
+					enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
 		}
 		wave.bearingDirection = enemyBearingDirection;
 
 		int distanceIndex;
 		wave.bulletPower = Math.min(getEnergy() / 2, Math.min(e.getEnergy() / 4,
-				(distanceIndex = (int)(enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER : MAX_BULLET_POWER));
-		//wave.bulletPower = MAX_BULLET_POWER; // TargetingChallenge
+				(distanceIndex = (int) (enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER
+						: MAX_BULLET_POWER));
+		// wave.bulletPower = MAX_BULLET_POWER; // TargetingChallenge
 
-		wave.factors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(VCHANGE_TIME_INDEXES - 1, timeSinceVChange++ / 13)];
+		wave.factors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(VCHANGE_TIME_INDEXES - 1,
+				timeSinceVChange++ / 13)];
 		lastVelocityIndex = velocityIndex;
 
 		wave.startBearing = enemyAbsoluteBearing;
 
 		int mostVisited = MIDDLE_FACTOR, i = FACTORS;
-		do  {
+		do {
 			if (wave.factors[--i] > wave.factors[mostVisited]) {
 				mostVisited = i;
 			}
@@ -141,13 +148,16 @@ public class Aristocles extends AdvancedRobot {
 		public boolean test() {
 			if ((distanceFromGun += bulletVelocity(bulletPower)) > gunLocation.distance(enemyLocation) - 18) {
 				try {
-				int gf = (int)Math.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
-						bearingDirection) + MIDDLE_FACTOR);
-				for (int s = -2; s <= 2; s++) {
-					try { factors[gf + s] += 3 - Math.abs(s); } catch (Exception ex) {}
-				}
-				}
-				catch (Exception e) {
+					int gf = (int) Math
+							.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
+									bearingDirection) + MIDDLE_FACTOR);
+					for (int s = -2; s <= 2; s++) {
+						try {
+							factors[gf + s] += 3 - Math.abs(s);
+						} catch (Exception ex) {
+						}
+					}
+				} catch (Exception e) {
 				}
 				removeCustomEvent(this);
 			}
