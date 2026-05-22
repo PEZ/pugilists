@@ -58,9 +58,10 @@ public class Aristocles extends AdvancedRobot {
 		Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
 				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
 		tries = 0;
+		double orbitFactor = 0.8 + Math.min(0.4, e.getEnergy() / 250);
 		while (!fieldRectangle
 				.contains(robotDestination = project(enemyLocation, enemyAbsoluteBearing + Math.PI + direction,
-						enemyDistance * (1.2 - tries / 100.0)))
+						enemyDistance * (orbitFactor - tries / 100.0)))
 				&& tries < MAX_TRIES) {
 			tries++;
 		}
@@ -71,7 +72,7 @@ public class Aristocles extends AdvancedRobot {
 		}
 		// Jamougha's cool way
 		double angle;
-		setAhead(Math.cos(angle = absoluteBearing(wave.gunLocation, robotDestination) - getHeadingRadians()) * (60 + 40 * Math.random()));
+		setAhead(Math.cos(angle = absoluteBearing(wave.gunLocation, robotDestination) - getHeadingRadians()) * 100);
 		setTurnRightRadians(Math.tan(angle));
 		// </movement>
 
