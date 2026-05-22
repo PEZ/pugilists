@@ -1,0 +1,13 @@
+;; Quick-test roster for Aristocles wave surfing experiments
+;; 5 bots: 1 surfer + 1 strong micro + 1 mid-tier + 1 weak + 1 nano
+;; Fast feedback loop (~2 min vs ~10 min for full 20-bot roster)
+{:surfer
+ [{:bot "sheldor.micro.Epeeist 3.7", :aps 85.03}]
+ :strong
+ [{:bot "nz.jdc.micro.HedgehogGF 1.5", :aps 84.97}]
+ :middle
+ [{:bot "kawigi.micro.Shiz 1.1", :aps 52.98}]
+ :weak
+ [{:bot "sp.AstherNano 1.0", :aps 40.7}]
+ :nano
+ [{:bot "suzushin7.nano.Galaxy01 1.01", :aps 0.78}]}

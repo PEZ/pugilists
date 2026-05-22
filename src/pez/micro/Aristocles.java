@@ -41,7 +41,7 @@ public class Aristocles extends AdvancedRobot {
 
 		// <movement> energy-drop-timed reversal
 		double dE = eE - (eE = e.getEnergy());
-		if (dE > 0 && dE <= 3 && Math.random() < 0.4) {
+		if (dE > 0 && dE <= 3 && Math.random() < 0.15) {
 			dir = -dir;
 		}
 
