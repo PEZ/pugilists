@@ -118,7 +118,9 @@ public class Aristocles extends AdvancedRobot {
 	}
 
 	public void onHitByBullet(HitByBulletEvent e) {
-		GF1Hits++;
+		if (tries < 30) {
+			GF1Hits++;
+		}
 		enemyFirePower = e.getPower();
 	}
 
