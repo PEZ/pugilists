@@ -12,7 +12,7 @@ public class Aristocles extends AdvancedRobot {
 	static final double BULLET_POWER = 1.9;
 	static final double WALL_MARGIN = 18;
 	// Weights: distance, accel, velocity, recency
-	static final String W = "" + (char)200 + (char)50 + (char)18 + (char)20;
+	static final String W = "" + (char)1 + (char)100 + (char)50 + (char)20;
 
 	static Aristocles R;
 	static Point2D eL;
@@ -130,11 +130,9 @@ public class Aristocles extends AdvancedRobot {
 
 		public boolean test() {
 			if ((d += bv) > gL.distance(eL) - 18) {
-				try {
-					o[0] = Math.round(
-						Utils.normalRelativeAngle(absoluteBearing(gL, eL) - b) / bD + M);
-					obss.add(o);
-				} catch (Exception e) {}
+				o[0] = (int) Math.clamp((long)(
+					Utils.normalRelativeAngle(absoluteBearing(gL, eL) - b) / bD + M + 0.5), 0, F - 1);
+				obss.add(o);
 				R.removeCustomEvent(this);
 			}
 			return false;
