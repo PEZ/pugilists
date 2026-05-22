@@ -17,7 +17,7 @@ public class Aristocles extends AdvancedRobot {
 	static Point2D eL;
 	static ArrayList<double[]> obss = new ArrayList<>();
 	static ArrayList<double[]> sO = new ArrayList<>();
-	static double[] scores;
+	static double[] scores = new double[F];
 	static double dir = 0.4;
 	static double bD;
 	static double eE, pV;
@@ -39,9 +39,8 @@ public class Aristocles extends AdvancedRobot {
 		Point2D gL = new Point2D.Double(getX(), getY());
 		eL = project(gL, eAB, eD);
 
-		// <movement> Per-tick DC surf
+		// <movement> Multi-wave DC surf (accumulated by Wave.test())
 		if (Wave.surfWave != null && sO.size() > 3) {
-			dcFill(Wave.surfWave.o, sO);
 			int pk = bestGF();
 			if (pk != M)
 				dir = Math.copySign(0.4, (M - pk) * Wave.surfWave.bD);
@@ -104,6 +103,7 @@ public class Aristocles extends AdvancedRobot {
 		// </gun>
 
 		setTurnRadarRightRadians(Utils.normalRelativeAngle(eAB - getRadarHeadingRadians()) * 2);
+		scores = new double[F];
 	}
 
 	public void onHitByBullet(HitByBulletEvent e) {
@@ -160,9 +160,20 @@ public class Aristocles extends AdvancedRobot {
 					R.removeCustomEvent(this);
 				} else {
 					if (d > dist - 20) pW = this;
-					if (d < dist && (surfWave == null ||
-							dist - d < surfWave.gL.distance(R.getX(), R.getY()) - surfWave.d))
-						surfWave = this;
+					if (d < dist) {
+						if (surfWave == null ||
+								dist - d < surfWave.gL.distance(R.getX(), R.getY()) - surfWave.d)
+							surfWave = this;
+						double gap = dist - d;
+						double wt = 1 / (gap * gap + 1);
+						try { for (int i = 0; ; i++) {
+							double[] ob = sO.get(i);
+							double dd = 0.01;
+							for (int j = 1; j < 4; j++)
+								dd += Math.abs(ob[j] - o[j]) * W.charAt(j - 1);
+							scores[(int) ob[0]] += wt * (W.charAt(3) + i) / (dd * dd);
+						} } catch (Exception ex) {}
+					}
 				}
 			} else if (d > gL.distance(eL) - 18) {
 				o[0] = (int) Math.clamp((long)(
