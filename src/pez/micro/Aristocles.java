@@ -14,6 +14,7 @@ public class Aristocles extends AdvancedRobot {
 	static final double BATTLE_FIELD_HEIGHT = 600;
 
 	static final double MAX_DISTANCE = 900;
+	static final double MAX_VELOCITY = 10;
 	static final double MAX_BULLET_POWER = 3.0;
 	static final double BULLET_POWER = 1.9;
 	static final double WALL_MARGIN = 18;
@@ -73,7 +74,7 @@ public class Aristocles extends AdvancedRobot {
 
 		// <gun>
 		double enemyVelocity = e.getVelocity();
-		int velocityIndex = (int)Math.abs(enemyVelocity) / 2;
+		int velocityIndex = (int)(Math.abs(enemyVelocity) / (MAX_VELOCITY / VELOCITY_INDEXES));
 		if (velocityIndex < lastVelocityIndex) {
 			timeSinceDeccel = 0;
 		}
