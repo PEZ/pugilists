@@ -26,7 +26,7 @@ public class Aristocles extends AdvancedRobot {
 	static final int DISTANCE_INDEXES = 10;
 	static final int VELOCITY_INDEXES = 10;
 	static final int VCHANGE_TIME_INDEXES = 10;
-	static final int FACTORS = 51;
+	static final int FACTORS = 101;
 	static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
 
 	static Point2D enemyLocation;
@@ -151,9 +151,9 @@ public class Aristocles extends AdvancedRobot {
 					int gf = (int) Math
 							.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
 									bearingDirection) + MIDDLE_FACTOR);
-					for (int s = -1; s <= 1; s++) {
+					for (int s = -4; s <= 4; s++) {
 						try {
-							factors[gf + s] += 2 - Math.abs(s);
+							factors[gf + s] += 5 - Math.abs(s);
 						} catch (Exception ex) {
 						}
 					}
