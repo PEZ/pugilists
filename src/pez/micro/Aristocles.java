@@ -41,6 +41,7 @@ public class Aristocles extends AdvancedRobot {
 	public void run() {
 		setAdjustRadarForGunTurn(true);
 		setAdjustGunForRobotTurn(true);
+
 		turnRadarRightRadians(Double.POSITIVE_INFINITY); 
 	}
 
@@ -83,8 +84,8 @@ public class Aristocles extends AdvancedRobot {
 		wave.bearingDirection = enemyBearingDirection;
 
 		int distanceIndex;
-		wave.bulletPower = Math.min(e.getEnergy() / 4,
-				(distanceIndex = (int)(enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER : MAX_BULLET_POWER);
+		wave.bulletPower = Math.min(getEnergy() / 2, Math.min(e.getEnergy() / 4,
+				(distanceIndex = (int)(enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER : MAX_BULLET_POWER));
 		//wave.bulletPower = MAX_BULLET_POWER; // TargetingChallenge
 
 		wave.factors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(5, timeSinceDeccel++ / 13)];
@@ -103,9 +104,7 @@ public class Aristocles extends AdvancedRobot {
 				wave.bearingDirection * (mostVisited - MIDDLE_FACTOR)));
 
 		setFire(wave.bulletPower);
-		if (getEnergy() >= BULLET_POWER) {
-			addCustomEvent(wave);
-		}
+		addCustomEvent(wave);
 		// </gun>
 
 		setTurnRadarRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getRadarHeadingRadians()) * 2);
