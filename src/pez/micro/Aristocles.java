@@ -143,9 +143,9 @@ public class Aristocles extends AdvancedRobot {
 				try {
 				int gf = (int)Math.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
 						bearingDirection) + MIDDLE_FACTOR);
-				factors[gf] += 2;
-				try { factors[gf - 1]++; } catch (Exception ex) {}
-				try { factors[gf + 1]++; } catch (Exception ex) {}
+				for (int s = -2; s <= 2; s++) {
+					try { factors[gf + s] += 3 - Math.abs(s); } catch (Exception ex) {}
+				}
 				}
 				catch (Exception e) {
 				}
