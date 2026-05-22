@@ -65,7 +65,7 @@ public class Aristocles extends AdvancedRobot {
 			tries++;
 		}
 		double bv = bulletVelocity(enemyFirePower);
-		if (GF1Hits > 0 && (Math.random() < (bv / REVERSE_TUNER) / enemyDistance ||
+		if (GF1Hits > 4 && (Math.random() < (bv / REVERSE_TUNER) / enemyDistance ||
 				tries > (enemyDistance / bv / WALL_BOUNCE_TUNER))) {
 			direction = -direction;
 		}
