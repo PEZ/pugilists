@@ -39,15 +39,9 @@ public class Aristocles extends AdvancedRobot {
 		Point2D gL = new Point2D.Double(getX(), getY());
 		eL = project(gL, eAB, eD);
 
-		// <movement> surf-informed reversal
+		// <movement> energy-drop-timed reversal
 		double dE = eE - (eE = e.getEnergy());
-		if (dE > 0 && dE <= 3 && obss.size() > 4) {
-			dcFill(new double[]{0, eD, 0, Math.abs(getVelocity())});
-			int pk = bestGF();
-			if (scores[pk] > scores[F - 1 - pk]) {
-				dir = -dir;
-			}
-		} else if (obss.size() < 5 && Math.random() < 0.1) {
+		if (dE > 0 && dE <= 3 && Math.random() < 0.4) {
 			dir = -dir;
 		}
 
