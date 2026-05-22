@@ -22,8 +22,6 @@ public class Aristocles extends AdvancedRobot {
 	static double bD;
 	static double eE;
 	static double pV;
-	static double enemyFirePower;
-	static int GF1Hits;
 
 	public void run() {
 		setAdjustRadarForGunTurn(true);
@@ -41,7 +39,18 @@ public class Aristocles extends AdvancedRobot {
 		Point2D gL = new Point2D.Double(getX(), getY());
 		eL = project(gL, eAB, eD);
 
-		// <movement> (unchanged random orbital from baseline)
+		// <movement> surf-informed reversal
+		double dE = eE - (eE = e.getEnergy());
+		if (dE > 0 && dE <= 3 && obss.size() > 4) {
+			dcFill(new double[]{0, eD, 0, Math.abs(getVelocity())});
+			int pk = bestGF();
+			if (scores[pk] > scores[F - 1 - pk]) {
+				dir = -dir;
+			}
+		} else if (obss.size() < 5 && Math.random() < 0.1) {
+			dir = -dir;
+		}
+
 		Point2D robotDestination;
 		Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
 				800 - WALL_MARGIN * 2, 600 - WALL_MARGIN * 2);
@@ -50,9 +59,7 @@ public class Aristocles extends AdvancedRobot {
 				eD * (1.2 - tries / 100.0))) && tries < 125) {
 			tries++;
 		}
-		double bv = 20 - 3 * enemyFirePower;
-		if (GF1Hits > 2 && (Math.random() < (bv / 0.421075) / eD ||
-				tries > (eD / bv / 0.699484))) {
+		if (tries > 70) {
 			dir = -dir;
 		}
 		double angle;
@@ -88,11 +95,6 @@ public class Aristocles extends AdvancedRobot {
 		// </gun>
 
 		setTurnRadarRightRadians(Utils.normalRelativeAngle(eAB - getRadarHeadingRadians()) * 2);
-	}
-
-	public void onHitByBullet(HitByBulletEvent e) {
-		GF1Hits++;
-		enemyFirePower = e.getPower();
 	}
 
 	static void dcFill(double[] q) {
