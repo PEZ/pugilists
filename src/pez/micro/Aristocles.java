@@ -4,24 +4,23 @@ import robocode.util.Utils;
 import java.awt.geom.*;
 import java.util.ArrayList;
 
-// Aristocles, by PEZ. Shared DC gun + surf.
+// Aristocles, by PEZ. DC gun + onHitByBullet surf.
 
 public class Aristocles extends AdvancedRobot {
 	static final int F = 25;
 	static final int M = (F - 1) / 2;
 	static final double BULLET_POWER = 1.9;
 	static final double WALL_MARGIN = 18;
-	// Weights: distance, accel, velocity, recency
 	static final String W = "" + (char)1 + (char)100 + (char)50 + (char)20;
 
 	static Aristocles R;
 	static Point2D eL;
 	static ArrayList<double[]> obss = new ArrayList<>();
+	static ArrayList<double[]> sO = new ArrayList<>();
 	static double[] scores;
 	static double dir = 0.4;
 	static double bD;
-	static double eE;
-	static double pV;
+	static double eE, pV;
 
 	public void run() {
 		setAdjustRadarForGunTurn(true);
@@ -36,13 +35,34 @@ public class Aristocles extends AdvancedRobot {
 		double eAB = getHeadingRadians() + e.getBearingRadians();
 		double eD = e.getDistance();
 		double eV = e.getVelocity();
+		double myV = getVelocity();
 		Point2D gL = new Point2D.Double(getX(), getY());
 		eL = project(gL, eAB, eD);
 
-		// <movement> energy-drop-timed reversal
+		// <movement> DC surf-informed direction
 		double dE = eE - (eE = e.getEnergy());
-		if (dE > 0 && dE <= 3 && Math.random() < 0.15) {
-			dir = -dir;
+		if (dE > 0 && dE <= 3) {
+			// Create enemy surf wave
+			double ourLat = myV * Math.sin(getHeadingRadians() - eAB - Math.PI);
+			Wave sw = new Wave();
+			sw.gL = eL;
+			sw.b = eAB + Math.PI;
+			sw.bD = Math.copySign(0.7 / M, ourLat);
+			sw.bv = 20 - 3 * dE;
+			sw.o = new double[]{0, eD, 0, Math.abs(myV)};
+			sw.s = true;
+			addCustomEvent(sw);
+
+			// Surf direction decision
+			if (sO.size() > 2) {
+				dcFill(sw.o, sO);
+				int pk = bestGF();
+				if (Math.abs(pk - M) > 2 && (pk > M) == (ourLat > 0)) {
+					dir = -dir;
+				}
+			} else if (Math.random() < 0.3) {
+				dir = -dir;
+			}
 		}
 
 		Point2D robotDestination;
@@ -76,7 +96,7 @@ public class Aristocles extends AdvancedRobot {
 		w.o = new double[]{0, eD, pV - aV, aV};
 		pV = aV;
 
-		dcFill(w.o);
+		dcFill(w.o, obss);
 		int best = bestGF();
 
 		setTurnGunRightRadians(Utils.normalRelativeAngle(eAB - getGunHeadingRadians() +
@@ -91,10 +111,20 @@ public class Aristocles extends AdvancedRobot {
 		setTurnRadarRightRadians(Utils.normalRelativeAngle(eAB - getRadarHeadingRadians()) * 2);
 	}
 
-	static void dcFill(double[] q) {
+	public void onHitByBullet(HitByBulletEvent e) {
+		if (Wave.pW != null) {
+			Point2D h = new Point2D.Double(getX(), getY());
+			Wave.pW.o[0] = (int) Math.clamp((long)(
+				Utils.normalRelativeAngle(absoluteBearing(Wave.pW.gL, h) - Wave.pW.b)
+				/ Wave.pW.bD + M + 0.5), 0, F - 1);
+			sO.add(Wave.pW.o);
+		}
+	}
+
+	static void dcFill(double[] q, ArrayList<double[]> list) {
 		scores = new double[F];
 		try { for (int i = 0; ; i++) {
-			double[] o = obss.get(i);
+			double[] o = list.get(i);
 			double d = 0.01;
 			for (int j = 1; j < 4; j++)
 				d += Math.abs(o[j] - q[j]) * W.charAt(j - 1);
@@ -119,13 +149,21 @@ public class Aristocles extends AdvancedRobot {
 	}
 
 	static class Wave extends Condition {
+		static Wave pW;
 		double bv;
 		Point2D gL;
 		double b, bD, d;
 		double[] o;
+		boolean s;
 
 		public boolean test() {
-			if ((d += bv) > gL.distance(eL) - 18) {
+			d += bv;
+			if (s) {
+				if (d > gL.distance(R.getX(), R.getY()) - 20) {
+					pW = this;
+					R.removeCustomEvent(this);
+				}
+			} else if (d > gL.distance(eL) - 18) {
 				o[0] = (int) Math.clamp((long)(
 					Utils.normalRelativeAngle(absoluteBearing(gL, eL) - b) / bD + M + 0.5), 0, F - 1);
 				obss.add(o);
