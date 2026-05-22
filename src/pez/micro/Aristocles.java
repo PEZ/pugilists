@@ -3,7 +3,7 @@ import robocode.*;
 import robocode.util.Utils;
 import java.awt.geom.*;
 
-// Aristocles, by PEZ. Unsegmented GF gun + surf.
+// Aristocles, by PEZ. 1-D binned (distance) GF gun + surf.
 
 public class Aristocles extends AdvancedRobot {
 	static final int F = 25;
@@ -13,8 +13,8 @@ public class Aristocles extends AdvancedRobot {
 
 	static Aristocles R;
 	static Point2D eL;
-	static double[] gGF = new double[F];
-	static double[] sGF = new double[F];
+	static double[][] gGF = new double[3][F];
+	static double[][] sGF = new double[3][F];
 	static double dir = 0.4;
 	static double bD;
 	static double eE;
@@ -36,9 +36,9 @@ public class Aristocles extends AdvancedRobot {
 		Point2D gL = new Point2D.Double(getX(), getY());
 		eL = project(gL, eAB, eD);
 
-		// <movement> Unsegmented surf
+		// <movement> 1-D binned surf
 		if (Wave.surfWave != null) {
-			int pk = bestGF(sGF);
+			int pk = bestGF(sGF[(int) Math.min(Wave.surfWave.eD / 250, 2)]);
 			if (pk != M)
 				dir = Math.copySign(0.4, (M - pk) * Wave.surfWave.bD);
 		}
@@ -51,6 +51,7 @@ public class Aristocles extends AdvancedRobot {
 			sw.b = eAB + Math.PI;
 			sw.bD = Math.copySign(0.7 / M, myV * Math.sin(getHeadingRadians() - eAB - Math.PI));
 			sw.bv = 20 - 3 * dE;
+			sw.eD = eD;
 			sw.s = true;
 			addCustomEvent(sw);
 		}
@@ -71,7 +72,7 @@ public class Aristocles extends AdvancedRobot {
 		setTurnRightRadians(Math.tan(angle));
 		// </movement>
 
-		// <gun> Unsegmented GF targeting
+		// <gun> 1-D binned GF targeting
 		if (eV != 0) {
 			bD = Math.copySign(0.7 / M, eV * Math.sin(e.getHeadingRadians() - eAB));
 		}
@@ -82,8 +83,9 @@ public class Aristocles extends AdvancedRobot {
 		w.bD = bD;
 		double bp;
 		w.bv = 20 - 3 * (bp = Math.min(e.getEnergy() / 4, eD > 360 ? BULLET_POWER : 3.0));
+		w.eD = eD;
 
-		int best = bestGF(gGF);
+		int best = bestGF(gGF[(int) Math.min(eD / 250, 2)]);
 
 		setTurnGunRightRadians(Utils.normalRelativeAngle(eAB - getGunHeadingRadians() +
 				bD * (best - M)));
@@ -100,7 +102,7 @@ public class Aristocles extends AdvancedRobot {
 	public void onHitByBullet(HitByBulletEvent e) {
 		if (Wave.pW != null) {
 			Point2D h = new Point2D.Double(getX(), getY());
-			sGF[(int) Math.clamp((long)(
+			sGF[(int) Math.min(Wave.pW.eD / 250, 2)][(int) Math.clamp((long)(
 				Utils.normalRelativeAngle(absoluteBearing(Wave.pW.gL, h) - Wave.pW.b)
 				/ Wave.pW.bD + M + 0.5), 0, F - 1)]++;
 		}
@@ -127,7 +129,7 @@ public class Aristocles extends AdvancedRobot {
 		static Wave surfWave;
 		double bv;
 		Point2D gL;
-		double b, bD, d;
+		double b, bD, d, eD;
 		boolean s;
 
 		public boolean test() {
@@ -143,7 +145,7 @@ public class Aristocles extends AdvancedRobot {
 						surfWave = this;
 				}
 			} else if (d > gL.distance(eL) - 18) {
-				gGF[(int) Math.clamp((long)(
+				gGF[(int) Math.min(eD / 250, 2)][(int) Math.clamp((long)(
 					Utils.normalRelativeAngle(absoluteBearing(gL, eL) - b) / bD + M + 0.5), 0, F - 1)]++;
 				R.removeCustomEvent(this);
 			}
