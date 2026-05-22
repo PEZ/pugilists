@@ -4,7 +4,7 @@ import robocode.util.Utils;
 import java.awt.geom.*;
 import java.util.ArrayList;
 
-// Aristocles, by PEZ. 1-D DC (distance only) GF gun + surf.
+// Aristocles, by PEZ. 0-D DC (recency only) GF gun + surf.
 
 public class Aristocles extends AdvancedRobot {
 	static final int F = 25;
@@ -54,7 +54,7 @@ public class Aristocles extends AdvancedRobot {
 			sw.b = eAB + Math.PI;
 			sw.bD = Math.copySign(0.7 / M, myV * Math.sin(getHeadingRadians() - eAB - Math.PI));
 			sw.bv = 20 - 3 * dE;
-			sw.o = new double[]{0, eD};
+			sw.o = new double[]{0};
 			sw.s = true;
 			addCustomEvent(sw);
 		}
@@ -86,7 +86,7 @@ public class Aristocles extends AdvancedRobot {
 		w.bD = bD;
 		double bp;
 		w.bv = 20 - 3 * (bp = Math.min(e.getEnergy() / 4, eD > 360 ? BULLET_POWER : 3.0));
-		w.o = new double[]{0, eD};
+		w.o = new double[]{0};
 
 		dcFill(w.o, obss);
 		int best = bestGF(scores);
@@ -116,9 +116,7 @@ public class Aristocles extends AdvancedRobot {
 	static void dcFill(double[] q, ArrayList<double[]> list) {
 		scores = new double[F];
 		try { for (int i = 0; ; i++) {
-			double[] o = list.get(i);
-			double d = Math.abs(o[1] - q[1]) + 0.01;
-			scores[(int) o[0]] += (20 + i) / (d * d);
+			scores[(int) list.get(i)[0]] += 20 + i;
 		} } catch (Exception e) {}
 	}
 
