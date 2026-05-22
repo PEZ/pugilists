@@ -78,9 +78,9 @@ public class Aristocles extends AdvancedRobot {
 		setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
 				enemyBearingDirection * (best - MIDDLE_FACTOR)));
 
-		setFire(bulletPower);
 		if (getEnergy() >= BULLET_POWER) {
 			addCustomEvent(w);
+			setFire(bulletPower);
 		}
 		// </gun>
 
