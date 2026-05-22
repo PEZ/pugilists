@@ -25,6 +25,7 @@ public class Aristocles extends AdvancedRobot {
 	static final int VELOCITY_INDEXES = 5;
 	static final int LAST_VELOCITY_INDEXES = 5;
 	static final int DECCEL_TIME_INDEXES = 6;
+	static final int WALL_INDEXES = 2;
 	static final int FACTORS = 47;
 	static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
 
@@ -32,7 +33,7 @@ public class Aristocles extends AdvancedRobot {
 	static int lastVelocityIndex;
 	static int timeSinceDeccel;
 	static double enemyBearingDirection;
-	static int[][][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][LAST_VELOCITY_INDEXES][DECCEL_TIME_INDEXES][FACTORS];
+	static int[][][][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][LAST_VELOCITY_INDEXES][DECCEL_TIME_INDEXES][WALL_INDEXES][FACTORS];
 	static double direction = 0.4;
 	static double enemyFirePower;
 	static int GF1Hits;
@@ -88,7 +89,8 @@ public class Aristocles extends AdvancedRobot {
 				(distanceIndex = (int)(enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER : MAX_BULLET_POWER));
 		//wave.bulletPower = MAX_BULLET_POWER; // TargetingChallenge
 
-		wave.factors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(5, timeSinceDeccel++ / 13)];
+		wave.factors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(5, timeSinceDeccel++ / 13)]
+				[fieldRectangle.contains(project(enemyLocation, e.getHeadingRadians(), 100)) ? 1 : 0];
 		lastVelocityIndex = velocityIndex;
 
 		wave.startBearing = enemyAbsoluteBearing;
