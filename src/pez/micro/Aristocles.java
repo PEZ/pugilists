@@ -71,7 +71,7 @@ public class Aristocles extends AdvancedRobot {
 		}
 		// Jamougha's cool way
 		double angle;
-		setAhead(Math.cos(angle = absoluteBearing(wave.gunLocation, robotDestination) - getHeadingRadians()) * 100);
+		setAhead(Math.cos(angle = absoluteBearing(wave.gunLocation, robotDestination) - getHeadingRadians()) * (60 + 40 * Math.random()));
 		setTurnRightRadians(Math.tan(angle));
 		// </movement>
 
