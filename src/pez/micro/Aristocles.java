@@ -28,9 +28,7 @@ public class Aristocles extends AdvancedRobot {
 		setAdjustRadarForGunTurn(true);
 		setAdjustGunForRobotTurn(true);
 		robot = this;
-		do {
-			turnRadarRightRadians(Double.POSITIVE_INFINITY);
-		} while (true);
+		turnRadarRightRadians(Double.POSITIVE_INFINITY);
 	}
 
 	public void onScannedRobot(ScannedRobotEvent e) {
