@@ -141,8 +141,11 @@ public class Aristocles extends AdvancedRobot {
 		public boolean test() {
 			if ((distanceFromGun += bulletVelocity(bulletPower)) > gunLocation.distance(enemyLocation) - 18) {
 				try {
-					factors[(int)Math.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
-							bearingDirection) + MIDDLE_FACTOR)]++;
+					int i = (int)Math.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
+							bearingDirection) + MIDDLE_FACTOR);
+					factors[i]++;
+					factors[i - 1]++;
+					factors[i + 1]++;
 				}
 				catch (Exception e) {
 				}
