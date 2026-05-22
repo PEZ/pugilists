@@ -2,101 +2,112 @@ package pez.micro;
 import robocode.*;
 import robocode.util.Utils;
 import java.awt.geom.*;
-import java.util.ArrayList;
 
-// Aristocles, by PEZ. 0-D DC (recency only) GF gun + surf.
+// This code is released under the RoboWiki Public Code Licence (RWPCL), datailed on:
+// http://robowiki.net/?RWPCL
+//
+// Aristocles, by PEZ. What you see is always an imperfect copy of the form. 
+// $Id: Aristocles.java,v 1.11 2004/02/22 20:10:06 peter Exp $
 
 public class Aristocles extends AdvancedRobot {
-	static final int FACTORS = 25;
-	static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
+	static final double BATTLE_FIELD_WIDTH = 800;
+	static final double BATTLE_FIELD_HEIGHT = 600;
+
+	static final double MAX_DISTANCE = 900;
+	static final double MAX_BULLET_POWER = 3.0;
 	static final double BULLET_POWER = 1.9;
 	static final double WALL_MARGIN = 18;
+	static final double MAX_TRIES = 125;
+	static final double REVERSE_TUNER = 0.421075;
+	static final double WALL_BOUNCE_TUNER = 0.699484;
 
-	static Aristocles robot;
+	static final int DISTANCE_INDEXES = 5;
+	static final int VELOCITY_INDEXES = 5;
+	static final int LAST_VELOCITY_INDEXES = 5;
+	static final int DECCEL_TIME_INDEXES = 6;
+	static final int FACTORS = 25;
+	static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
+
 	static Point2D enemyLocation;
-	static ArrayList<double[]> gunObss = new ArrayList<>();
-	static ArrayList<double[]> surfObss = new ArrayList<>();
-	static double[] scores;
-	static double direction = 0.4;
+	static int lastVelocityIndex;
+	static int timeSinceDeccel;
 	static double enemyBearingDirection;
-	static double enemyEnergy;
+	static int[][][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][LAST_VELOCITY_INDEXES][DECCEL_TIME_INDEXES][FACTORS];
+	static double direction = 0.4;
+	static double enemyFirePower;
+	static int GF1Hits;
+	static int tries;
 
 	public void run() {
 		setAdjustRadarForGunTurn(true);
 		setAdjustGunForRobotTurn(true);
-		robot = this;
+
 		do {
-			turnRadarRightRadians(Double.POSITIVE_INFINITY);
+			turnRadarRightRadians(Double.POSITIVE_INFINITY); 
 		} while (true);
 	}
 
 	public void onScannedRobot(ScannedRobotEvent e) {
+		Wave wave = new Wave();
 		double enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
-		double enemyDistance = e.getDistance();
-		double enemyVelocity = e.getVelocity();
-		double robotVelocity = getVelocity();
-		Point2D robotLocation = new Point2D.Double(getX(), getY());
-		enemyLocation = project(robotLocation, enemyAbsoluteBearing, enemyDistance);
+		double enemyDistance;
+		enemyLocation = project(wave.gunLocation = new Point2D.Double(getX(), getY()), enemyAbsoluteBearing, enemyDistance = e.getDistance());
 
-		// <movement> 0-D DC surf
-		if (Wave.surfWave != null && surfObss.size() > 3) {
-			dcFill(Wave.surfWave.obs, surfObss);
-			int pk = bestGF(scores);
-			if (pk != MIDDLE_FACTOR)
-				direction = Math.copySign(0.4, (MIDDLE_FACTOR - pk) * Wave.surfWave.bearingDirection);
-		}
-		Wave.surfWave = null;
-
-		double energyDelta = enemyEnergy - (enemyEnergy = e.getEnergy());
-		if (energyDelta > 0 && energyDelta <= 3) {
-			Wave sw = new Wave();
-			sw.gunLocation = enemyLocation;
-			sw.startBearing = enemyAbsoluteBearing + Math.PI;
-			sw.bearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR, robotVelocity * Math.sin(getHeadingRadians() - enemyAbsoluteBearing - Math.PI));
-			sw.bulletVelocity = 20 - 3 * energyDelta;
-			sw.obs = new double[]{0};
-			sw.surfable = true;
-			addCustomEvent(sw);
-		}
-
+		// <movement>
 		Point2D robotDestination;
 		Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
-				800 - WALL_MARGIN * 2, 600 - WALL_MARGIN * 2);
-		int tries = 0;
+				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
+		tries = 0;
 		while (!fieldRectangle.contains(robotDestination = project(enemyLocation, enemyAbsoluteBearing + Math.PI + direction,
-				enemyDistance * (1.2 - tries / 100.0))) && tries < 125) {
+				enemyDistance * (1.2 - tries / 100.0))) && tries < MAX_TRIES) {
 			tries++;
 		}
-		if (tries > 70) {
+		double bv = bulletVelocity(enemyFirePower);
+		if (GF1Hits > 2 && (Math.random() < (bv / REVERSE_TUNER) / enemyDistance ||
+				tries > (enemyDistance / bv / WALL_BOUNCE_TUNER))) {
 			direction = -direction;
 		}
+		// Jamougha's cool way
 		double angle;
-		setAhead(Math.cos(angle = absoluteBearing(robotLocation, robotDestination) - getHeadingRadians()) * 100);
+		setAhead(Math.cos(angle = absoluteBearing(wave.gunLocation, robotDestination) - getHeadingRadians()) * 100);
 		setTurnRightRadians(Math.tan(angle));
 		// </movement>
 
-		// <gun> 0-D DC GF targeting
+		// <gun>
+		double enemyVelocity = e.getVelocity();
+		int velocityIndex = (int)Math.abs(enemyVelocity) / 2;
+		if (velocityIndex < lastVelocityIndex) {
+			timeSinceDeccel = 0;
+		}
+
 		if (enemyVelocity != 0) {
 			enemyBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR, enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
 		}
+		wave.bearingDirection = enemyBearingDirection;
 
-		Wave w = new Wave();
-		w.gunLocation = robotLocation;
-		w.startBearing = enemyAbsoluteBearing;
-		w.bearingDirection = enemyBearingDirection;
-		double bulletPower;
-		w.bulletVelocity = 20 - 3 * (bulletPower = Math.min(e.getEnergy() / 4, enemyDistance > 360 ? BULLET_POWER : 3.0));
-		w.obs = new double[]{0};
+		int distanceIndex;
+		wave.bulletPower = Math.min(e.getEnergy() / 4,
+				(distanceIndex = (int)(enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER : MAX_BULLET_POWER);
+		//wave.bulletPower = MAX_BULLET_POWER; // TargetingChallenge
 
-		dcFill(w.obs, gunObss);
-		int best = bestGF(scores);
+		wave.factors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(5, timeSinceDeccel++ / 13)];
+		lastVelocityIndex = velocityIndex;
+
+		wave.startBearing = enemyAbsoluteBearing;
+
+		int mostVisited = MIDDLE_FACTOR, i = FACTORS;
+		do  {
+			if (wave.factors[--i] > wave.factors[mostVisited]) {
+				mostVisited = i;
+			}
+		} while (i > 0);
 
 		setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
-				enemyBearingDirection * (best - MIDDLE_FACTOR)));
+				wave.bearingDirection * (mostVisited - MIDDLE_FACTOR)));
 
-		setFire(bulletPower);
+		setFire(wave.bulletPower);
 		if (getEnergy() >= BULLET_POWER) {
-			addCustomEvent(w);
+			addCustomEvent(wave);
 		}
 		// </gun>
 
@@ -104,64 +115,42 @@ public class Aristocles extends AdvancedRobot {
 	}
 
 	public void onHitByBullet(HitByBulletEvent e) {
-		if (Wave.passingWave != null) {
-			Point2D h = new Point2D.Double(getX(), getY());
-			Wave.passingWave.obs[0] = (int) Math.clamp((long)(
-				Utils.normalRelativeAngle(absoluteBearing(Wave.passingWave.gunLocation, h) - Wave.passingWave.startBearing)
-				/ Wave.passingWave.bearingDirection + MIDDLE_FACTOR + 0.5), 0, FACTORS - 1);
-			surfObss.add(Wave.passingWave.obs);
+		if (tries < 30) {
+			GF1Hits++;
 		}
+		enemyFirePower = e.getPower();
 	}
 
-	static void dcFill(double[] q, ArrayList<double[]> list) {
-		scores = new double[FACTORS];
-		try { for (int i = 0; ; i++) {
-			scores[(int) list.get(i)[0]] += 20 + i;
-		} } catch (Exception e) {}
+	static double bulletVelocity(double power) {
+		return 20 - 3 * power;
 	}
 
-	static int bestGF(double[] s) {
-		int b = MIDDLE_FACTOR;
-		try { for (int i = 0; ; i++) {
-			if (s[i] > s[b]) b = i;
-		} } catch (Exception e) {}
-		return b;
+	static Point2D project(Point2D sourceLocation, double angle, double length) {
+		return new Point2D.Double(sourceLocation.getX() + Math.sin(angle) * length,
+				sourceLocation.getY() + Math.cos(angle) * length);
 	}
 
-	static Point2D project(Point2D s, double a, double l) {
-		return new Point2D.Double(s.getX() + Math.sin(a) * l, s.getY() + Math.cos(a) * l);
+	static double absoluteBearing(Point2D source, Point2D target) {
+		return Math.atan2(target.getX() - source.getX(), target.getY() - source.getY());
 	}
 
-	static double absoluteBearing(Point2D s, Point2D t) {
-		return Math.atan2(t.getX() - s.getX(), t.getY() - s.getY());
-	}
-
-	static class Wave extends Condition {
-		static Wave passingWave;
-		static Wave surfWave;
-		double bulletVelocity;
+	class Wave extends Condition {
+		double bulletPower;
 		Point2D gunLocation;
-		double startBearing, bearingDirection, distanceFromGun;
-		double[] obs;
-		boolean surfable;
+		double startBearing;
+		double bearingDirection;
+		int[] factors;
+		double distanceFromGun;
 
 		public boolean test() {
-			distanceFromGun += bulletVelocity;
-			if (surfable) {
-				double dist = gunLocation.distance(robot.getX(), robot.getY());
-				if (distanceFromGun > dist + 25) {
-					robot.removeCustomEvent(this);
-				} else {
-					if (distanceFromGun > dist - 20) passingWave = this;
-					if (distanceFromGun < dist && (surfWave == null ||
-							dist - distanceFromGun < surfWave.gunLocation.distance(robot.getX(), robot.getY()) - surfWave.distanceFromGun))
-						surfWave = this;
+			if ((distanceFromGun += bulletVelocity(bulletPower)) > gunLocation.distance(enemyLocation) - 18) {
+				try {
+					factors[(int)Math.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
+							bearingDirection) + MIDDLE_FACTOR)]++;
 				}
-			} else if (distanceFromGun > gunLocation.distance(enemyLocation) - 18) {
-				obs[0] = (int) Math.clamp((long)(
-					Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing) / bearingDirection + MIDDLE_FACTOR + 0.5), 0, FACTORS - 1);
-				gunObss.add(obs);
-				robot.removeCustomEvent(this);
+				catch (Exception e) {
+				}
+				removeCustomEvent(this);
 			}
 			return false;
 		}
