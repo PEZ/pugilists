@@ -8,7 +8,6 @@ import java.awt.geom.*;
 //
 // Aristocles, by PEZ. What you see is always an imperfect copy of the form. 
 // $Id: Aristocles.java,v 1.11 2004/02/22 20:10:06 peter Exp $
-
 public class Aristocles extends AdvancedRobot {
 	static final double BATTLE_FIELD_WIDTH = 800;
 	static final double BATTLE_FIELD_HEIGHT = 600;
@@ -100,7 +99,7 @@ public class Aristocles extends AdvancedRobot {
 		} while (i > 0);
 
 		setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
-				wave.bearingDirection * (mostVisited - MIDDLE_FACTOR)));
+				enemyBearingDirection * (mostVisited - MIDDLE_FACTOR)));
 
 		setFire(wave.bulletPower);
 		addCustomEvent(wave);
