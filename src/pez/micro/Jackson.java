@@ -24,7 +24,7 @@ public class Jackson extends AdvancedRobot {
 	static final int FACTORS = 37;
 	static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
 
-	static Point2D currentEnemyLocation;
+	static Point2D currentEnemyLocation, myLocation;
 	static double enemyBearingDirection;
 	static double myX, myY;
 	static int[][] aimFactors = new int[VELOCITY_INDEXES][FACTORS];
@@ -46,7 +46,7 @@ public class Jackson extends AdvancedRobot {
 		myY = getY();
 		double enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
 		currentEnemyLocation = project(enemyAbsoluteBearing, e.getDistance());
-		Point2D myLocation = new Point2D.Double(myX, myY);
+		Point2D myLocation = Jackson.myLocation = new Point2D.Double(myX, myY);
 		int movementVelocityIndex = (int) Math.abs(lastVelocity);
 		double movementStartBearing = absoluteBearing(currentEnemyLocation, myLocation);
 		double movementBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
@@ -113,7 +113,7 @@ public class Jackson extends AdvancedRobot {
 
 	public void onHitByBullet(HitByBulletEvent e) {
 		try {
-			enemyWave.surfFactors[enemyWave.hitBin(new Point2D.Double(myX, myY))]++;
+			enemyWave.surfFactors[enemyWave.hitBin(myLocation)]++;
 		} catch (Exception ex) {
 		}
 	}
