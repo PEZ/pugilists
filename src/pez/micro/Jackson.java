@@ -46,7 +46,7 @@ public class Jackson extends AdvancedRobot {
 		myY = getY();
 		double enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
 		currentEnemyLocation = project(enemyAbsoluteBearing, e.getDistance());
-		Point2D myLocation = Jackson.myLocation = new Point2D.Double(myX, myY);
+		Point2D myLocation = Jackson.myLocation = project(0, 0);
 		double movementStartBearing = absoluteBearing(currentEnemyLocation, myLocation);
 		double movementBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
 				lastVelocity * Math.sin(getHeadingRadians() - movementStartBearing));
