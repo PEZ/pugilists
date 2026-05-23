@@ -24,6 +24,8 @@ public class Jackson extends AdvancedRobot {
 	static final int VELOCITY_INDEXES = 10;
 	static final int FACTORS = 37;
 	static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
+	static final String GW = "" + (char) 1 + (char) 200 + (char) 50 + (char) 18 + (char) 18 + (char) 16 + (char) 20;
+	static final String SW = "" + (char) 1 + (char) 200 + (char) 50 + (char) 18 + (char) 18 + (char) 16 + (char) 1;
 
 	static Point2D currentEnemyLocation;
 	static double enemyBearingDirection;
@@ -34,6 +36,8 @@ public class Jackson extends AdvancedRobot {
 	static double direction = 1;
 	static double enemyEnergy;
 	static double lastVelocity;
+	static double prevEnemyVelocity, prevRobotVelocity, enemyDistance;
+	static int enemyTSVC, robotTSVC;
 	static Wave enemyWave;
 
 	public void run() {
@@ -47,22 +51,26 @@ public class Jackson extends AdvancedRobot {
 		myX = getX();
 		myY = getY();
 		double enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
-		currentEnemyLocation = project(enemyAbsoluteBearing, e.getDistance());
+		currentEnemyLocation = project(enemyAbsoluteBearing, enemyDistance = e.getDistance());
 		Point2D myLocation = new Point2D.Double(myX, myY);
-		int movementVelocityIndex = (int) Math.abs(lastVelocity);
 		double movementStartBearing = absoluteBearing(currentEnemyLocation, myLocation);
 		double movementBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
 				lastVelocity * Math.sin(getHeadingRadians() - movementStartBearing));
+		if (prevRobotVelocity != lastVelocity) robotTSVC = 0; else robotTSVC++;
+		double robotBearingDirection = Math.signum(movementBearingDirection);
 		lastVelocity = getVelocity();
 		double enemyDeltaEnergy = enemyEnergy - e.getEnergy();
 		if (enemyDeltaEnergy > 0 && enemyDeltaEnergy <= MAX_BULLET_POWER) {
 			Wave enemyWave = new Wave(currentEnemyLocation, enemyDeltaEnergy,
 					movementStartBearing, movementBearingDirection);
 			enemyWave.observations = realMovementFactors;
-			enemyWave.obs = new double[] { 0, movementVelocityIndex };
+			enemyWave.obs = new double[] { 0, enemyDistance, prevRobotVelocity - lastVelocity, lastVelocity,
+					wallSmooth(myLocation, currentEnemyLocation, robotBearingDirection),
+					wallSmooth(currentEnemyLocation, myLocation, robotBearingDirection), robotTSVC };
 			enemyWave.distanceFromGun = 2 * bulletVelocity(enemyDeltaEnergy);
 			addCustomEvent(enemyWave);
 		}
+		prevRobotVelocity = lastVelocity;
 		enemyEnergy = e.getEnergy();
 
 		// <movement>
@@ -98,7 +106,11 @@ public class Jackson extends AdvancedRobot {
 		Wave wave = new Wave(myLocation, Math.min(getEnergy() / 2, 2),
 				enemyAbsoluteBearing, enemyBearingDirection);
 		wave.observations = aimFactors;
-		wave.obs = new double[] { 0, velocityIndex };
+			if (prevEnemyVelocity != enemyVelocity) enemyTSVC = 0; else enemyTSVC++;
+			wave.obs = new double[] { 0, enemyDistance, prevEnemyVelocity - enemyVelocity, enemyVelocity,
+					wallSmooth(currentEnemyLocation, myLocation, enemyBearingDirection),
+					wallSmooth(myLocation, currentEnemyLocation, enemyBearingDirection), enemyTSVC };
+			prevEnemyVelocity = enemyVelocity;
 		wave.query();
 
 		int mostVisited = MIDDLE_FACTOR, i = -1;
@@ -135,6 +147,21 @@ public class Jackson extends AdvancedRobot {
 		return new Point2D.Double(myX + Math.sin(angle) * length, myY + Math.cos(angle) * length);
 	}
 
+	static Point2D project(Point2D source, double angle, double length) {
+		return new Point2D.Double(source.getX() + Math.sin(angle) * length,
+				source.getY() + Math.cos(angle) * length);
+	}
+
+	static double wallSmooth(Point2D from, Point2D toward, double direction) {
+		double w = 0;
+		Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
+				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
+		while (w < 100 && !fieldRectangle.contains(project(from,
+				absoluteBearing(from, toward) - direction * (1.8207963267948966 - w++ / 100.0), 150)))
+			;
+		return w;
+	}
+
 	static double absoluteBearing(Point2D source, Point2D target) {
 		return Math.atan2(target.getX() - source.getX(), target.getY() - source.getY());
 	}
@@ -164,10 +191,14 @@ public class Jackson extends AdvancedRobot {
 
 		void query() {
 			scores = new double[FACTORS];
+			String w = observations == realMovementFactors ? SW : GW;
 			try {
 				for (int i = 0; ; i++) {
 					double[] o = observations.get(i);
-					scores[(int) o[0]] += 1 / (Math.abs(o[1] - obs[1]) + 0.01);
+					double d = 0.01;
+					for (int j = 1; j < 7; j++)
+						d += Math.abs(o[j] - obs[j]) * w.charAt(j - 1);
+					scores[(int) o[0]] += (w.charAt(6) + i) / (d * d);
 				}
 			} catch (Exception e) {
 			}
