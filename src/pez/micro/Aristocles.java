@@ -35,8 +35,10 @@ public class Aristocles extends AdvancedRobot {
 	static double enemyFirePower;
 	static int GF1Hits;
 	static int tries;
+	static Aristocles robot;
 
 	public void run() {
+		robot = this;
 		setAdjustRadarForGunTurn(true);
 		setAdjustGunForRobotTurn(true);
 
@@ -127,7 +129,7 @@ public class Aristocles extends AdvancedRobot {
 		return Math.atan2(target.getX() - source.getX(), target.getY() - source.getY());
 	}
 
-	class Wave extends Condition {
+	static class Wave extends Condition {
 		double bulletPower;
 		Point2D gunLocation;
 		double startBearing;
@@ -146,7 +148,7 @@ public class Aristocles extends AdvancedRobot {
 					catch (Exception ex) {
 					}
 				}
-				removeCustomEvent(this);
+				robot.removeCustomEvent(this);
 			}
 			return false;
 		}
