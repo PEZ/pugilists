@@ -151,7 +151,7 @@ public class Pugilist extends AdvancedRobot {
     }
 
     Point2D waveImpactLocation(Wave wave, double direction, int timeOffset) {
-        Point2D impactLocation = (Point2D) robotLocation.clone();
+        Point2D impactLocation = project(robotLocation, 0, 0);
         do {
             impactLocation = project(impactLocation, absoluteBearing(impactLocation,
                     wallSmoothedDestination(impactLocation,
