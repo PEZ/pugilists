@@ -154,7 +154,7 @@ public class Jackson extends AdvancedRobot {
 		public boolean test() {
 			distanceFromGun += bulletVelocity(bulletPower);
 			if (surfFactors != null) {
-				if (distanceFromGun < gunLocation.distance(myX, myY) + 50 && enemyWave == null) {
+				if (distanceFromGun < gunLocation.distance(myX, myY) && enemyWave == null) {
 					enemyWave = this;
 				}
 			} else if (factors != null && distanceFromGun > gunLocation.distance(currentEnemyLocation) - 18) {
