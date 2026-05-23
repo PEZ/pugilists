@@ -67,7 +67,7 @@ public class Jackson extends AdvancedRobot {
 		try {
 			int bin = enemyWave.hitBin(new Point2D.Double(myX, myY));
 			forwardDanger = enemyWave.surfFactors[bin];
-			reverseDanger = enemyWave.surfFactors[2 * MIDDLE_FACTOR - bin];
+			reverseDanger = enemyWave.surfFactors[2 * MIDDLE_FACTOR - bin - (int) direction];
 		} catch (Exception ex) {
 		}
 		if (reverseDanger < forwardDanger) {
