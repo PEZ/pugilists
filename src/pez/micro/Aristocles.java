@@ -110,7 +110,7 @@ public class Aristocles extends AdvancedRobot {
 		setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
 				wave.bearingDirection * (mostVisited - MIDDLE_FACTOR)));
 
-		setFire(wave.bulletPower);
+		if (setFireBullet(wave.bulletPower) != null) wave.weight = 5;
 		addCustomEvent(wave);
 		// </gun>
 
@@ -144,13 +144,14 @@ public class Aristocles extends AdvancedRobot {
 		double bearingDirection;
 		int[] factors;
 		double distanceFromGun;
+		int weight = 1;
 
 		public boolean test() {
 			if ((distanceFromGun += bulletVelocity(bulletPower)) > gunLocation.distance(enemyLocation) - 18) {
 				try {
 					factors[(int) Math
 							.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
-									bearingDirection) + MIDDLE_FACTOR)]++;
+									bearingDirection) + MIDDLE_FACTOR)] += weight;
 				} catch (Exception e) {
 				}
 				removeCustomEvent(this);
