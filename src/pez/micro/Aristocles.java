@@ -16,8 +16,7 @@ public class Aristocles extends AdvancedRobot {
 
 	static final double MAX_DISTANCE = 900;
 	static final double MAX_VELOCITY = 10;
-	static final double MAX_BULLET_POWER = 3.0;
-	static final double BULLET_POWER = 1.9;
+	static final String P = "\u0018\u001e\u001e\u001e\u0013\u0019\u001c\u001c\u000f\u0014\u0017\u0018\u000c\u0013\u0015\u0016\u000b\u0012\u0013\u0014\u000b\u0011\u0013\u0013\u000b\u0010\u0013\u0013\u000b\u000f\u0012\u0013\u000b\u000e\u0011\u0013\u000b\u000e\u0010\u0013\u000b\u000e\u0010\u0013\u000b\u000e\u0010\u0013";
 	static final double WALL_MARGIN = 18;
 	static final double MAX_TRIES = 125;
 	static final double REVERSE_TUNER = 0.421075;
@@ -90,8 +89,8 @@ public class Aristocles extends AdvancedRobot {
 
 		int distanceIndex;
 		wave.bulletPower = Math.min(getEnergy() / 2, Math.min(e.getEnergy() / 4,
-				(distanceIndex = (int) (enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER
-						: MAX_BULLET_POWER));
+				P.charAt((distanceIndex = (int) (enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) * 4
+						+ Math.min(3, (int) getEnergy() >> 5)) / 10.0));
 		// wave.bulletPower = MAX_BULLET_POWER; // TargetingChallenge
 
 		wave.factors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(VCHANGE_TIME_INDEXES - 1,
@@ -110,7 +109,7 @@ public class Aristocles extends AdvancedRobot {
 		setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
 				wave.bearingDirection * (mostVisited - MIDDLE_FACTOR)));
 
-		if (setFireBullet(wave.bulletPower) != null) wave.weight = 10;
+		setFire(wave.bulletPower);
 		addCustomEvent(wave);
 		// </gun>
 
@@ -144,14 +143,13 @@ public class Aristocles extends AdvancedRobot {
 		double bearingDirection;
 		int[] factors;
 		double distanceFromGun;
-		int weight = 1;
 
 		public boolean test() {
 			if ((distanceFromGun += bulletVelocity(bulletPower)) > gunLocation.distance(enemyLocation) - 18) {
 				try {
 					factors[(int) Math
 							.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
-									bearingDirection) + MIDDLE_FACTOR)] += weight;
+									bearingDirection) + MIDDLE_FACTOR)]++;
 				} catch (Exception e) {
 				}
 				removeCustomEvent(this);
