@@ -17,24 +17,38 @@
                         "git" "log" "-1" "--format=%h %s" ref)]
     (str/trim (:out result))))
 
+(defn- source-file-attr
+  "Returns the SourceFile attribute of a compiled class via javap."
+  [classes-root class-name]
+  (let [result (p/shell {:out :string :err :string :continue true}
+                        "javap" "-classpath" classes-root "-verbose" class-name)
+        line (first (filter #(str/includes? % "SourceFile:") (str/split-lines (:out result))))]
+    (when line
+      (second (re-find #"SourceFile:\s+\"(.+)\"" line)))))
+
 (defn- deploy-jar!
   "Create bot jar from build output and deploy to Robocode."
   [bot build-dir]
   (let [ns-path (str/replace bot "." "/")
         class-dir (str build-dir "/classes/java/main/" (subs ns-path 0 (str/last-index-of ns-path "/")))
-        class-files (->> (fs/list-dir class-dir)
-                         (map str)
-                         (filter #(str/ends-with? % ".class")))
-        props-file (str build-dir "/classes/java/main/" ns-path ".properties")
-        jar-name (str bot "_benched.jar")
-          jar-path (str *robocode-home* "/robots/" jar-name)
+        source-file (str (subs ns-path (inc (str/last-index-of ns-path "/"))) ".java")
         classes-root (str build-dir "/classes/java/main")
         abs-root (str (fs/absolutize classes-root))
+        class-files (->> (fs/list-dir class-dir)
+                         (map str)
+                         (filter #(str/ends-with? % ".class"))
+                         (filter (fn [f]
+                                   (let [rel (subs (str (fs/absolutize f)) (inc (count abs-root)))
+                                         cn (-> rel (str/replace ".class" "") (str/replace "/" "."))]
+                                     (= (source-file-attr classes-root cn) source-file)))))
+        props-file (str build-dir "/classes/java/main/" ns-path ".properties")
+        jar-name (str bot "_benched.jar")
+        jar-path (str *robocode-home* "/robots/" jar-name)
         entries (cond-> (mapv #(subs (str (fs/absolutize %)) (inc (count abs-root))) class-files)
                   (fs/exists? props-file) (conj (subs (str (fs/absolutize props-file))
                                                       (inc (count abs-root)))))]
     (apply p/shell {:dir classes-root} "jar" "cf" jar-path entries)
-      (fs/delete-if-exists (str *robocode-home* "/robots/robot.database"))))
+    (fs/delete-if-exists (str *robocode-home* "/robots/robot.database"))))
 (defn- build-and-deploy!
   "Build the bot and deploy its jar to Robocode. If commit is provided,
    uses git worktree to build in an isolated directory."

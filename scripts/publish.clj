@@ -17,32 +17,69 @@
                 (when v [(str/trim k) (str/trim v)])))
        (into {})))
 
+(defn- namespace->path
+  "Converts a namespace like pez.micro.Aristocles to pez/micro/Aristocles"
+  [ns-str]
+  (str/replace ns-str "." "/"))
+
+(defn- class-file->class-name
+  "Converts a class file path to its JVM dotted class name relative to classes-dir."
+  [abs-classes class-file]
+  (-> (subs (str (fs/absolutize class-file)) (inc (count abs-classes)))
+      (str/replace ".class" "")
+      (str/replace "/" ".")))
+
+(defn- source-file-attr
+  "Returns the SourceFile attribute of a compiled class, e.g. \"Aristocles.java\"."
+  [class-name]
+  (let [result (p/shell {:out :string :err :string :continue true}
+                        "javap" "-classpath" classes-dir "-verbose" class-name)
+        line (first (filter #(str/includes? % "SourceFile:") (str/split-lines (:out result))))]
+    (when line
+      (second (re-find #"SourceFile:\s+\"(.+)\"" line)))))
+
+(defn- find-class-files
+  "Find all .class files belonging to a bot, filtered by SourceFile attribute."
+  [classname]
+  (let [ns-path (namespace->path classname)
+        class-dir (str classes-dir "/" (fs/parent ns-path))
+        source-file (str (fs/file-name ns-path) ".java")
+        abs-classes (str (fs/absolutize classes-dir))]
+    (when (fs/exists? class-dir)
+      (->> (fs/list-dir class-dir)
+           (map str)
+           (filter #(str/ends-with? % ".class"))
+           (filter #(= (source-file-attr (class-file->class-name abs-classes %)) source-file))))))
+
+(defn- find-properties-file
+  "Find the bot's .properties file in classes-dir."
+  [classname]
+  (let [props-path (str classes-dir "/" (namespace->path classname) ".properties")]
+    (when (fs/exists? props-path) props-path)))
+
 (defn- find-bots []
   (->> (fs/glob "src" "**/*.properties")
        (map (fn [props-path]
               (let [props (read-properties props-path)
                     classname (get props "robot.classname")
-                    version (get props "robot.version")
-                    package-dir (str/replace (subs classname 0 (str/last-index-of classname ".")) "." "/")]
+                    version (get props "robot.version")]
                 {:classname classname
                  :version version
-                 :package-dir package-dir
                  :properties-path props-path})))))
 
-(defn- create-bot-jar! [{:keys [classname version package-dir]}]
+(defn- create-bot-jar! [{:keys [classname version]}]
   (let [jar-name (str classname "_" version ".jar")
-        jar-path (str "site/" jar-name)]
+        jar-path (str (fs/absolutize (str "site/" jar-name)))
+        abs-classes (str (fs/absolutize classes-dir))
+        class-files (find-class-files classname)
+        props-file (find-properties-file classname)]
     (println (str "  " jar-name))
-    (p/shell "jar" "cf" jar-path
-             "-C" classes-dir package-dir)
+    (let [entries (cond-> (mapv (fn [f] (subs (str (fs/absolutize f)) (inc (count abs-classes)))) class-files)
+                    props-file (conj (subs (str (fs/absolutize props-file)) (inc (count abs-classes)))))]
+      (apply p/shell {:dir classes-dir}
+             "jar" "cf" jar-path
+             entries))
     jar-name))
-
-(defn- set-version! [classname version]
-  (let [props-file (str "src/" (str/replace classname "." "/") ".properties")
-        content (slurp props-file)
-        updated (str/replace content #"robot\.version=.*" (str "robot.version=" version))]
-    (spit props-file updated)
-    (println (str "Version set to " version " in " props-file))))
 
 (defn- load-index []
   (if (fs/exists? index-file)
