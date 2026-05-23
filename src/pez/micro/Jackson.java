@@ -61,8 +61,13 @@ public class Jackson extends AdvancedRobot {
 
 		// <movement>
 		try {
-			int bin;
-			if ((enemyWave.surfFactors[2 * MIDDLE_FACTOR - (bin = enemyWave.hitBin(myLocation))]) < (enemyWave.surfFactors[bin])) {
+			double ticks = (enemyWave.gunLocation.distance(myX, myY) - enemyWave.distanceFromGun)
+					/ bulletVelocity(enemyWave.bulletPower);
+			double travel = Math.min(ticks * 6, 160);
+			double orbitAngle = enemyAbsoluteBearing - direction * 1.5707963267948966;
+			int fwdBin = enemyWave.hitBin(project(orbitAngle, travel));
+			int revBin = enemyWave.hitBin(project(orbitAngle + Math.PI, travel));
+			if (enemyWave.surfFactors[revBin] < enemyWave.surfFactors[fwdBin]) {
 				direction = -direction;
 			}
 		} catch (Exception ex) {
