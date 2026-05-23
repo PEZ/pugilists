@@ -54,12 +54,11 @@ public class Pugilist extends AdvancedRobot {
         ew.gunLocation = (Point2D) enemyLocation.clone();
         ew.startBearing = ew.gunBearing(robotLocation);
 
-        double enemyDeltaEnergy = enemyEnergy - e.getEnergy();
+        double enemyDeltaEnergy = enemyEnergy - (enemyEnergy = e.getEnergy());
         if (enemyDeltaEnergy > 0 && enemyDeltaEnergy <= 3.0) {
             enemyFirePower = enemyDeltaEnergy;
             ew.surfable = true;
         }
-        enemyEnergy = e.getEnergy();
 
         double direction = robotBearingDirection(ew.startBearing);
         if (prevRobotVelocity != robotVelocity) robotTSVC = 0; else robotTSVC++;
