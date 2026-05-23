@@ -16,7 +16,7 @@ public class Jackson extends AdvancedRobot {
 
 	static final double MAX_DISTANCE = 900;
 	static final double MAX_BULLET_POWER = 3.0;
-	static final double BULLET_POWER = 2;
+	static final double BULLET_POWER = 1;
 	static final double WALL_MARGIN = 18;
 
 	static final int DISTANCE_INDEXES = 10;
@@ -36,6 +36,7 @@ public class Jackson extends AdvancedRobot {
 
 	public void run() {
 		setAdjustRadarForGunTurn(true);
+		setAdjustGunForRobotTurn(true);
 		turnRadarRightRadians(Double.POSITIVE_INFINITY);
 	}
 
@@ -48,8 +49,8 @@ public class Jackson extends AdvancedRobot {
 		double movementStartBearing = absoluteBearing(currentEnemyLocation, myLocation);
 		double movementBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
 				lastVelocity * Math.sin(getHeadingRadians() - movementStartBearing));
-		double enemyDeltaEnergy = enemyEnergy - (enemyEnergy = e.getEnergy());
-		if (enemyDeltaEnergy > 0) {
+		double enemyDeltaEnergy;
+		if ((enemyDeltaEnergy = enemyEnergy - (enemyEnergy = e.getEnergy())) > 0 && enemyDeltaEnergy <= MAX_BULLET_POWER) {
 			Wave enemyWave = new Wave(currentEnemyLocation, enemyDeltaEnergy,
 					movementStartBearing, movementBearingDirection);
 			enemyWave.surfFactors = realMovementFactors[(int) Math.abs(lastVelocity)];
