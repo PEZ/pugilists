@@ -41,7 +41,6 @@ public class Jackson extends AdvancedRobot {
 	static double enemyEnergy;
 	static double enemyFirePower = BULLET_POWER;
 	static double lastVelocity;
-	static double lastLastVelocity;
 	static Point2D hitLocation;
 	static boolean isHitByBullet;
 	Wave passingEnemyWave;
@@ -63,12 +62,11 @@ public class Jackson extends AdvancedRobot {
 		currentEnemyLocation = project(wave.gunLocation = new Point2D.Double(getX(), getY()), enemyAbsoluteBearing,
 				enemyDistance = e.getDistance());
 		int distanceIndex = (int) (enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES));
-		int movementVelocityIndex = (int) (Math.abs(lastLastVelocity) / (MAX_VELOCITY / VELOCITY_INDEXES));
+		int movementVelocityIndex = (int) (Math.abs(lastVelocity) / (MAX_VELOCITY / VELOCITY_INDEXES));
 		wave.surfFactors = piggyMovementFactors[distanceIndex][movementVelocityIndex];
 		wave.movementStartBearing = absoluteBearing(currentEnemyLocation, wave.gunLocation);
 		wave.movementBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
-				lastLastVelocity * Math.sin(getHeadingRadians() - wave.movementStartBearing));
-		lastLastVelocity = lastVelocity;
+				lastVelocity * Math.sin(getHeadingRadians() - wave.movementStartBearing));
 		lastVelocity = getVelocity();
 		double enemyDeltaEnergy = enemyEnergy - e.getEnergy();
 		if (enemyDeltaEnergy > 0 && enemyDeltaEnergy <= MAX_BULLET_POWER) {
