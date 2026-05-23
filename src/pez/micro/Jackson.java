@@ -193,22 +193,14 @@ public class Jackson extends AdvancedRobot {
 	}
 
 	Point2D predictPosition(Wave wave, double movementDirection, Rectangle2D fieldRectangle) {
-		Point2D robotLocation = new Point2D.Double(getX(), getY());
 		if (wave == null) {
-			return robotLocation;
+			return new Point2D.Double(getX(), getY());
 		}
-		int time = 0;
-		do {
-			Point2D destination;
-			int i = 0;
-			while (!fieldRectangle.contains(destination = project(robotLocation,
-					absoluteBearing(robotLocation, currentEnemyLocation) - movementDirection * (Math.PI / 2 - i / 100.0),
-					160)) && i++ < 125)
-				;
-			robotLocation = project(robotLocation, absoluteBearing(robotLocation, destination), MAX_VELOCITY - 2);
-		} while (wave.distanceFromGun + ++time * bulletVelocity(wave.bulletPower) <
-				wave.gunLocation.distance(robotLocation) - 18 && time < 100);
-		return robotLocation;
+		Point2D robotLocation = new Point2D.Double(getX(), getY());
+		double heading = absoluteBearing(robotLocation, currentEnemyLocation) - movementDirection * Math.PI / 2;
+		int ticks = Math.max(0, (int) ((wave.gunLocation.distance(robotLocation) - wave.distanceFromGun) /
+				bulletVelocity(wave.bulletPower)));
+		return project(robotLocation, heading, Math.min(ticks * (MAX_VELOCITY - 2), 160));
 	}
 
 	class Wave extends Condition {
