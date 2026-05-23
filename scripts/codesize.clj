@@ -11,18 +11,35 @@
   [ns-str]
   (str/replace ns-str "." "/"))
 
+(defn- class-file->class-name
+  "Converts a class file path to its JVM dotted class name relative to build-dir."
+  [abs-build class-file]
+  (-> (subs (str (fs/absolutize class-file)) (inc (count abs-build)))
+      (str/replace ".class" "")
+      (str/replace "/" ".")))
+
+(defn- source-file-attr
+  "Returns the SourceFile attribute of a compiled class, e.g. \"Aristocles.java\"."
+  [class-name]
+  (let [result (p/shell {:out :string :err :string :continue true}
+                        "javap" "-classpath" build-dir "-verbose" class-name)
+        line (first (filter #(str/includes? % "SourceFile:") (str/split-lines (:out result))))]
+    (when line
+      (second (re-find #"SourceFile:\s+\"(.+)\"" line)))))
+
 (defn- find-class-files
   "Find all .class files belonging to a bot namespace.
-   A bot like pez.mini.Pugilist may have inner/package-private classes
-   (Wave, EnemyWave) in the same directory."
+   Only includes classes compiled from the same source file as the bot."
   [ns-str]
   (let [ns-path (namespace->path ns-str)
         class-dir (str build-dir "/" (fs/parent ns-path))
-        main-class (str (fs/file-name ns-path) ".class")]
+        source-file (str (fs/file-name ns-path) ".java")
+        abs-build (str (fs/absolutize build-dir))]
     (when (fs/exists? class-dir)
       (->> (fs/list-dir class-dir)
            (map str)
-           (filter #(str/ends-with? % ".class"))))))
+           (filter #(str/ends-with? % ".class"))
+           (filter #(= (source-file-attr (class-file->class-name abs-build %)) source-file))))))
 
 (defn- find-properties-file [ns-str]
   (let [props-path (str build-dir "/" (namespace->path ns-str) ".properties")]
