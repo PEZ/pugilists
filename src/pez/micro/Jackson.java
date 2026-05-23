@@ -35,7 +35,6 @@ public class Jackson extends AdvancedRobot {
 	static Wave enemyWave;
 
 	public void run() {
-		setAdjustRadarForGunTurn(true);
 		setAdjustGunForRobotTurn(true);
 		enemyEnergy = 102;
 		turnRadarRightRadians(Double.POSITIVE_INFINITY);
