@@ -28,7 +28,6 @@ public class Jackson extends AdvancedRobot {
 	static final int VCHANGE_TIME_INDEXES = 10;
 	static final int FACTORS = 37;
 	static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
-	static final boolean USE_REAL_WAVES = true;
 
 	static Point2D currentEnemyLocation;
 	static int lastVelocityIndex;
@@ -36,16 +35,13 @@ public class Jackson extends AdvancedRobot {
 	static double enemyBearingDirection;
 	static int[][][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][FACTORS];
 	static int[][][] realMovementFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][FACTORS];
-	static int[][][] piggyMovementFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][FACTORS];
 	static double direction = 1;
 	static double enemyEnergy;
 	static double enemyFirePower = BULLET_POWER;
 	static double lastVelocity;
 	static Point2D hitLocation;
-	static boolean isHitByBullet;
 	Wave passingEnemyWave;
 	ArrayList<Wave> enemyWaves = new ArrayList<Wave>();
-	ArrayList<Wave> piggyWaves = new ArrayList<Wave>();
 	static int tries;
 
 	public void run() {
@@ -63,10 +59,9 @@ public class Jackson extends AdvancedRobot {
 				enemyDistance = e.getDistance());
 		int distanceIndex = (int) (enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES));
 		int movementVelocityIndex = (int) (Math.abs(lastVelocity) / (MAX_VELOCITY / VELOCITY_INDEXES));
-		wave.surfFactors = piggyMovementFactors[distanceIndex][movementVelocityIndex];
-		wave.movementStartBearing = absoluteBearing(currentEnemyLocation, wave.gunLocation);
-		wave.movementBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
-				lastVelocity * Math.sin(getHeadingRadians() - wave.movementStartBearing));
+		double movementStartBearing = absoluteBearing(currentEnemyLocation, wave.gunLocation);
+		double movementBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
+				lastVelocity * Math.sin(getHeadingRadians() - movementStartBearing));
 		lastVelocity = getVelocity();
 		double enemyDeltaEnergy = enemyEnergy - e.getEnergy();
 		if (enemyDeltaEnergy > 0 && enemyDeltaEnergy <= MAX_BULLET_POWER) {
@@ -76,8 +71,8 @@ public class Jackson extends AdvancedRobot {
 			enemyWave.surfFactors = realMovementFactors[distanceIndex][movementVelocityIndex];
 			enemyWave.gunLocation = currentEnemyLocation;
 			enemyWave.bulletPower = enemyDeltaEnergy;
-			enemyWave.startBearing = wave.movementStartBearing;
-			enemyWave.bearingDirection = wave.movementBearingDirection;
+			enemyWave.startBearing = movementStartBearing;
+			enemyWave.bearingDirection = movementBearingDirection;
 			enemyWave.distanceFromGun = 2 * bulletVelocity(enemyDeltaEnergy);
 			enemyWaves.add(enemyWave);
 			addCustomEvent(enemyWave);
@@ -99,7 +94,7 @@ public class Jackson extends AdvancedRobot {
 				enemyAbsoluteBearing + direction * (Math.PI / 2 - tries / 100.0), 160)) && tries++ < 125)
 			;
 		int reverseTries = tries;
-		Wave movementWave = closestWave(USE_REAL_WAVES ? enemyWaves : piggyWaves);
+		Wave movementWave = closestWave();
 		double forwardDanger = movementDanger(movementWave, predictPosition(movementWave, direction, fieldRectangle));
 		double reverseDanger = movementDanger(movementWave, predictPosition(movementWave, -direction, fieldRectangle));
 
@@ -137,7 +132,6 @@ public class Jackson extends AdvancedRobot {
 		lastVelocityIndex = velocityIndex;
 
 		wave.startBearing = enemyAbsoluteBearing;
-		wave.enemyLocation = currentEnemyLocation;
 
 		int mostVisited = MIDDLE_FACTOR, i = FACTORS;
 		do {
@@ -150,7 +144,6 @@ public class Jackson extends AdvancedRobot {
 				wave.bearingDirection * (mostVisited - MIDDLE_FACTOR)));
 
 		setFire(wave.bulletPower);
-		piggyWaves.add(wave);
 		addCustomEvent(wave);
 		// </gun>
 
@@ -166,7 +159,6 @@ public class Jackson extends AdvancedRobot {
 			} catch (Exception ex) {
 			}
 		}
-		isHitByBullet = true;
 	}
 
 	public void onBulletHit(BulletHitEvent e) {
@@ -193,7 +185,7 @@ public class Jackson extends AdvancedRobot {
 
 	double movementDanger(Wave wave, Point2D destination) {
 		try {
-			int index = movementIndex(waveSource(wave), destination, waveStartBearing(wave), waveBearingDirection(wave));
+			int index = movementIndex(wave.gunLocation, destination, wave.startBearing, wave.bearingDirection);
 			double danger = 0;
 			int i = FACTORS;
 			do {
@@ -203,18 +195,6 @@ public class Jackson extends AdvancedRobot {
 		} catch (Exception e) {
 			return 0;
 		}
-	}
-
-	Point2D waveSource(Wave wave) {
-		return wave.surfWave ? wave.gunLocation : wave.enemyLocation;
-	}
-
-	double waveStartBearing(Wave wave) {
-		return wave.surfWave ? wave.startBearing : wave.movementStartBearing;
-	}
-
-	double waveBearingDirection(Wave wave) {
-		return wave.surfWave ? wave.bearingDirection : wave.movementBearingDirection;
 	}
 
 	Point2D predictPosition(Wave wave, double movementDirection, Rectangle2D fieldRectangle) {
@@ -232,16 +212,16 @@ public class Jackson extends AdvancedRobot {
 				;
 			robotLocation = project(robotLocation, absoluteBearing(robotLocation, destination), MAX_VELOCITY - 2);
 		} while (wave.distanceFromGun + ++time * bulletVelocity(wave.bulletPower) <
-				waveSource(wave).distance(robotLocation) - 18 && time < 100);
+				wave.gunLocation.distance(robotLocation) - 18 && time < 100);
 		return robotLocation;
 	}
 
-	Wave closestWave(ArrayList<Wave> waves) {
+	Wave closestWave() {
 		Wave closest = null;
 		double closestDistance = Double.POSITIVE_INFINITY;
 		Point2D robotLocation = new Point2D.Double(getX(), getY());
-		for (Wave wave : waves) {
-			double distance = waveSource(wave).distance(robotLocation) - wave.distanceFromGun;
+		for (Wave wave : enemyWaves) {
+			double distance = wave.gunLocation.distance(robotLocation) - wave.distanceFromGun;
 			if (distance > -50 && distance < closestDistance) {
 				closest = wave;
 				closestDistance = distance;
@@ -253,11 +233,8 @@ public class Jackson extends AdvancedRobot {
 	class Wave extends Condition {
 		double bulletPower;
 		Point2D gunLocation;
-		Point2D enemyLocation;
 		double startBearing;
 		double bearingDirection;
-		double movementStartBearing;
-		double movementBearingDirection;
 		int[] factors;
 		int[] surfFactors;
 		double distanceFromGun;
@@ -283,16 +260,6 @@ public class Jackson extends AdvancedRobot {
 									bearingDirection) + MIDDLE_FACTOR)]++;
 				} catch (Exception e) {
 				}
-				if (isHitByBullet) {
-					try {
-						surfFactors[movementIndex(enemyLocation, hitLocation, movementStartBearing,
-								movementBearingDirection)]++;
-					} catch (Exception e) {
-					}
-					isHitByBullet = false;
-				}
-
-				piggyWaves.remove(this);
 				removeCustomEvent(this);
 			}
 			return false;
