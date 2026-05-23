@@ -120,6 +120,10 @@ public class Jackson extends AdvancedRobot {
 		}
 	}
 
+	public void onBulletHit(BulletHitEvent e) {
+		enemyEnergy -= 10;
+	}
+
 	static double bulletVelocity(double power) {
 		return 20 - 3 * power;
 	}
