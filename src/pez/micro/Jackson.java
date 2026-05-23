@@ -3,7 +3,6 @@ package pez.micro;
 import robocode.*;
 import robocode.util.Utils;
 import java.awt.geom.*;
-import java.util.ArrayList;
 
 // This code is released under the RoboWiki Public Code Licence (RWPCL), datailed on:
 // http://robowiki.net/?RWPCL
@@ -28,9 +27,8 @@ public class Jackson extends AdvancedRobot {
 	static Point2D currentEnemyLocation;
 	static double enemyBearingDirection;
 	static double myX, myY;
-	static double[] scores = new double[FACTORS];
-	static ArrayList<double[]> aimFactors = new ArrayList<double[]>();
-	static ArrayList<double[]> realMovementFactors = new ArrayList<double[]>();
+	static int[][] aimFactors = new int[VELOCITY_INDEXES][FACTORS];
+	static int[][] realMovementFactors = new int[VELOCITY_INDEXES][FACTORS];
 	static double direction = 1;
 	static double enemyEnergy;
 	static double lastVelocity;
@@ -58,8 +56,7 @@ public class Jackson extends AdvancedRobot {
 		if (enemyDeltaEnergy > 0 && enemyDeltaEnergy <= MAX_BULLET_POWER) {
 			Wave enemyWave = new Wave(currentEnemyLocation, enemyDeltaEnergy,
 					movementStartBearing, movementBearingDirection);
-			enemyWave.observations = realMovementFactors;
-			enemyWave.obs = new double[] { 0, movementVelocityIndex };
+			enemyWave.surfFactors = realMovementFactors[movementVelocityIndex];
 			enemyWave.distanceFromGun = 2 * bulletVelocity(enemyDeltaEnergy);
 			addCustomEvent(enemyWave);
 		}
@@ -69,9 +66,8 @@ public class Jackson extends AdvancedRobot {
 		int forwardDanger = 0, reverseDanger = 0;
 		try {
 			int bin = enemyWave.hitBin(new Point2D.Double(myX, myY));
-			enemyWave.query();
-			forwardDanger = (int) scores[bin];
-			reverseDanger = (int) scores[2 * MIDDLE_FACTOR - bin];
+			forwardDanger = enemyWave.surfFactors[bin];
+			reverseDanger = enemyWave.surfFactors[2 * MIDDLE_FACTOR - bin];
 		} catch (Exception ex) {
 		}
 		if (reverseDanger < forwardDanger) {
@@ -97,13 +93,11 @@ public class Jackson extends AdvancedRobot {
 		}
 		Wave wave = new Wave(myLocation, Math.min(getEnergy() / 2, 2),
 				enemyAbsoluteBearing, enemyBearingDirection);
-		wave.observations = aimFactors;
-		wave.obs = new double[] { 0, velocityIndex };
-		wave.query();
+		wave.factors = aimFactors[velocityIndex];
 
 		int mostVisited = MIDDLE_FACTOR, i = -1;
 		try {
-			while (true) if (scores[++i] > scores[mostVisited]) {
+			while (true) if (wave.factors[++i] > wave.factors[mostVisited]) {
 				mostVisited = i;
 			}
 		} catch (Exception ex) {
@@ -122,7 +116,7 @@ public class Jackson extends AdvancedRobot {
 
 	public void onHitByBullet(HitByBulletEvent e) {
 		try {
-			enemyWave.record(new Point2D.Double(myX, myY));
+			enemyWave.surfFactors[enemyWave.hitBin(new Point2D.Double(myX, myY))]++;
 		} catch (Exception ex) {
 		}
 	}
@@ -144,8 +138,8 @@ public class Jackson extends AdvancedRobot {
 		Point2D gunLocation;
 		double startBearing;
 		double bearingDirection;
-		double[] obs;
-		ArrayList<double[]> observations;
+		int[] factors;
+		int[] surfFactors;
 		double distanceFromGun;
 
 		Wave(Point2D gl, double bp, double sb, double bd) {
@@ -157,34 +151,18 @@ public class Jackson extends AdvancedRobot {
 					absoluteBearing(gunLocation, target) - startBearing) / bearingDirection + MIDDLE_FACTOR);
 		}
 
-		void record(Point2D target) {
-			obs[0] = hitBin(target);
-			observations.add(obs);
-		}
-
-		void query() {
-			scores = new double[FACTORS];
-			try {
-				for (int i = 0; ; i++) {
-					double[] o = observations.get(i);
-					scores[(int) o[0]] += 1 / (Math.abs(o[1] - obs[1]) + 0.01);
-				}
-			} catch (Exception e) {
-			}
-		}
-
 		public boolean test() {
 			distanceFromGun += bulletVelocity(bulletPower);
-			if (observations == realMovementFactors) {
+			if (surfFactors != null) {
 				if (distanceFromGun < gunLocation.distance(myX, myY) + 50 && enemyWave == null) {
 					enemyWave = this;
 				}
-			} else if (observations != null && distanceFromGun > gunLocation.distance(currentEnemyLocation) - 18) {
+			} else if (factors != null && distanceFromGun > gunLocation.distance(currentEnemyLocation) - 18) {
 				try {
-					record(currentEnemyLocation);
+					factors[hitBin(currentEnemyLocation)]++;
 				} catch (Exception e) {
 				}
-				observations = null;
+				factors = null;
 			}
 			return false;
 		}
