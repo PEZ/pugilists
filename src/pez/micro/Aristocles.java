@@ -19,7 +19,6 @@ public class Aristocles extends AdvancedRobot {
 	static final double MAX_BULLET_POWER = 3.0;
 	static final double BULLET_POWER = 1.9;
 	static final double WALL_MARGIN = 18;
-	static final double MAX_TRIES = 125;
 	static final double REVERSE_TUNER = 0.421075;
 	static final double WALL_BOUNCE_TUNER = 0.699484;
 
@@ -58,12 +57,9 @@ public class Aristocles extends AdvancedRobot {
 		Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
 				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
 		tries = 0;
-		while (!fieldRectangle
-				.contains(robotDestination = project(enemyLocation, enemyAbsoluteBearing + Math.PI + direction,
-						enemyDistance * (1.2 - tries / 100.0)))
-				&& tries < MAX_TRIES) {
-			tries++;
-		}
+		while (!fieldRectangle.contains(robotDestination = project(enemyLocation,
+				enemyAbsoluteBearing + Math.PI + direction, enemyDistance * (1.2 - tries / 100.0)))
+				&& tries++ < 125);
 		double bv = bulletVelocity(enemyFirePower);
 		if (GF1Hits > 4 && (Math.random() < (bv / REVERSE_TUNER) / enemyDistance ||
 				tries > (enemyDistance / bv / WALL_BOUNCE_TUNER))) {
