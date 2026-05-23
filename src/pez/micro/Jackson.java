@@ -95,12 +95,13 @@ public class Jackson extends AdvancedRobot {
 				enemyAbsoluteBearing, enemyBearingDirection);
 		wave.factors = aimFactors[velocityIndex];
 
-		int mostVisited = MIDDLE_FACTOR, i = FACTORS;
-		do {
-			if (wave.factors[--i] > wave.factors[mostVisited]) {
+		int mostVisited = MIDDLE_FACTOR, i = -1;
+		try {
+			while (true) if (wave.factors[++i] > wave.factors[mostVisited]) {
 				mostVisited = i;
 			}
-		} while (i > 0);
+		} catch (Exception ex) {
+		}
 
 		setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
 				wave.bearingDirection * (mostVisited - MIDDLE_FACTOR)));
