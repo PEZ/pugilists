@@ -32,7 +32,6 @@ public class Jackson extends AdvancedRobot {
 	static double direction = 1;
 	static double enemyEnergy;
 	static double lastVelocity;
-	static double lastLastVelocity;
 	static Wave enemyWave;
 
 	public void run() {
@@ -48,11 +47,10 @@ public class Jackson extends AdvancedRobot {
 		double enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
 		currentEnemyLocation = project(enemyAbsoluteBearing, e.getDistance());
 		Point2D myLocation = new Point2D.Double(myX, myY);
-		int movementVelocityIndex = (int) Math.abs(lastLastVelocity);
+		int movementVelocityIndex = (int) Math.abs(lastVelocity);
 		double movementStartBearing = absoluteBearing(currentEnemyLocation, myLocation);
 		double movementBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
-				lastLastVelocity * Math.sin(getHeadingRadians() - movementStartBearing));
-		lastLastVelocity = lastVelocity;
+				lastVelocity * Math.sin(getHeadingRadians() - movementStartBearing));
 		lastVelocity = getVelocity();
 		double enemyDeltaEnergy = enemyEnergy - e.getEnergy();
 		if (enemyDeltaEnergy > 0 && enemyDeltaEnergy <= MAX_BULLET_POWER) {
