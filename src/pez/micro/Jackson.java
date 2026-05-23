@@ -111,6 +111,7 @@ public class Jackson extends AdvancedRobot {
 		// </gun>
 
 		setTurnRadarRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getRadarHeadingRadians()) * 2);
+		enemyWave = null;
 	}
 
 	public void onHitByBullet(HitByBulletEvent e) {
