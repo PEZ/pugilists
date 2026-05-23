@@ -20,7 +20,7 @@ public class Jackson extends AdvancedRobot {
 	static final double WALL_MARGIN = 18;
 
 	static final int DISTANCE_INDEXES = 10;
-	static final int VELOCITY_INDEXES = 10;
+	static final int VELOCITY_INDEXES = 5;
 	static final int FACTORS = 37;
 	static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
 
@@ -28,7 +28,7 @@ public class Jackson extends AdvancedRobot {
 	static double enemyBearingDirection;
 	static double myX, myY;
 	static int[][] aimFactors = new int[VELOCITY_INDEXES][FACTORS];
-	static int[][] realMovementFactors = new int[5][FACTORS];
+	static int[][] realMovementFactors = new int[VELOCITY_INDEXES][FACTORS];
 	static double direction = 1;
 	static double enemyEnergy;
 	static double lastVelocity;
@@ -85,7 +85,7 @@ public class Jackson extends AdvancedRobot {
 
 		// <gun>
 		double enemyVelocity = e.getVelocity();
-		int velocityIndex = (int) Math.abs(enemyVelocity);
+		int velocityIndex = (int) Math.abs(enemyVelocity) / 2;
 
 		if (enemyVelocity != 0) {
 			enemyBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
