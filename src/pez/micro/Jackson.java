@@ -158,7 +158,7 @@ public class Jackson extends AdvancedRobot {
 				if (distanceFromGun < gunLocation.distance(myX, myY) + 50 && enemyWave == null) {
 					enemyWave = this;
 				}
-			} else if (factors != null && distanceFromGun > gunLocation.distance(currentEnemyLocation) - 18) {
+			} else if (distanceFromGun > gunLocation.distance(currentEnemyLocation) - 18) {
 				try {
 					factors[hitBin(currentEnemyLocation)]++;
 				} catch (Exception e) {
