@@ -16,7 +16,7 @@ public class Jackson extends AdvancedRobot {
 
 	static final double MAX_DISTANCE = 900;
 	static final double MAX_BULLET_POWER = 3.0;
-	static final double BULLET_POWER = 2;
+	static final double BULLET_POWER = 3;
 	static final double WALL_MARGIN = 18;
 
 	static final int DISTANCE_INDEXES = 10;
