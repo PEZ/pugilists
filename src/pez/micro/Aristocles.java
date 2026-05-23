@@ -18,8 +18,6 @@ public class Aristocles extends AdvancedRobot {
 	static final double MAX_BULLET_POWER = 3.0;
 	static final double BULLET_POWER = 1.9;
 	static final double WALL_MARGIN = 18;
-	static final double REVERSE_TUNER = 0.421075;
-	static final double WALL_BOUNCE_TUNER = 0.699484;
 
 	static final int DISTANCE_INDEXES = 10;
 	static final int VELOCITY_INDEXES = 10;
@@ -32,10 +30,16 @@ public class Aristocles extends AdvancedRobot {
 	static int timeSinceVChange;
 	static double enemyBearingDirection;
 	static int[][][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][FACTORS];
+	static Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
+			BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
+	static Point2D robotLocation;
+	static int[] surfFactors = new int[FACTORS];
 	static double direction = 1;
-	static double enemyFirePower;
-	static int GF1Hits;
-	static int tries;
+	static double enemyEnergy = 100;
+	static double dangerForward;
+	static double dangerReverse;
+	static Wave passingWave;
+	static int wallTries;
 
 	public void run() {
 		setAdjustRadarForGunTurn(true);
@@ -48,23 +52,36 @@ public class Aristocles extends AdvancedRobot {
 		Wave wave = new Wave();
 		double enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
 		double enemyDistance;
-		enemyLocation = project(wave.gunLocation = new Point2D.Double(getX(), getY()), enemyAbsoluteBearing, enemyDistance = e.getDistance());
+		robotLocation = wave.gunLocation = new Point2D.Double(getX(), getY());
+
+		double enemyDeltaEnergy = enemyEnergy - e.getEnergy();
+		if (enemyDeltaEnergy > 0 && enemyDeltaEnergy <= MAX_BULLET_POWER && enemyLocation != null) {
+			Wave enemyWave = new Wave();
+			enemyWave.surfable = true;
+			enemyWave.bulletPower = enemyDeltaEnergy;
+			enemyWave.gunLocation = enemyLocation;
+			enemyWave.startBearing = absoluteBearing(enemyLocation, robotLocation);
+			enemyWave.bearingDirection = Math.asin(8 / bulletVelocity(enemyDeltaEnergy)) * direction / MIDDLE_FACTOR;
+			enemyWave.factors = surfFactors;
+			enemyWave.distanceFromGun = 2 * bulletVelocity(enemyDeltaEnergy);
+			addCustomEvent(enemyWave);
+		}
+		enemyEnergy = e.getEnergy();
+
+		enemyLocation = project(robotLocation, enemyAbsoluteBearing, enemyDistance = e.getDistance());
 
 		// <movement>
-		Point2D robotDestination;
-		Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
-				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
-		tries = 0;
-		while (!fieldRectangle.contains(robotDestination = project(wave.gunLocation,
-				enemyAbsoluteBearing - direction * (Math.PI / 2 - tries / 100.0), 160)) && tries++ < 125);
-		double bv = bulletVelocity(enemyFirePower);
-		if (GF1Hits > 4 && (Math.random() < (bv / REVERSE_TUNER) / enemyDistance ||
-				tries > (enemyDistance / bv / WALL_BOUNCE_TUNER))) {
+		Point2D robotDestination = wallSmoothedDestination(direction);
+		int forwardTries = wallTries;
+		Point2D reverseDestination = wallSmoothedDestination(-direction);
+		if (dangerReverse < dangerForward || (dangerReverse == dangerForward && wallTries < forwardTries)) {
 			direction = -direction;
+			robotDestination = reverseDestination;
 		}
+		dangerForward = dangerReverse = 0;
 		// Jamougha's cool way
 		double angle;
-		setAhead(Math.cos(angle = absoluteBearing(wave.gunLocation, robotDestination) - getHeadingRadians()) * 200);
+		setAhead(Math.cos(angle = absoluteBearing(robotLocation, robotDestination) - getHeadingRadians()) * 200);
 		setTurnRightRadians(Math.tan(angle));
 		// </movement>
 
@@ -109,10 +126,11 @@ public class Aristocles extends AdvancedRobot {
 	}
 
 	public void onHitByBullet(HitByBulletEvent e) {
-		if (tries < 30) {
-			GF1Hits++;
+		try {
+			passingWave.factors[passingWave.visitingIndex(robotLocation)]++;
 		}
-		enemyFirePower = e.getPower();
+		catch (Exception ex) {
+		}
 	}
 
 	static double bulletVelocity(double power) {
@@ -128,6 +146,15 @@ public class Aristocles extends AdvancedRobot {
 		return Math.atan2(target.getX() - source.getX(), target.getY() - source.getY());
 	}
 
+	static Point2D wallSmoothedDestination(double movementDirection) {
+		wallTries = 0;
+		Point2D destination;
+		double enemyAbsoluteBearing = absoluteBearing(robotLocation, enemyLocation);
+		while (!fieldRectangle.contains(destination = project(robotLocation,
+				enemyAbsoluteBearing - movementDirection * (Math.PI / 2 - wallTries / 100.0), 160)) && wallTries++ < 125);
+		return destination;
+	}
+
 	class Wave extends Condition {
 		double bulletPower;
 		Point2D gunLocation;
@@ -135,12 +162,49 @@ public class Aristocles extends AdvancedRobot {
 		double bearingDirection;
 		int[] factors;
 		double distanceFromGun;
+		boolean surfable;
+
+		int visitingIndex(Point2D location) {
+			return (int)Math.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, location) - startBearing)) /
+					bearingDirection) + MIDDLE_FACTOR);
+		}
+
+		double danger(Point2D location) {
+			try {
+				int index = visitingIndex(location);
+				double danger = 0;
+				int i = FACTORS;
+				do {
+					danger += factors[--i] / (Math.abs(index - i) + 1.0);
+				} while (i > 0);
+				return danger;
+			}
+			catch (Exception e) {
+				return 0;
+			}
+		}
 
 		public boolean test() {
-			if ((distanceFromGun += bulletVelocity(bulletPower)) > gunLocation.distance(enemyLocation) - 18) {
+			distanceFromGun += bulletVelocity(bulletPower);
+			if (surfable) {
+				double distance = gunLocation.distance(robotLocation);
+				if (distanceFromGun < distance - 18) {
+					dangerForward += danger(wallSmoothedDestination(direction));
+					dangerReverse += danger(wallSmoothedDestination(-direction));
+				}
+				else if (distanceFromGun < distance + 25) {
+					passingWave = this;
+				}
+				else {
+					if (passingWave == this) {
+						passingWave = null;
+					}
+					removeCustomEvent(this);
+				}
+			}
+			else if (distanceFromGun > gunLocation.distance(enemyLocation) - 18) {
 				try {
-					factors[(int)Math.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
-							bearingDirection) + MIDDLE_FACTOR)]++;
+					factors[visitingIndex(enemyLocation)]++;
 				}
 				catch (Exception e) {
 				}
