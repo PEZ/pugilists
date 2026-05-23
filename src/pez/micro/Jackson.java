@@ -32,6 +32,7 @@ public class Jackson extends AdvancedRobot {
 	static double direction = 1;
 	static double enemyEnergy;
 	static double lastVelocity;
+	static int mostVisited = MIDDLE_FACTOR;
 	static Wave enemyWave;
 
 	public void run() {
@@ -95,7 +96,7 @@ public class Jackson extends AdvancedRobot {
 				enemyAbsoluteBearing, enemyBearingDirection);
 		wave.factors = aimFactors[velocityIndex];
 
-		int mostVisited = MIDDLE_FACTOR, i = FACTORS;
+		int i = FACTORS;
 		do {
 			if (wave.factors[--i] > wave.factors[mostVisited]) {
 				mostVisited = i;
