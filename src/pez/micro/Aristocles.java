@@ -18,6 +18,8 @@ public class Aristocles extends AdvancedRobot {
 	static final double MAX_BULLET_POWER = 3.0;
 	static final double BULLET_POWER = 1.9;
 	static final double WALL_MARGIN = 18;
+	static final double REVERSE_TUNER = 0.421075;
+	static final double WALL_BOUNCE_TUNER = 0.699484;
 
 	static final int DISTANCE_INDEXES = 10;
 	static final int VELOCITY_INDEXES = 10;
@@ -30,15 +32,10 @@ public class Aristocles extends AdvancedRobot {
 	static int timeSinceVChange;
 	static double enemyBearingDirection;
 	static int[][][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][FACTORS];
-	static Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
-			BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
-	static Point2D robotLocation;
-	static int[] surfFactors = new int[FACTORS];
 	static double direction = 1;
-	static double enemyFirePower = BULLET_POWER;
-	static double dangerForward;
-	static double dangerReverse;
-	static Wave passingWave;
+	static double enemyFirePower;
+	static int GF1Hits;
+	static int tries;
 
 	public void run() {
 		setAdjustRadarForGunTurn(true);
@@ -51,27 +48,23 @@ public class Aristocles extends AdvancedRobot {
 		Wave wave = new Wave();
 		double enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
 		double enemyDistance;
-		robotLocation = wave.gunLocation = new Point2D.Double(getX(), getY());
-		enemyLocation = project(robotLocation, enemyAbsoluteBearing, enemyDistance = e.getDistance());
-
-		Wave surfWave = new Wave();
-		surfWave.gunLocation = enemyLocation;
-		surfWave.startBearing = enemyAbsoluteBearing + Math.PI;
-		surfWave.bulletPower = enemyFirePower;
-		surfWave.bearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
-				getVelocity() * Math.sin(getHeadingRadians() - surfWave.startBearing));
-		surfWave.factors = surfFactors;
-		addCustomEvent(surfWave);
+		enemyLocation = project(wave.gunLocation = new Point2D.Double(getX(), getY()), enemyAbsoluteBearing, enemyDistance = e.getDistance());
 
 		// <movement>
-		if (dangerReverse < dangerForward) {
+		Point2D robotDestination;
+		Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
+				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
+		tries = 0;
+		while (!fieldRectangle.contains(robotDestination = project(wave.gunLocation,
+				enemyAbsoluteBearing - direction * (Math.PI / 2 - tries / 100.0), 160)) && tries++ < 125);
+		double bv = bulletVelocity(enemyFirePower);
+		if (GF1Hits > 4 && (Math.random() < (bv / REVERSE_TUNER) / enemyDistance ||
+				tries > (enemyDistance / bv / WALL_BOUNCE_TUNER))) {
 			direction = -direction;
 		}
-		Point2D robotDestination = wallSmoothedDestination(direction);
-		dangerForward = dangerReverse = 0;
 		// Jamougha's cool way
 		double angle;
-		setAhead(Math.cos(angle = absoluteBearing(robotLocation, robotDestination) - getHeadingRadians()) * 200);
+		setAhead(Math.cos(angle = absoluteBearing(wave.gunLocation, robotDestination) - getHeadingRadians()) * 200);
 		setTurnRightRadians(Math.tan(angle));
 		// </movement>
 
@@ -116,12 +109,10 @@ public class Aristocles extends AdvancedRobot {
 	}
 
 	public void onHitByBullet(HitByBulletEvent e) {
+		if (tries < 30) {
+			GF1Hits++;
+		}
 		enemyFirePower = e.getPower();
-		try {
-			passingWave.factors[passingWave.visitingIndex(robotLocation)]++;
-		}
-		catch (Exception ex) {
-		}
 	}
 
 	static double bulletVelocity(double power) {
@@ -137,15 +128,6 @@ public class Aristocles extends AdvancedRobot {
 		return Math.atan2(target.getX() - source.getX(), target.getY() - source.getY());
 	}
 
-	static Point2D wallSmoothedDestination(double movementDirection) {
-		int tries = 0;
-		Point2D destination;
-		double enemyAbsoluteBearing = absoluteBearing(robotLocation, enemyLocation);
-		while (!fieldRectangle.contains(destination = project(robotLocation,
-				enemyAbsoluteBearing - movementDirection * (Math.PI / 2 - tries / 100.0), 160)) && tries++ < 125);
-		return destination;
-	}
-
 	class Wave extends Condition {
 		double bulletPower;
 		Point2D gunLocation;
@@ -154,41 +136,11 @@ public class Aristocles extends AdvancedRobot {
 		int[] factors;
 		double distanceFromGun;
 
-		int visitingIndex(Point2D location) {
-			return (int)Math.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, location) - startBearing)) /
-					bearingDirection) + MIDDLE_FACTOR);
-		}
-
-		double danger(Point2D location) {
-			try {
-				return factors[visitingIndex(location)];
-			}
-			catch (Exception e) {
-				return 0;
-			}
-		}
-
 		public boolean test() {
-			distanceFromGun += bulletVelocity(bulletPower);
-			if (factors == surfFactors) {
-				double gap = gunLocation.distance(robotLocation) - distanceFromGun;
-				if (gap > -25) {
-					dangerForward += danger(wallSmoothedDestination(direction)) / (gap * gap + 1);
-					dangerReverse += danger(wallSmoothedDestination(-direction)) / (gap * gap + 1);
-					if (gap < 18) {
-						passingWave = this;
-					}
-				}
-				else {
-					if (passingWave == this) {
-						passingWave = null;
-					}
-					removeCustomEvent(this);
-				}
-			}
-			else if (distanceFromGun > gunLocation.distance(enemyLocation) - 18) {
+			if ((distanceFromGun += bulletVelocity(bulletPower)) > gunLocation.distance(enemyLocation) - 18) {
 				try {
-					factors[visitingIndex(enemyLocation)]++;
+					factors[(int)Math.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
+							bearingDirection) + MIDDLE_FACTOR)]++;
 				}
 				catch (Exception e) {
 				}
