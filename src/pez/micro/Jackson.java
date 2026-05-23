@@ -63,8 +63,8 @@ public class Jackson extends AdvancedRobot {
 
 		// <movement>
 		try {
-			int bin = enemyWave.hitBin(myLocation);
-			if ((enemyWave.surfFactors[2 * MIDDLE_FACTOR - bin]) < (enemyWave.surfFactors[bin])) {
+			int bin;
+			if ((enemyWave.surfFactors[2 * MIDDLE_FACTOR - (bin = enemyWave.hitBin(myLocation))]) < (enemyWave.surfFactors[bin])) {
 				direction = -direction;
 			}
 		} catch (Exception ex) {
