@@ -28,7 +28,7 @@ public class Jackson extends AdvancedRobot {
 	static double enemyBearingDirection;
 	static double myX, myY;
 	static int[][] aimFactors = new int[VELOCITY_INDEXES][FACTORS];
-	static int[][] realMovementFactors = new int[5][FACTORS];
+	static int[][] realMovementFactors = new int[VELOCITY_INDEXES][FACTORS];
 	static double direction = 1;
 	static double enemyEnergy;
 	static double lastVelocity;
@@ -47,7 +47,7 @@ public class Jackson extends AdvancedRobot {
 		double enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
 		currentEnemyLocation = project(enemyAbsoluteBearing, e.getDistance());
 		Point2D myLocation = new Point2D.Double(myX, myY);
-		int movementVelocityIndex = (int) Math.abs(lastVelocity) >> 1;
+		int movementVelocityIndex = (int) Math.abs(lastVelocity);
 		double movementStartBearing = absoluteBearing(currentEnemyLocation, myLocation);
 		double movementBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
 				lastVelocity * Math.sin(getHeadingRadians() - movementStartBearing));
