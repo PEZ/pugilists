@@ -110,7 +110,7 @@ public class Aristocles extends AdvancedRobot {
 		setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
 				wave.bearingDirection * (mostVisited - MIDDLE_FACTOR)));
 
-		if (setFireBullet(wave.bulletPower) != null) wave.weight = 15;
+		if (setFireBullet(wave.bulletPower) != null) wave.weight = 10;
 		addCustomEvent(wave);
 		// </gun>
 
