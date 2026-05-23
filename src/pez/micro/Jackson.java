@@ -57,7 +57,7 @@ public class Jackson extends AdvancedRobot {
 			Wave enemyWave = new Wave(currentEnemyLocation, enemyDeltaEnergy,
 					movementStartBearing, movementBearingDirection);
 			enemyWave.surfFactors = realMovementFactors[movementVelocityIndex];
-			enemyWave.distanceFromGun = bulletVelocity(enemyDeltaEnergy);
+			enemyWave.distanceFromGun = 2 * bulletVelocity(enemyDeltaEnergy);
 			addCustomEvent(enemyWave);
 		}
 		enemyEnergy = e.getEnergy();
