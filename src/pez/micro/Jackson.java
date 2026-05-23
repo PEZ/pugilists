@@ -76,7 +76,7 @@ public class Jackson extends AdvancedRobot {
 		Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
 				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
 		double moveAngle = enemyAbsoluteBearing - direction * 1.5707963267948966;
-		while (!fieldRectangle.contains(project(moveAngle, 160)))
+		while (fieldRectangle.outcode(project(moveAngle, 160)) != 0)
 			moveAngle += direction * 0.01;
 		double angle;
 		setAhead(Math.cos(angle = moveAngle - getHeadingRadians()) * 200);
