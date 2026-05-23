@@ -15,12 +15,9 @@ public class Jackson extends AdvancedRobot {
 	static final double BATTLE_FIELD_HEIGHT = 600;
 
 	static final double MAX_DISTANCE = 900;
-	static final double MAX_VELOCITY = 10;
 	static final double MAX_BULLET_POWER = 3.0;
 	static final double BULLET_POWER = 1.9;
 	static final double WALL_MARGIN = 18;
-	static final double REVERSE_TUNER = 0.421075;
-	static final double WALL_BOUNCE_TUNER = 0.699484;
 
 	static final int DISTANCE_INDEXES = 10;
 	static final int VELOCITY_INDEXES = 10;
@@ -35,7 +32,7 @@ public class Jackson extends AdvancedRobot {
 	static double direction = 1;
 	static double enemyEnergy;
 	static double lastVelocity;
-	static Wave surfWave;
+	static Wave enemyWave;
 
 	public void run() {
 		setAdjustRadarForGunTurn(true);
@@ -68,9 +65,9 @@ public class Jackson extends AdvancedRobot {
 		// <movement>
 		double forwardDanger = 0, reverseDanger = 0;
 		try {
-			int bin = surfWave.hitBin(new Point2D.Double(myX, myY));
-			forwardDanger = surfWave.surfFactors[bin];
-			reverseDanger = surfWave.surfFactors[2 * MIDDLE_FACTOR - bin];
+			int bin = enemyWave.hitBin(new Point2D.Double(myX, myY));
+			forwardDanger = enemyWave.surfFactors[bin];
+			reverseDanger = enemyWave.surfFactors[2 * MIDDLE_FACTOR - bin];
 		} catch (Exception ex) {
 		}
 		if (reverseDanger < forwardDanger) {
@@ -113,12 +110,12 @@ public class Jackson extends AdvancedRobot {
 		// </gun>
 
 		setTurnRadarRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getRadarHeadingRadians()) * 2);
-		surfWave = null;
+		enemyWave = null;
 	}
 
 	public void onHitByBullet(HitByBulletEvent e) {
 		try {
-			surfWave.surfFactors[surfWave.hitBin(new Point2D.Double(myX, myY))]++;
+			enemyWave.surfFactors[enemyWave.hitBin(new Point2D.Double(myX, myY))]++;
 		} catch (Exception ex) {
 		}
 	}
@@ -156,8 +153,8 @@ public class Jackson extends AdvancedRobot {
 		public boolean test() {
 			distanceFromGun += bulletVelocity(bulletPower);
 			if (surfFactors != null) {
-				if (distanceFromGun < gunLocation.distance(myX, myY) + 50 && surfWave == null) {
-					surfWave = this;
+				if (distanceFromGun < gunLocation.distance(myX, myY) + 50 && enemyWave == null) {
+					enemyWave = this;
 				}
 			} else if (factors != null && distanceFromGun > gunLocation.distance(currentEnemyLocation) - 18) {
 				try {
