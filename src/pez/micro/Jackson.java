@@ -28,7 +28,6 @@ public class Jackson extends AdvancedRobot {
 	static double enemyBearingDirection;
 	static double myX, myY;
 	static int[][] aimFactors = new int[VELOCITY_INDEXES][FACTORS];
-	static int[][] realMovementFactors = new int[VELOCITY_INDEXES][FACTORS];
 	static double direction = 1;
 	static double enemyEnergy;
 	static double lastVelocity;
@@ -56,7 +55,7 @@ public class Jackson extends AdvancedRobot {
 		if (enemyDeltaEnergy > 0 && enemyDeltaEnergy <= MAX_BULLET_POWER) {
 			Wave enemyWave = new Wave(currentEnemyLocation, enemyDeltaEnergy,
 					movementStartBearing, movementBearingDirection);
-			enemyWave.surfFactors = realMovementFactors[movementVelocityIndex];
+			enemyWave.surfFactors = aimFactors[movementVelocityIndex];
 			enemyWave.distanceFromGun = 2 * bulletVelocity(enemyDeltaEnergy);
 			addCustomEvent(enemyWave);
 		}
