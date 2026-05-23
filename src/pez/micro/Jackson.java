@@ -107,7 +107,10 @@ public class Jackson extends AdvancedRobot {
 
 	public void onHitByBullet(HitByBulletEvent e) {
 		try {
-			enemyWave.surfFactors[enemyWave.hitBin(project(0, 0))]++;
+			int bin = enemyWave.hitBin(project(0, 0)), i = -1;
+			while (true) {
+				enemyWave.surfFactors[++i] += 1000 / (3 + Math.abs(i - bin));
+			}
 		} catch (Exception ex) {
 		}
 	}
