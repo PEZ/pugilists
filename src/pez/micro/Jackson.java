@@ -38,7 +38,7 @@ public class Jackson extends AdvancedRobot {
 		setAdjustRadarForGunTurn(true);
 		setAdjustGunForRobotTurn(true);
 		enemyEnergy = 102;
-		turnRadarRightRadians(Double.POSITIVE_INFINITY);
+		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
 	}
 
 	public void onScannedRobot(ScannedRobotEvent e) {
