@@ -20,7 +20,7 @@ public class Jackson extends AdvancedRobot {
 	static final double WALL_MARGIN = 18;
 
 	static final int DISTANCE_INDEXES = 10;
-	static final int VELOCITY_INDEXES = 5;
+	static final int VELOCITY_INDEXES = 10;
 	static final int FACTORS = 37;
 	static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
 
@@ -47,7 +47,7 @@ public class Jackson extends AdvancedRobot {
 		double enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
 		currentEnemyLocation = project(enemyAbsoluteBearing, e.getDistance());
 		Point2D myLocation = new Point2D.Double(myX, myY);
-		int movementVelocityIndex = (int) Math.abs(lastVelocity) / 2;
+		int movementVelocityIndex = (int) Math.abs(lastVelocity);
 		double movementStartBearing = absoluteBearing(currentEnemyLocation, myLocation);
 		double movementBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
 				lastVelocity * Math.sin(getHeadingRadians() - movementStartBearing));
@@ -85,7 +85,7 @@ public class Jackson extends AdvancedRobot {
 
 		// <gun>
 		double enemyVelocity = e.getVelocity();
-		int velocityIndex = (int) Math.abs(enemyVelocity) / 2;
+		int velocityIndex = (int) Math.abs(enemyVelocity);
 
 		if (enemyVelocity != 0) {
 			enemyBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
