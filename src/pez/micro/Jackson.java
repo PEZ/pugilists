@@ -35,6 +35,7 @@ public class Jackson extends AdvancedRobot {
 	static Wave enemyWave;
 
 	public void run() {
+		setAdjustRadarForGunTurn(true);
 		setAdjustGunForRobotTurn(true);
 		turnRadarRightRadians(Double.POSITIVE_INFINITY);
 	}
@@ -80,7 +81,7 @@ public class Jackson extends AdvancedRobot {
 
 		enemyBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
 				enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
-		Wave wave = new Wave(myLocation, BULLET_POWER,
+		Wave wave = new Wave(myLocation, 1,
 				enemyAbsoluteBearing, enemyBearingDirection);
 		int[] factors = aimFactors[(int) Math.abs(enemyVelocity)];
 		wave.factors = factors;
