@@ -62,15 +62,12 @@ public class Jackson extends AdvancedRobot {
 		}
 
 		// <movement>
-		int forwardDanger = 0, reverseDanger = 0;
 		try {
 			int bin = enemyWave.hitBin(myLocation);
-			forwardDanger = enemyWave.surfFactors[bin];
-			reverseDanger = enemyWave.surfFactors[2 * MIDDLE_FACTOR - bin];
+			if ((enemyWave.surfFactors[2 * MIDDLE_FACTOR - bin]) < (enemyWave.surfFactors[bin])) {
+				direction = -direction;
+			}
 		} catch (Exception ex) {
-		}
-		if (reverseDanger < forwardDanger) {
-			direction = -direction;
 		}
 		Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
 				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
