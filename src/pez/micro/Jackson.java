@@ -169,6 +169,10 @@ public class Jackson extends AdvancedRobot {
 		isHitByBullet = true;
 	}
 
+	public void onBulletHit(BulletHitEvent e) {
+		enemyEnergy -= Rules.getBulletDamage(e.getBullet().getPower());
+	}
+
 	static double bulletVelocity(double power) {
 		return 20 - 3 * power;
 	}
