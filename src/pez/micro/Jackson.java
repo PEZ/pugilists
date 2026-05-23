@@ -47,19 +47,18 @@ public class Jackson extends AdvancedRobot {
 		double enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
 		currentEnemyLocation = project(enemyAbsoluteBearing, e.getDistance());
 		Point2D myLocation = Jackson.myLocation = new Point2D.Double(myX, myY);
-		int movementVelocityIndex = (int) Math.abs(lastVelocity);
 		double movementStartBearing = absoluteBearing(currentEnemyLocation, myLocation);
 		double movementBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
 				lastVelocity * Math.sin(getHeadingRadians() - movementStartBearing));
-		lastVelocity = getVelocity();
 		double enemyDeltaEnergy = enemyEnergy - (enemyEnergy = e.getEnergy());
 		if (enemyDeltaEnergy > 0 && enemyDeltaEnergy <= MAX_BULLET_POWER) {
 			Wave enemyWave = new Wave(currentEnemyLocation, enemyDeltaEnergy,
 					movementStartBearing, movementBearingDirection);
-			enemyWave.surfFactors = realMovementFactors[movementVelocityIndex];
+			enemyWave.surfFactors = realMovementFactors[(int) Math.abs(lastVelocity)];
 			enemyWave.distanceFromGun = 2 * bulletVelocity(enemyDeltaEnergy);
 			addCustomEvent(enemyWave);
 		}
+		lastVelocity = getVelocity();
 
 		// <movement>
 		try {
