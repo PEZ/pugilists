@@ -93,11 +93,12 @@ public class Jackson extends AdvancedRobot {
 		}
 		Wave wave = new Wave(myLocation, Math.min(getEnergy() / 2, 2),
 				enemyAbsoluteBearing, enemyBearingDirection);
-		wave.factors = aimFactors[velocityIndex];
+		int[] factors = aimFactors[velocityIndex];
+		wave.factors = factors;
 
 		int mostVisited = MIDDLE_FACTOR, i = -1;
 		try {
-			while (true) if (wave.factors[++i] > wave.factors[mostVisited]) {
+			while (true) if (factors[++i] > factors[mostVisited]) {
 				mostVisited = i;
 			}
 		} catch (Exception ex) {
