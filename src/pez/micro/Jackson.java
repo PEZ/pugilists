@@ -88,7 +88,7 @@ public class Jackson extends AdvancedRobot {
 		int velocityIndex = (int) Math.abs(enemyVelocity);
 
 		enemyBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
-				enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing) + enemyBearingDirection / 100);
+				enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing) + enemyBearingDirection);
 		Wave wave = new Wave(myLocation, Math.min(getEnergy() / 2, 2),
 				enemyAbsoluteBearing, enemyBearingDirection);
 		wave.factors = aimFactors[velocityIndex];
