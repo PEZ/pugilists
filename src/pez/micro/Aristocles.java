@@ -24,7 +24,7 @@ public class Aristocles extends AdvancedRobot {
 	static final int DISTANCE_INDEXES = 10;
 	static final int VELOCITY_INDEXES = 10;
 	static final int VCHANGE_TIME_INDEXES = 10;
-	static final int FACTORS = 37;
+	static final int FACTORS = 101;
 	static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
 
 	static Point2D enemyLocation;
@@ -32,7 +32,7 @@ public class Aristocles extends AdvancedRobot {
 	static int timeSinceVChange;
 	static double enemyBearingDirection;
 	static int[][][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][FACTORS];
-	static double direction = 1;
+	static double direction = 0.4;
 	static double enemyFirePower;
 	static int GF1Hits;
 	static int tries;
@@ -55,8 +55,9 @@ public class Aristocles extends AdvancedRobot {
 		Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
 				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
 		tries = 0;
-		while (!fieldRectangle.contains(robotDestination = project(wave.gunLocation,
-				enemyAbsoluteBearing - direction * (Math.PI / 2 - tries / 100.0), 160)) && tries++ < 125);
+		while (!fieldRectangle.contains(robotDestination = project(enemyLocation,
+				enemyAbsoluteBearing + Math.PI + direction, enemyDistance * (1.2 - tries / 100.0)))
+				&& tries++ < 125);
 		double bv = bulletVelocity(enemyFirePower);
 		if (GF1Hits > 4 && (Math.random() < (bv / REVERSE_TUNER) / enemyDistance ||
 				tries > (enemyDistance / bv / WALL_BOUNCE_TUNER))) {
@@ -64,7 +65,7 @@ public class Aristocles extends AdvancedRobot {
 		}
 		// Jamougha's cool way
 		double angle;
-		setAhead(Math.cos(angle = absoluteBearing(wave.gunLocation, robotDestination) - getHeadingRadians()) * 200);
+		setAhead(Math.cos(angle = absoluteBearing(wave.gunLocation, robotDestination) - getHeadingRadians()) * 100);
 		setTurnRightRadians(Math.tan(angle));
 		// </movement>
 
@@ -139,8 +140,15 @@ public class Aristocles extends AdvancedRobot {
 		public boolean test() {
 			if ((distanceFromGun += bulletVelocity(bulletPower)) > gunLocation.distance(enemyLocation) - 18) {
 				try {
-					factors[(int)Math.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
-							bearingDirection) + MIDDLE_FACTOR)]++;
+					int gf = (int)Math.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
+							bearingDirection) + MIDDLE_FACTOR);
+					for (int s = -4; s <= 4; s++) {
+						try {
+							factors[gf + s] += 5 - Math.abs(s);
+						}
+						catch (Exception ex) {
+						}
+					}
 				}
 				catch (Exception e) {
 				}
