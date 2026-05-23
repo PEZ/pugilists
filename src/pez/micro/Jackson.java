@@ -27,7 +27,7 @@ public class Jackson extends AdvancedRobot {
 	static Point2D currentEnemyLocation;
 	static double enemyBearingDirection;
 	static double myX, myY;
-	static int[][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][FACTORS];
+	static int[][] aimFactors = new int[VELOCITY_INDEXES][FACTORS];
 	static int[][] realMovementFactors = new int[VELOCITY_INDEXES][FACTORS];
 	static double direction = 1;
 	static double enemyEnergy;
@@ -93,7 +93,7 @@ public class Jackson extends AdvancedRobot {
 		}
 		Wave wave = new Wave(myLocation, Math.min(getEnergy() / 2, 2),
 				enemyAbsoluteBearing, enemyBearingDirection);
-		wave.factors = aimFactors[(int) (e.getDistance() / (MAX_DISTANCE / DISTANCE_INDEXES))][velocityIndex];
+		wave.factors = aimFactors[velocityIndex];
 
 		int mostVisited = MIDDLE_FACTOR, i = -1;
 		try {
