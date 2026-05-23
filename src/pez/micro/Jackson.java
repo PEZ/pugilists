@@ -104,7 +104,7 @@ public class Jackson extends AdvancedRobot {
 		}
 
 		setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
-				wave.bearingDirection * (mostVisited - MIDDLE_FACTOR)));
+				enemyBearingDirection * (mostVisited - MIDDLE_FACTOR)));
 
 		setFire(wave.bulletPower);
 		addCustomEvent(wave);
