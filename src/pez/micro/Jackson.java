@@ -80,7 +80,7 @@ public class Jackson extends AdvancedRobot {
 			moveAngle += direction * 0.01;
 		double angle;
 		setAhead(Math.cos(angle = moveAngle - getHeadingRadians()) * 200);
-		setTurnRightRadians(Math.tan(angle));
+		setTurnRightRadians(angle);
 		// </movement>
 
 		// <gun>
