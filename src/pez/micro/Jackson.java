@@ -34,7 +34,7 @@ public class Jackson extends AdvancedRobot {
 	static int timeSinceVChange;
 	static double enemyBearingDirection;
 	static int[][][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][FACTORS];
-	static int[][][] realMovementFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][FACTORS];
+	static int[][] realMovementFactors = new int[VELOCITY_INDEXES][FACTORS];
 	static double direction = 1;
 	static double enemyEnergy;
 	static double enemyFirePower = BULLET_POWER;
@@ -68,7 +68,7 @@ public class Jackson extends AdvancedRobot {
 			enemyFirePower = enemyDeltaEnergy;
 			Wave enemyWave = new Wave();
 			enemyWave.surfWave = true;
-			enemyWave.surfFactors = realMovementFactors[distanceIndex][movementVelocityIndex];
+			enemyWave.surfFactors = realMovementFactors[movementVelocityIndex];
 			enemyWave.gunLocation = currentEnemyLocation;
 			enemyWave.bulletPower = enemyDeltaEnergy;
 			enemyWave.startBearing = movementStartBearing;
