@@ -51,7 +51,7 @@ public class Pugilist extends AdvancedRobot {
     public void onScannedRobot(ScannedRobotEvent e) {
         Wave wave = new Wave();
         Wave ew = new Wave();
-        ew.gunLocation = (Point2D) enemyLocation.clone();
+        ew.gunLocation = project(enemyLocation, 0, 0);
         ew.startBearing = ew.gunBearing(robotLocation);
 
         double enemyDeltaEnergy = enemyEnergy - (enemyEnergy = e.getEnergy());
