@@ -1,5 +1,4 @@
 package pez.micro;
-
 import robocode.*;
 import robocode.util.Utils;
 import java.awt.geom.*;
@@ -33,7 +32,7 @@ public class Aristocles extends AdvancedRobot {
 	static int timeSinceVChange;
 	static double enemyBearingDirection;
 	static int[][][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][FACTORS];
-	static double direction = 0.4;
+	static double direction = 1;
 	static double enemyFirePower;
 	static int GF1Hits;
 	static int tries;
@@ -42,24 +41,22 @@ public class Aristocles extends AdvancedRobot {
 		setAdjustRadarForGunTurn(true);
 		setAdjustGunForRobotTurn(true);
 
-		turnRadarRightRadians(Double.POSITIVE_INFINITY);
+		turnRadarRightRadians(Double.POSITIVE_INFINITY); 
 	}
 
 	public void onScannedRobot(ScannedRobotEvent e) {
 		Wave wave = new Wave();
 		double enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
 		double enemyDistance;
-		enemyLocation = project(wave.gunLocation = new Point2D.Double(getX(), getY()), enemyAbsoluteBearing,
-				enemyDistance = e.getDistance());
+		enemyLocation = project(wave.gunLocation = new Point2D.Double(getX(), getY()), enemyAbsoluteBearing, enemyDistance = e.getDistance());
 
 		// <movement>
 		Point2D robotDestination;
 		Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
 				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
 		tries = 0;
-		while (!fieldRectangle.contains(robotDestination = project(enemyLocation,
-				enemyAbsoluteBearing + Math.PI + direction, enemyDistance * (1.2 - tries / 100.0)))
-				&& tries++ < 125);
+		while (!fieldRectangle.contains(robotDestination = project(wave.gunLocation,
+				enemyAbsoluteBearing - direction * (Math.PI / 2 - tries / 100.0), 160)) && tries++ < 125);
 		double bv = bulletVelocity(enemyFirePower);
 		if (GF1Hits > 4 && (Math.random() < (bv / REVERSE_TUNER) / enemyDistance ||
 				tries > (enemyDistance / bv / WALL_BOUNCE_TUNER))) {
@@ -67,7 +64,7 @@ public class Aristocles extends AdvancedRobot {
 		}
 		// Jamougha's cool way
 		double angle;
-		setAhead(Math.cos(angle = absoluteBearing(wave.gunLocation, robotDestination) - getHeadingRadians()) * 100);
+		setAhead(Math.cos(angle = absoluteBearing(wave.gunLocation, robotDestination) - getHeadingRadians()) * 200);
 		setTurnRightRadians(Math.tan(angle));
 		// </movement>
 
@@ -79,16 +76,14 @@ public class Aristocles extends AdvancedRobot {
 		}
 
 		if (enemyVelocity != 0) {
-			enemyBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
-					enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
+			enemyBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR, enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
 		}
 		wave.bearingDirection = enemyBearingDirection;
 
 		int distanceIndex;
 		wave.bulletPower = Math.min(getEnergy() / 2, Math.min(e.getEnergy() / 4,
-				(distanceIndex = (int) (enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER
-						: MAX_BULLET_POWER));
-		// wave.bulletPower = MAX_BULLET_POWER; // TargetingChallenge
+				(distanceIndex = (int)(enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER : MAX_BULLET_POWER));
+		//wave.bulletPower = MAX_BULLET_POWER; // TargetingChallenge
 
 		wave.factors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(VCHANGE_TIME_INDEXES - 1,
 				timeSinceVChange++ / 13)];
@@ -97,7 +92,7 @@ public class Aristocles extends AdvancedRobot {
 		wave.startBearing = enemyAbsoluteBearing;
 
 		int mostVisited = MIDDLE_FACTOR, i = FACTORS;
-		do {
+		do  {
 			if (wave.factors[--i] > wave.factors[mostVisited]) {
 				mostVisited = i;
 			}
@@ -144,10 +139,10 @@ public class Aristocles extends AdvancedRobot {
 		public boolean test() {
 			if ((distanceFromGun += bulletVelocity(bulletPower)) > gunLocation.distance(enemyLocation) - 18) {
 				try {
-					factors[(int) Math
-							.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
-									bearingDirection) + MIDDLE_FACTOR)]++;
-				} catch (Exception e) {
+					factors[(int)Math.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
+							bearingDirection) + MIDDLE_FACTOR)]++;
+				}
+				catch (Exception e) {
 				}
 				removeCustomEvent(this);
 			}
