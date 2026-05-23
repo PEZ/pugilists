@@ -3,7 +3,6 @@ package pez.micro;
 import robocode.*;
 import robocode.util.Utils;
 import java.awt.geom.*;
-import java.util.*;
 
 // This code is released under the RoboWiki Public Code Licence (RWPCL), datailed on:
 // http://robowiki.net/?RWPCL
@@ -39,9 +38,7 @@ public class Jackson extends AdvancedRobot {
 	static double enemyEnergy;
 	static double enemyFirePower = BULLET_POWER;
 	static double lastVelocity;
-	static Point2D hitLocation;
-	Wave passingEnemyWave;
-	ArrayList<Wave> enemyWaves = new ArrayList<Wave>();
+	static Wave surfWave;
 	static int tries;
 
 	public void run() {
@@ -67,14 +64,13 @@ public class Jackson extends AdvancedRobot {
 		if (enemyDeltaEnergy > 0 && enemyDeltaEnergy <= MAX_BULLET_POWER) {
 			enemyFirePower = enemyDeltaEnergy;
 			Wave enemyWave = new Wave();
-			enemyWave.surfWave = true;
+			enemyWave.isSurfWave = true;
 			enemyWave.surfFactors = realMovementFactors[movementVelocityIndex];
 			enemyWave.gunLocation = currentEnemyLocation;
 			enemyWave.bulletPower = enemyDeltaEnergy;
 			enemyWave.startBearing = movementStartBearing;
 			enemyWave.bearingDirection = movementBearingDirection;
 			enemyWave.distanceFromGun = 2 * bulletVelocity(enemyDeltaEnergy);
-			enemyWaves.add(enemyWave);
 			addCustomEvent(enemyWave);
 		}
 		enemyEnergy = e.getEnergy();
@@ -94,7 +90,7 @@ public class Jackson extends AdvancedRobot {
 				enemyAbsoluteBearing + direction * (Math.PI / 2 - tries / 100.0), 160)) && tries++ < 125)
 			;
 		int reverseTries = tries;
-		Wave movementWave = closestWave();
+		Wave movementWave = surfWave;
 		double forwardDanger = movementDanger(movementWave, predictPosition(movementWave, direction, fieldRectangle));
 		double reverseDanger = movementDanger(movementWave, predictPosition(movementWave, -direction, fieldRectangle));
 
@@ -148,16 +144,15 @@ public class Jackson extends AdvancedRobot {
 		// </gun>
 
 		setTurnRadarRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getRadarHeadingRadians()) * 2);
+		surfWave = null;
 	}
 
 	public void onHitByBullet(HitByBulletEvent e) {
-		hitLocation = new Point2D.Double(getX(), getY());
-		if (passingEnemyWave != null) {
-			try {
-				passingEnemyWave.surfFactors[movementIndex(passingEnemyWave.gunLocation, hitLocation, passingEnemyWave.startBearing,
-						passingEnemyWave.bearingDirection)]++;
-			} catch (Exception ex) {
-			}
+		try {
+			surfWave.surfFactors[movementIndex(surfWave.gunLocation,
+					new Point2D.Double(getX(), getY()), surfWave.startBearing,
+					surfWave.bearingDirection)]++;
+		} catch (Exception ex) {
 		}
 	}
 
@@ -216,20 +211,6 @@ public class Jackson extends AdvancedRobot {
 		return robotLocation;
 	}
 
-	Wave closestWave() {
-		Wave closest = null;
-		double closestDistance = Double.POSITIVE_INFINITY;
-		Point2D robotLocation = new Point2D.Double(getX(), getY());
-		for (Wave wave : enemyWaves) {
-			double distance = wave.gunLocation.distance(robotLocation) - wave.distanceFromGun;
-			if (distance > -50 && distance < closestDistance) {
-				closest = wave;
-				closestDistance = distance;
-			}
-		}
-		return closest;
-	}
-
 	class Wave extends Condition {
 		double bulletPower;
 		Point2D gunLocation;
@@ -238,19 +219,16 @@ public class Jackson extends AdvancedRobot {
 		int[] factors;
 		int[] surfFactors;
 		double distanceFromGun;
-		boolean surfWave;
+		boolean isSurfWave;
 
 		public boolean test() {
-			if (surfWave) {
+			if (isSurfWave) {
+				distanceFromGun += bulletVelocity(bulletPower);
 				double distance = gunLocation.distance(new Point2D.Double(getX(), getY()));
-				if ((distanceFromGun += bulletVelocity(bulletPower)) > distance - 50) {
-					passingEnemyWave = this;
+				if (distanceFromGun < distance + 50 && surfWave == null) {
+					surfWave = this;
 				}
 				if (distanceFromGun > distance + 50) {
-					if (passingEnemyWave == this) {
-						passingEnemyWave = null;
-					}
-					enemyWaves.remove(this);
 					removeCustomEvent(this);
 				}
 			} else if ((distanceFromGun += bulletVelocity(bulletPower)) > gunLocation.distance(currentEnemyLocation) - 18) {
