@@ -51,10 +51,9 @@ public class Aristocles extends AdvancedRobot {
 
 		// <movement>
 		Point2D robotDestination;
-		Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
-				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
 		tries = 0;
-		while (!fieldRectangle.contains(robotDestination = project(enemyLocation,
+		while (!new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
+				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2).contains(robotDestination = project(enemyLocation,
 				enemyAbsoluteBearing + Math.PI + direction, enemyDistance * (1.2 - tries / 100.0)))
 				&& tries++ < 125);
 		double bv = bulletVelocity(enemyFirePower);
