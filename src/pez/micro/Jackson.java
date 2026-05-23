@@ -30,14 +30,15 @@ public class Jackson extends AdvancedRobot {
 	static int[][] aimFactors = new int[VELOCITY_INDEXES][FACTORS];
 	static int[][] realMovementFactors = new int[VELOCITY_INDEXES][FACTORS];
 	static double direction = 1;
-	static double enemyEnergy = 102;
+	static double enemyEnergy;
 	static double lastVelocity;
 	static Wave enemyWave;
 
-	public void onStatus(StatusEvent e) {
+	public void run() {
 		setAdjustRadarForGunTurn(true);
 		setAdjustGunForRobotTurn(true);
-		setTurnRadarRightRadians(1);
+		enemyEnergy = 102;
+		turnRadarRightRadians(Double.POSITIVE_INFINITY);
 	}
 
 	public void onScannedRobot(ScannedRobotEvent e) {
