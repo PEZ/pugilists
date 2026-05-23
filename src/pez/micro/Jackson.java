@@ -60,6 +60,7 @@ public class Jackson extends AdvancedRobot {
 		lastVelocity = getVelocity();
 
 		// <movement>
+		double fwdDanger = 0, revDanger = 0;
 		try {
 			double ticks = (enemyWave.gunLocation.distance(myX, myY) - enemyWave.distanceFromGun)
 					/ bulletVelocity(enemyWave.bulletPower);
@@ -67,10 +68,16 @@ public class Jackson extends AdvancedRobot {
 			double orbitAngle = enemyAbsoluteBearing - direction * 1.5707963267948966;
 			int fwdBin = enemyWave.hitBin(project(orbitAngle, travel));
 			int revBin = enemyWave.hitBin(project(orbitAngle + Math.PI, travel));
-			if (enemyWave.surfFactors[revBin] < enemyWave.surfFactors[fwdBin]) {
-				direction = -direction;
+			int i = -1;
+			while (true) {
+				++i;
+				fwdDanger += enemyWave.surfFactors[i] / (Math.abs(i - fwdBin) + 1.0);
+				revDanger += enemyWave.surfFactors[i] / (Math.abs(i - revBin) + 1.0);
 			}
 		} catch (Exception ex) {
+		}
+		if (revDanger < fwdDanger) {
+			direction = -direction;
 		}
 		double moveAngle = enemyAbsoluteBearing - direction * 1.5707963267948966;
 		while (!new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
