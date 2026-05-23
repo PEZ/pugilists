@@ -16,11 +16,9 @@ public class Aristocles extends AdvancedRobot {
 
 	static final double MAX_DISTANCE = 900;
 	static final double MAX_VELOCITY = 10;
-	static final String P = "\u0018\u001e\u001e\u001e\u0013\u0019\u001c\u001c\u000f\u0014\u0017\u0018\u000c\u0013\u0015\u0016\u000b\u0012\u0013\u0014\u000b\u0011\u0013\u0013\u000b\u0010\u0013\u0013\u000b\u000f\u0012\u0013\u000b\u000e\u0011\u0013\u000b\u000e\u0010\u0013\u000b\u000e\u0010\u0013\u000b\u000e\u0010\u0013";
+	static final double MAX_BULLET_POWER = 3.0;
+	static final double BULLET_POWER = 1.9;
 	static final double WALL_MARGIN = 18;
-	static final double MAX_TRIES = 125;
-	static final double REVERSE_TUNER = 0.421075;
-	static final double WALL_BOUNCE_TUNER = 0.699484;
 
 	static final int DISTANCE_INDEXES = 10;
 	static final int VELOCITY_INDEXES = 10;
@@ -34,9 +32,8 @@ public class Aristocles extends AdvancedRobot {
 	static double enemyBearingDirection;
 	static int[][][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][FACTORS];
 	static double direction = 0.4;
-	static double enemyFirePower;
-	static int GF1Hits;
-	static int tries;
+	static double enemyEnergy;
+	static int timeSinceEnemyFired;
 
 	public void run() {
 		setAdjustRadarForGunTurn(true);
@@ -53,25 +50,25 @@ public class Aristocles extends AdvancedRobot {
 				enemyDistance = e.getDistance());
 
 		// <movement>
+		double energyDrop;
+		if ((energyDrop = enemyEnergy - (enemyEnergy = e.getEnergy())) > 0 && energyDrop <= 3) {
+			direction *= Math.random() < 0.5 ? 1 : -1;
+			timeSinceEnemyFired = 0;
+		}
 		Point2D robotDestination;
 		Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
 				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
-		tries = 0;
-		while (!fieldRectangle
-				.contains(robotDestination = project(enemyLocation, enemyAbsoluteBearing + Math.PI + direction,
-						enemyDistance * (1.2 - tries / 100.0)))
-				&& tries < MAX_TRIES) {
-			tries++;
-		}
-		double bv = bulletVelocity(enemyFirePower);
-		if (GF1Hits > 4 && (Math.random() < (bv / REVERSE_TUNER) / enemyDistance ||
-				tries > (enemyDistance / bv / WALL_BOUNCE_TUNER))) {
+		if (!fieldRectangle.contains(robotDestination = project(enemyLocation,
+				enemyAbsoluteBearing + Math.PI + direction, enemyDistance * 1.1))) {
 			direction = -direction;
+			robotDestination = project(enemyLocation,
+					enemyAbsoluteBearing + Math.PI + direction, enemyDistance * 1.1);
 		}
 		// Jamougha's cool way
 		double angle;
 		setAhead(Math.cos(angle = absoluteBearing(wave.gunLocation, robotDestination) - getHeadingRadians()) * 100);
 		setTurnRightRadians(Math.tan(angle));
+		setMaxVelocity(timeSinceEnemyFired++ < 9 ? 8 : 0);
 		// </movement>
 
 		// <gun>
@@ -89,8 +86,8 @@ public class Aristocles extends AdvancedRobot {
 
 		int distanceIndex;
 		wave.bulletPower = Math.min(getEnergy() / 2, Math.min(e.getEnergy() / 4,
-				P.charAt((distanceIndex = (int) (enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) * 4
-						+ Math.min(3, (int) getEnergy() >> 5)) / 10.0));
+				(distanceIndex = (int) (enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER
+						: MAX_BULLET_POWER));
 		// wave.bulletPower = MAX_BULLET_POWER; // TargetingChallenge
 
 		wave.factors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(VCHANGE_TIME_INDEXES - 1,
@@ -116,12 +113,7 @@ public class Aristocles extends AdvancedRobot {
 		setTurnRadarRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getRadarHeadingRadians()) * 2);
 	}
 
-	public void onHitByBullet(HitByBulletEvent e) {
-		if (tries < 30) {
-			GF1Hits++;
-		}
-		enemyFirePower = e.getPower();
-	}
+
 
 	static double bulletVelocity(double power) {
 		return 20 - 3 * power;
