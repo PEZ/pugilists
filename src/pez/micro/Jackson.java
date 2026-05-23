@@ -52,7 +52,7 @@ public class Jackson extends AdvancedRobot {
 		double movementBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR,
 				lastVelocity * Math.sin(getHeadingRadians() - movementStartBearing));
 		lastVelocity = getVelocity();
-		double enemyDeltaEnergy = enemyEnergy - e.getEnergy();
+		double enemyDeltaEnergy = enemyEnergy - (enemyEnergy = e.getEnergy());
 		if (enemyDeltaEnergy > 0 && enemyDeltaEnergy <= MAX_BULLET_POWER) {
 			Wave enemyWave = new Wave(currentEnemyLocation, enemyDeltaEnergy,
 					movementStartBearing, movementBearingDirection);
@@ -60,7 +60,6 @@ public class Jackson extends AdvancedRobot {
 			enemyWave.distanceFromGun = 2 * bulletVelocity(enemyDeltaEnergy);
 			addCustomEvent(enemyWave);
 		}
-		enemyEnergy = e.getEnergy();
 
 		// <movement>
 		int forwardDanger = 0, reverseDanger = 0;
