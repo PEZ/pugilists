@@ -86,7 +86,7 @@ public class Aristocles extends AdvancedRobot {
 		wave.bearingDirection = enemyBearingDirection;
 
 		wave.factors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(VCHANGE_TIME_INDEXES - 1,
-				timeSinceVChange++ / 11)];
+				timeSinceVChange++ / 12)];
 		lastVelocityIndex = velocityIndex;
 
 		wave.startBearing = enemyAbsoluteBearing;
