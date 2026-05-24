@@ -141,12 +141,8 @@ public class Aristocles extends AdvancedRobot {
 			if ((distanceFromGun += bulletVelocity(bulletPower)) > gunLocation.distance(enemyLocation) - 18) {
 				int gf = (int)Math.round(((Utils.normalRelativeAngle(absoluteBearing(gunLocation, enemyLocation) - startBearing)) /
 						bearingDirection) + MIDDLE_FACTOR);
-				for (int s = -4; s <= 4; s++) {
-					try {
-						factors[gf + s] += 5 - Math.abs(s);
-					}
-					catch (Exception ex) {
-					}
+				for (int s = FACTORS; --s >= 0;) {
+					factors[s] += FACTORS / (Math.abs(gf - s) + 1);
 				}
 				robot.removeCustomEvent(this);
 			}
