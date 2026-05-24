@@ -33,7 +33,6 @@ public class Aristocles extends AdvancedRobot {
 	static int[][][][][] aimFactors = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][FACTORS];
 	static double direction = 0.4;
 	static double enemyFirePower;
-	static double enemyEnergy;
 	static int GF1Hits;
 	static int tries;
 	static Aristocles robot;
@@ -51,10 +50,6 @@ public class Aristocles extends AdvancedRobot {
 		double enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
 		double enemyDistance;
 		enemyLocation = project(wave.gunLocation = new Point2D.Double(getX(), getY()), enemyAbsoluteBearing, enemyDistance = e.getDistance());
-		double enemyVelocity = enemyEnergy - (enemyEnergy = e.getEnergy());
-		if (enemyVelocity > 0 && enemyVelocity <= MAX_BULLET_POWER) {
-			enemyFirePower = enemyVelocity;
-		}
 
 		// <movement>
 		Point2D robotDestination;
@@ -75,13 +70,13 @@ public class Aristocles extends AdvancedRobot {
 		// </movement>
 
 		// <gun>
-		enemyVelocity = e.getVelocity();
+		double enemyVelocity = e.getVelocity();
 		int velocityIndex = (int) (Math.abs(enemyVelocity) / (MAX_VELOCITY / VELOCITY_INDEXES));
 		if (velocityIndex != lastVelocityIndex) {
 			timeSinceVChange = 0;
 		}
 		int distanceIndex;
-		wave.bulletPower = Math.min(getEnergy() / 2, Math.min(enemyEnergy / 4,
+		wave.bulletPower = Math.min(getEnergy() / 2, Math.min(e.getEnergy() / 4,
 				(distanceIndex = (int)(enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER : MAX_BULLET_POWER));
 		//wave.bulletPower = MAX_BULLET_POWER; // TargetingChallenge
 
