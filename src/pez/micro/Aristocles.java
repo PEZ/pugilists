@@ -75,16 +75,15 @@ public class Aristocles extends AdvancedRobot {
 		if (velocityIndex != lastVelocityIndex) {
 			timeSinceVChange = 0;
 		}
-
-		if (enemyVelocity != 0) {
-			enemyBearingDirection = Math.copySign(0.7 / MIDDLE_FACTOR, enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
-		}
-		wave.bearingDirection = enemyBearingDirection;
-
 		int distanceIndex;
 		wave.bulletPower = Math.min(getEnergy() / 2, Math.min(e.getEnergy() / 4,
 				(distanceIndex = (int)(enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER : MAX_BULLET_POWER));
 		//wave.bulletPower = MAX_BULLET_POWER; // TargetingChallenge
+
+		if (enemyVelocity != 0) {
+			enemyBearingDirection = Math.copySign(Math.asin(8 / bulletVelocity(wave.bulletPower)) / MIDDLE_FACTOR, enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
+		}
+		wave.bearingDirection = enemyBearingDirection;
 
 		wave.factors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(VCHANGE_TIME_INDEXES - 1,
 				timeSinceVChange++ / 13)];
