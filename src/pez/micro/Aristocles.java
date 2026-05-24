@@ -53,9 +53,10 @@ public class Aristocles extends AdvancedRobot {
 
 		// <movement>
 		Point2D robotDestination;
+		Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
+				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
 		tries = 0;
-		while (!new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
-				BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2).contains(robotDestination = project(enemyLocation,
+		while (!fieldRectangle.contains(robotDestination = project(enemyLocation,
 				enemyAbsoluteBearing + Math.PI + direction, enemyDistance * (1.2 - tries / 100.0)))
 				&& tries++ < 125);
 		double bv = bulletVelocity(enemyFirePower);
@@ -85,7 +86,7 @@ public class Aristocles extends AdvancedRobot {
 		}
 		wave.bearingDirection = enemyBearingDirection;
 
-		wave.factors = aimFactors[distanceIndex][velocityIndex][lastVelocityIndex][Math.min(VCHANGE_TIME_INDEXES - 1,
+		wave.factors = aimFactors[distanceIndex][velocityIndex][fieldRectangle.contains(project(enemyLocation, e.getHeadingRadians(), 100)) ? 1 : 0][Math.min(VCHANGE_TIME_INDEXES - 1,
 				timeSinceVChange++ / 13)];
 		lastVelocityIndex = velocityIndex;
 
