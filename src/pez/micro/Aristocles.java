@@ -16,7 +16,7 @@ public class Aristocles extends AdvancedRobot {
 	static final double MAX_VELOCITY = 10;
 	static final double MAX_BULLET_POWER = 3.0;
 	static final double BULLET_POWER = 1.9;
-	static final double WALL_MARGIN = 36;
+	static final double WALL_MARGIN = 18;
 	static final double REVERSE_TUNER = 0.421075;
 	static final double WALL_BOUNCE_TUNER = 0.699484;
 
