@@ -77,7 +77,7 @@ public class Aristocles extends AdvancedRobot {
 		}
 		int distanceIndex;
 		wave.bulletPower = Math.min(getEnergy() / 2, Math.min(e.getEnergy() / 4,
-				(distanceIndex = (int)(enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? getEnergy() - e.getEnergy() > 20 ? MAX_BULLET_POWER : BULLET_POWER : MAX_BULLET_POWER));
+				(distanceIndex = (int)(enemyDistance / (MAX_DISTANCE / DISTANCE_INDEXES))) > 1 ? BULLET_POWER : MAX_BULLET_POWER));
 		//wave.bulletPower = MAX_BULLET_POWER; // TargetingChallenge
 
 		if (enemyVelocity != 0) {
