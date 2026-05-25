@@ -43,13 +43,13 @@ public class Pugilist extends AdvancedRobot {
         setAdjustRadarForGunTurn(true);
         setAdjustGunForRobotTurn(true);
         robot = this;
-        Wave.passingWave = null;
+        W.passingWave = null;
         turnRadarRightRadians(Double.POSITIVE_INFINITY);
     }
 
     public void onScannedRobot(ScannedRobotEvent e) {
-        Wave wave = new Wave();
-        Wave ew = new Wave();
+        W wave = new W();
+        W ew = new W();
         ew.gunLocation = project(enemyLocation, 0, 0);
         ew.startBearing = ew.gunBearing(robotLocation);
 
@@ -93,7 +93,7 @@ public class Pugilist extends AdvancedRobot {
 
         wave.query();
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
-                wave.bearingDirection * (Wave.bestGF() - Wave.MIDDLE_FACTOR)));
+            wave.bearingDirection * (W.bestGF() - W.MIDDLE_FACTOR)));
 
         addCustomEvent(wave);
         if (getEnergy() >= bulletPower && Math.abs(getGunTurnRemainingRadians()) < 18.0 / enemyDistance) {
@@ -101,7 +101,7 @@ public class Pugilist extends AdvancedRobot {
         }
         // </gun>
 
-        if (Wave.dangerReverse < Wave.dangerForward) {
+        if (W.dangerReverse < W.dangerForward) {
             direction = -direction;
         }
         double angle;
@@ -111,19 +111,19 @@ public class Pugilist extends AdvancedRobot {
         setTurnRightRadians(Math.tan(angle));
 
         setTurnRadarRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getRadarHeadingRadians()) * 2);
-        Wave.dangerForward = Wave.dangerReverse = 0;
+        W.dangerForward = W.dangerReverse = 0;
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
-        Wave.passingWave.record();
+        W.passingWave.record();
     }
 
     // Surf: compute danger for forward/reverse using pre-smoothed scores
-    void updateDirectionStats(Wave wave) {
+    void updateDirectionStats(W wave) {
         wave.query();
         double d = Math.abs(wave.distanceFromTarget(wave.targetLocation, 0)) * wave.bulletVelocity;
-        Wave.dangerForward += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, 1.0, 0))] / d;
-        Wave.dangerReverse += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, -1.0, 5))] / d;
+        W.dangerForward += W.scores[wave.visitingIndex(waveImpactLocation(wave, 1.0, 0))] / d;
+        W.dangerReverse += W.scores[wave.visitingIndex(waveImpactLocation(wave, -1.0, 5))] / d;
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
@@ -149,7 +149,7 @@ public class Pugilist extends AdvancedRobot {
         return w;
     }
 
-    Point2D waveImpactLocation(Wave wave, double direction, int timeOffset) {
+    Point2D waveImpactLocation(W wave, double direction, int timeOffset) {
         Point2D impactLocation = project(robotLocation, 0, 0);
         do {
             impactLocation = project(impactLocation, absoluteBearing(impactLocation,
@@ -179,7 +179,7 @@ public class Pugilist extends AdvancedRobot {
     }
 }
 
-class Wave extends Condition {
+class W extends Condition {
     static final int FACTORS = 29;
     static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
     static final int DISTANCE_INDEXES = 5, ACCEL_INDEXES = 5, VELOCITY_INDEXES = 9,
@@ -191,7 +191,7 @@ class Wave extends Condition {
     static double[] scores = new double[FACTORS];
     static double dangerForward;
     static double dangerReverse;
-    static Wave passingWave;
+    static W passingWave;
 
     double bulletVelocity;
     Point2D gunLocation;
