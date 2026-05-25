@@ -3,7 +3,6 @@ package pez.mini;
 import robocode.*;
 import robocode.util.Utils;
 import java.awt.geom.*;
-import java.util.ArrayList;
 
 //This code is released under the RoboWiki Public Code Licence (RWPCL), datailed on:
 //http://robowiki.net/?RWPCL
@@ -92,7 +91,7 @@ public class Pugilist extends AdvancedRobot {
                 robotLocation, enemyTSVC);
         prevEnemyVelocity = enemyVelocity;
 
-        wave.query(Wave.gunObss);
+        wave.query();
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
                 wave.bearingDirection * (Wave.bestGF() - Wave.MIDDLE_FACTOR)));
 
@@ -116,12 +115,12 @@ public class Pugilist extends AdvancedRobot {
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
-        Wave.passingWave.record(Wave.surfObss);
+        Wave.passingWave.record();
     }
 
     // Surf: compute danger for forward/reverse using pre-smoothed scores
     void updateDirectionStats(Wave wave) {
-        wave.query(Wave.surfObss);
+        wave.query();
         double d = Math.abs(wave.distanceFromTarget(wave.targetLocation, 0)) * wave.bulletVelocity;
         Wave.dangerForward += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, 1.0, 0))] / d;
         Wave.dangerReverse += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, -1.0, 5))] / d;
@@ -181,15 +180,14 @@ public class Pugilist extends AdvancedRobot {
 }
 
 class Wave extends Condition {
-    static final int FACTORS = 75;
+    static final int FACTORS = 29;
     static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
-    static final int DIM_GF = 0, DIM_DIST = 1, DIM_ACCEL = 2, DIM_VEL = 3,
-        DIM_WALL1 = 4, DIM_WALL2 = 5, DIM_TSVC = 6, NUM_DIMS = 7;
-    static final String GW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)18 + (char)16 + (char)20;
-    static final String SW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)18 + (char)16 + (char)1;
+    static final int DISTANCE_INDEXES = 5, ACCEL_INDEXES = 5, VELOCITY_INDEXES = 9,
+        WALL_INDEXES = 4, TSVC_INDEXES = 8;
+    static final double GUN_DEPTH = 20, SURF_DEPTH = 1;
 
-    static ArrayList<double[]> gunObss = new ArrayList<double[]>();
-    static ArrayList<double[]> surfObss = new ArrayList<double[]>();
+    static double[][][][][][][] gunFactors = new double[DISTANCE_INDEXES][ACCEL_INDEXES][VELOCITY_INDEXES][WALL_INDEXES][WALL_INDEXES][TSVC_INDEXES][FACTORS];
+    static double[][][][][][][] surfFactors = new double[DISTANCE_INDEXES][ACCEL_INDEXES][VELOCITY_INDEXES][WALL_INDEXES][WALL_INDEXES][TSVC_INDEXES][FACTORS];
     static double[] scores = new double[FACTORS];
     static double dangerForward;
     static double dangerReverse;
@@ -202,7 +200,7 @@ class Wave extends Condition {
     double bearingDirection;
     double distanceFromGun;
     boolean surfable;
-    double[] obs;
+    double[] visits;
 
     public boolean test() {
         advance(1);
@@ -218,42 +216,36 @@ class Wave extends Condition {
             }
         } else if (passed(-18)) {
             if (r.getOthers() > 0) {
-                record(gunObss);
+                record();
             }
             r.removeCustomEvent(this);
         }
         return false;
     }
 
-    void record(ArrayList<double[]> obss) {
-        obs[DIM_GF] = visitingIndex(targetLocation);
-        obss.add(obs);
+    void record() {
+        int gf = visitingIndex(targetLocation);
+        for (int i = 0; i < FACTORS; i++)
+            visits[i] = rollingAvg(visits[i], i == gf ? 100 : 0, surfable ? SURF_DEPTH : GUN_DEPTH);
     }
 
-    void query(ArrayList<double[]> obss) {
-        dcFill(obss, obs, surfable ? SW : GW);
-    }
-
-    static void dcFill(ArrayList<double[]> obss, double[] q, String w) {
+    void query() {
         scores = new double[FACTORS];
-        try { for (int i = 0; ; i++) {
-            double[] o = obss.get(i);
-            double d = 0.01;
-            for (int j = DIM_DIST; j < NUM_DIMS; j++)
-                d += Math.abs(o[j] - q[j]) * w.charAt(j - 1);
-            int gf = (int) o[DIM_GF];
-            double score = (w.charAt(NUM_DIMS - 1) + i) / (d * d);
+        for (int gf = 0; gf < FACTORS; gf++)
             for (int b = 0; b < FACTORS; b++)
-                scores[b] += score / (Math.abs(gf - b) + 1);
-        } } catch (Exception e) {}
+                scores[b] += visits[gf] / (Math.abs(gf - b) + 1);
+    }
+
+    static double rollingAvg(double value, double newEntry, double depth) {
+        return (value * depth + newEntry) / (depth + 1);
     }
 
     static int bestGF() {
         int best = MIDDLE_FACTOR;
-        try { for (int i = 0; ; i++) {
+        for (int i = 0; i < FACTORS; i++) {
             if (scores[i] > scores[best])
                 best = i;
-        } } catch (Exception e) {}
+        }
         return best;
     }
 
@@ -268,10 +260,22 @@ class Wave extends Condition {
     void initObs(double power, double vel, double prevVel, Point2D loc, double direction, Point2D orbitCenter, int tSVC) {
         bulletVelocity = 20 - 3 * power;
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
-        obs = new double[] { 0, Pugilist.enemyDistance, prevVel - vel,
-            vel, Pugilist.wallSmooth(loc, orbitCenter, direction),
-            Pugilist.wallSmooth(orbitCenter, loc, direction), tSVC };
-        // indices: DIM_GF, DIM_DIST, DIM_ACCEL, DIM_VEL, DIM_WALL1, DIM_WALL2, DIM_TSVC
+        visits = buffer(surfable ? surfFactors : gunFactors, vel, prevVel, loc, direction, orbitCenter, tSVC);
+    }
+
+    static double[] buffer(double[][][][][][][] factors, double vel, double prevVel, Point2D loc,
+            double direction, Point2D orbitCenter, int tSVC) {
+        return factors
+            [bin(Pugilist.enemyDistance, 160, DISTANCE_INDEXES)]
+            [bin(prevVel - vel + 2, 1, ACCEL_INDEXES)]
+            [bin(vel + 8, 2, VELOCITY_INDEXES)]
+            [bin(Pugilist.wallSmooth(loc, orbitCenter, direction), 25, WALL_INDEXES)]
+            [bin(Pugilist.wallSmooth(orbitCenter, loc, direction), 25, WALL_INDEXES)]
+            [bin(tSVC, 8, TSVC_INDEXES)];
+    }
+
+    static int bin(double value, double scale, int indexes) {
+        return (int) Math.clamp((long) (value / scale), 0, indexes - 1);
     }
 
     int visitingIndex(Point2D target) {
