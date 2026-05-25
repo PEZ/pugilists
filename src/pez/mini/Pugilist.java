@@ -3,7 +3,6 @@ package pez.mini;
 import robocode.*;
 import robocode.util.Utils;
 import java.awt.geom.*;
-import java.util.ArrayList;
 
 //This code is released under the RoboWiki Public Code Licence (RWPCL), datailed on:
 //http://robowiki.net/?RWPCL
@@ -24,17 +23,19 @@ public class Pugilist extends AdvancedRobot {
     static final double BATTLE_FIELD_HEIGHT = 600;
     static final double WALL_MARGIN = 20;
     static final double MAX_BULLET_POWER = 3.0;
+    static final double BULLET_POWER = 1.9;
 
     static Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
             BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
     static Point2D robotLocation = new Point2D.Double();
     static Point2D enemyLocation = new Point2D.Double();
     static double enemyDistance;
+    static int distanceIndex;
+    static int velocityIndex;
+    static double enemyVelocity;
     static double enemyEnergy;
+    static int enemyTimeSinceVChange;
     static double enemyBearingDirection;
-    static double prevEnemyVelocity;
-    static double prevRobotVelocity;
-    static int enemyTSVC, robotTSVC;
 
     static double enemyFirePower = MAX_BULLET_POWER;
     static double robotVelocity;
@@ -44,13 +45,13 @@ public class Pugilist extends AdvancedRobot {
         setAdjustRadarForGunTurn(true);
         setAdjustGunForRobotTurn(true);
         robot = this;
-        W.passingWave = null;
+        EW.passingWave = null;
         turnRadarRightRadians(Double.POSITIVE_INFINITY);
     }
 
     public void onScannedRobot(ScannedRobotEvent e) {
         W wave = new W();
-        W ew = new W();
+        EW ew = new EW();
         ew.gunLocation = project(enemyLocation, 0, 0);
         ew.startBearing = ew.gunBearing(robotLocation);
 
@@ -59,11 +60,19 @@ public class Pugilist extends AdvancedRobot {
             enemyFirePower = enemyDeltaEnergy;
             ew.surfable = true;
         }
+        ew.bulletVelocity = 20 - 3 * enemyFirePower;
 
         double direction = robotBearingDirection(ew.startBearing);
-        if (prevRobotVelocity != robotVelocity) robotTSVC = 0; else robotTSVC++;
-        ew.initObs(enemyFirePower, robotVelocity, prevRobotVelocity, robotLocation, direction, enemyLocation, robotTSVC);
-        prevRobotVelocity = robotVelocity;
+        ew.calcBearingDirection(direction);
+
+        int accelIndex = 1;
+        if (robotVelocity != getVelocity()) {
+            accelIndex = sign(robotVelocity - getVelocity()) + 1;
+        }
+        ew.visits = EW.factors
+            [distanceIndex = (int)Math.min(W.DISTANCE_INDEXES - 1, enemyDistance / 180)]
+            [(int)Math.abs(robotVelocity / 2)]
+            [accelIndex];
         robotVelocity = getVelocity();
         ew.targetLocation = robotLocation;
 
@@ -80,84 +89,86 @@ public class Pugilist extends AdvancedRobot {
         addCustomEvent(ew);
 
         // <gun>
-        double enemyVelocity = e.getVelocity();
+        if (enemyVelocity != (enemyVelocity = e.getVelocity())) {
+            enemyTimeSinceVChange = 0;
+        }
 
-        double bulletPower = enemyDistance < 175 ? MAX_BULLET_POWER : Math.clamp(enemyFirePower - 0.175, 0.1, 1.9);
+        double bulletPower;
+        wave.bulletVelocity = 20 - 3 * (bulletPower = Math.min(enemyEnergy / 4,
+                    distanceIndex > 0 ? BULLET_POWER : MAX_BULLET_POWER));
 
         if (enemyVelocity != 0) {
             enemyBearingDirection = sign(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
         }
-        if (prevEnemyVelocity != enemyVelocity) enemyTSVC = 0; else enemyTSVC++;
-        wave.initObs(bulletPower, enemyVelocity, prevEnemyVelocity, enemyLocation, enemyBearingDirection,
-                robotLocation, enemyTSVC);
-        prevEnemyVelocity = enemyVelocity;
+        wave.calcBearingDirection(enemyBearingDirection);
 
-        wave.query(W.gunObss);
+        wave.visits = W.factors[distanceIndex]
+            [velocityIndex]
+            [velocityIndex = (int)Math.abs(enemyVelocity / 2)]
+            [(int)Math.clamp((long)(Math.pow(enemyTimeSinceVChange++, 0.45) - 1), 0, W.VCHANGE_TIME_INDEXES - 1)]
+            [wallIndex(wave)];
+
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
-            wave.bearingDirection * (W.bestGF() - W.MIDDLE_FACTOR)));
+                    wave.bearingDirection * (wave.mostVisited() - W.MIDDLE_FACTOR)));
 
         addCustomEvent(wave);
-        if (getEnergy() >= bulletPower && Math.abs(getGunTurnRemainingRadians()) < 18.0 / enemyDistance) {
+        if (getEnergy() >= BULLET_POWER && Math.abs(getGunTurnRemainingRadians()) < Math.atan2(18, enemyDistance)) {
             setFire(bulletPower);
         }
         // </gun>
 
-        if (W.dangerReverse < W.dangerForward) {
+        if (EW.dangerReverse < EW.dangerForward) {
             direction = -direction;
         }
         double angle;
-        setAhead(Math
-                .cos(angle = wave.gunBearing(wallSmoothedDestination(robotLocation, direction)) - getHeadingRadians())
-                * 100);
+        setAhead(Math.cos(angle = wave.gunBearing(wallSmoothedDestination(robotLocation, direction)) - getHeadingRadians()) * 100);
         setTurnRightRadians(Math.tan(angle));
 
         setTurnRadarRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getRadarHeadingRadians()) * 2);
-        W.dangerForward = W.dangerReverse = 0;
+        EW.dangerForward = EW.dangerReverse = 0;
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
-        W.passingWave.record(W.surfObss);
+        EW.passingWave.registerVisits();
     }
 
-    // Surf: compute danger for forward/reverse using pre-smoothed scores
-    void updateDirectionStats(Condition condition) {
-        W wave = (W) condition;
-        wave.query(W.surfObss);
-        double d = Math.abs(wave.distanceFromTarget(wave.targetLocation, 0)) * wave.bulletVelocity;
-        W.dangerForward += W.scores[wave.visitingIndex(waveImpactLocation(wave, 1.0, 0))] / d;
-        W.dangerReverse += W.scores[wave.visitingIndex(waveImpactLocation(wave, -1.0, 5))] / d;
+    static int wallIndex(W wave) {
+        int wallIndex = 0;
+        do {
+            wallIndex++;
+        } while (wallIndex < W.WALL_INDEXES &&
+                fieldRectangle.contains(project(wave.gunLocation,
+                        wave.startBearing + wave.bearingDirection * (wallIndex * 5.5), enemyDistance)));
+        return wallIndex - 1;
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
-        double s;
+        Point2D destination = new Point2D.Double();
         for (;;) {
-            s = wallSmooth(location, enemyLocation, direction);
-            if (s < 45 || direction == 0)
+            double currentSmoothing = 0;
+            while (currentSmoothing < 100 && !fieldRectangle.contains(destination = project(location,
+                            absoluteBearing(location, enemyLocation) - direction * (Math.PI / 2 + 0.2 - (currentSmoothing++ / 100.0)),
+                            enemyDistance / 5.0)))
+                ;
+            if (currentSmoothing < 45 || direction == 0) {
                 break;
+            }
             direction = 0;
         }
-        return orbitProject(location, enemyLocation, direction, s - 1);
+        return destination;
     }
 
-    static Point2D orbitProject(Point2D from, Point2D toward, double direction, double w) {
-        return project(from, absoluteBearing(from, toward)
-                - direction * (Math.PI / 2 + 0.25 - (w / 100.0)), Math.clamp(enemyDistance / 1.7, 40.0, 150.0));
+    void updateDirectionStats(Condition condition) {
+        EW wave = (EW) condition;
+        EW.dangerForward += wave.danger(waveImpactLocation(wave, 1.0, 0));
+        EW.dangerReverse += wave.danger(waveImpactLocation(wave, -1.0, 5));
     }
 
-    static double wallSmooth(Point2D from, Point2D toward, double direction) {
-        double w = 0;
-        while (w < 100 && !fieldRectangle.contains(orbitProject(from, toward, direction, w++)))
-            ;
-        return w;
-    }
-
-    Point2D waveImpactLocation(W wave, double direction, int timeOffset) {
+    Point2D waveImpactLocation(EW wave, double direction, int timeOffset) {
         Point2D impactLocation = project(robotLocation, 0, 0);
         do {
             impactLocation = project(impactLocation, absoluteBearing(impactLocation,
-                    wallSmoothedDestination(impactLocation,
-                            direction * robotBearingDirection(wave.gunBearing(robotLocation)))),
-                    MAX_VELOCITY);
+                        wallSmoothedDestination(impactLocation, direction * robotBearingDirection(wave.gunBearing(robotLocation)))), MAX_VELOCITY);
             timeOffset++;
         } while (wave.distanceFromTarget(impactLocation, timeOffset) > -10);
         return impactLocation;
@@ -182,80 +193,32 @@ public class Pugilist extends AdvancedRobot {
 }
 
 class W extends Condition {
-    static final int FACTORS = 75;
+    static final int DISTANCE_INDEXES = 5;
+    static final int VELOCITY_INDEXES = 5;
+    static final int WALL_INDEXES = 4;
+    static final int VCHANGE_TIME_INDEXES = 6;
+    static final int FACTORS = 31;
     static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
-    static final int DIM_GF = 0, DIM_DIST = 1, DIM_ACCEL = 2, DIM_VEL = 3,
-        DIM_WALL1 = 4, DIM_WALL2 = 5, DIM_TSVC = 6, NUM_DIMS = 7;
-    static final String GW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)18 + (char)16 + (char)20;
-    static final String SW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)18 + (char)16 + (char)1;
 
-    static ArrayList<double[]> gunObss = new ArrayList<double[]>();
-    static ArrayList<double[]> surfObss = new ArrayList<double[]>();
-    static double[] scores = new double[FACTORS];
-    static double dangerForward;
-    static double dangerReverse;
-    static W passingWave;
+    static double[][][][][][] factors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][FACTORS];
 
     double bulletVelocity;
     Point2D gunLocation;
     Point2D targetLocation;
     double startBearing;
     double bearingDirection;
+    double[] visits;
     double distanceFromGun;
-    boolean surfable;
-    double[] obs;
 
     public boolean test() {
         advance(1);
-        Pugilist r = Pugilist.robot;
-        if (surfable) {
-            if (passed(-20)) {
-                passingWave = this;
-            } else {
-                r.updateDirectionStats(this);
+        if (passed(-18)) {
+            if (Pugilist.robot.getOthers() > 0) {
+                registerVisits(visits, 1000);
             }
-            if (passed(25)) {
-                r.removeCustomEvent(this);
-            }
-        } else if (passed(-18)) {
-            if (r.getOthers() > 0) {
-                record(gunObss);
-            }
-            r.removeCustomEvent(this);
+            Pugilist.robot.removeCustomEvent(this);
         }
         return false;
-    }
-
-    void record(ArrayList<double[]> obss) {
-        obs[DIM_GF] = visitingIndex(targetLocation);
-        obss.add(obs);
-    }
-
-    void query(ArrayList<double[]> obss) {
-        dcFill(obss, obs, surfable ? SW : GW);
-    }
-
-    static void dcFill(ArrayList<double[]> obss, double[] q, String w) {
-        scores = new double[FACTORS];
-        try { for (int i = 0; ; i++) {
-            double[] o = obss.get(i);
-            double d = 0.01;
-            for (int j = DIM_DIST; j < NUM_DIMS; j++)
-                d += Math.abs(o[j] - q[j]) * w.charAt(j - 1);
-            int gf = (int) o[DIM_GF];
-            double score = (w.charAt(NUM_DIMS - 1) + i) / (d * d);
-            for (int b = 0; b < FACTORS; b++)
-                scores[b] += score / (Math.abs(gf - b) + 1);
-        } } catch (Exception e) {}
-    }
-
-    static int bestGF() {
-        int best = MIDDLE_FACTOR;
-        try { for (int i = 0; ; i++) {
-            if (scores[i] > scores[best])
-                best = i;
-        } } catch (Exception e) {}
-        return best;
     }
 
     public boolean passed(double distanceOffset) {
@@ -266,19 +229,19 @@ class W extends Condition {
         distanceFromGun += ticks * bulletVelocity;
     }
 
-    void initObs(double power, double vel, double prevVel, Point2D loc, double direction, Point2D orbitCenter, int tSVC) {
-        bulletVelocity = 20 - 3 * power;
+    void calcBearingDirection(double direction) {
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
-        obs = new double[] { 0, Pugilist.enemyDistance, prevVel - vel,
-            vel, Pugilist.wallSmooth(loc, orbitCenter, direction),
-            Pugilist.wallSmooth(orbitCenter, loc, direction), tSVC };
-        // indices: DIM_GF, DIM_DIST, DIM_ACCEL, DIM_VEL, DIM_WALL1, DIM_WALL2, DIM_TSVC
     }
 
     int visitingIndex(Point2D target) {
-        return (int) Math.clamp((long)
-                        (((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection)
-                                + (FACTORS - 1) / 2 + 0.5), 0, FACTORS - 1);
+        return (int)Math.clamp(Math.round(((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) /
+                    bearingDirection) + (FACTORS - 1) / 2), 0, FACTORS - 1);
+    }
+
+    void registerVisits(double[] buffer, double depth) {
+        for (int i = 1; i < FACTORS; i++) {
+            buffer[i] = rollingAvg(buffer[i], i == visitingIndex(targetLocation) ? 100 : 0, depth);
+        }
     }
 
     double gunBearing(Point2D target) {
@@ -287,5 +250,59 @@ class W extends Condition {
 
     double distanceFromTarget(Point2D location, int timeOffset) {
         return gunLocation.distance(location) - distanceFromGun - timeOffset * bulletVelocity;
+    }
+
+    int mostVisited() {
+        int mostVisited = MIDDLE_FACTOR, i = FACTORS - 1;
+        do  {
+            if (visits[--i] > visits[mostVisited]) {
+                mostVisited = i;
+            }
+        } while (i > 0);
+        return mostVisited;
+    }
+
+    static double rollingAvg(double value, double newEntry, double depth) {
+        return (value * depth + newEntry) / (depth + 1.0);
+    }
+}
+
+class EW extends W {
+    static final int ACCEL_INDEXES = 3;
+    static double[][][][] factors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][ACCEL_INDEXES][FACTORS];
+    static double[] fastFactors = new double[FACTORS];
+    static double dangerForward;
+    static double dangerReverse;
+    static EW passingWave;
+    boolean surfable;
+
+    void registerVisits() {
+        registerVisits(visits, 1);
+        registerVisits(fastFactors, 1);
+    }
+
+    public boolean test() {
+        advance(1);
+        if (passed(-20)) {
+            surfable = false;
+            passingWave = this;
+        }
+        if (passed(25)) {
+            Pugilist.robot.removeCustomEvent(this);
+        }
+        if (surfable) {
+            Pugilist.robot.updateDirectionStats(this);
+        }
+        return false;
+    }
+
+    double danger(Point2D destination) {
+        double smoothed = 0;
+        int i = 0;
+        do {
+            smoothed += (fastFactors[i] + visits[i] * 2) / Math.sqrt(Math.abs(visitingIndex(destination) - i) + 1.0);
+            i++;
+        } while (i < FACTORS);
+        return smoothed / Math.abs(distanceFromTarget(targetLocation, 0)) / bulletVelocity;
     }
 }
