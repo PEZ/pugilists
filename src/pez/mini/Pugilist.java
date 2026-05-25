@@ -213,7 +213,7 @@ class W extends Condition {
     static final int DIM_GF = 0, DIM_DIST = 1, DIM_2 = 2, DIM_3 = 3,
         DIM_4 = 4, DIM_5 = 5, DIM_6 = 6, NUM_DIMS = 7;
     static final String GW = "" + (char)100 + (char)100 + (char)100 + (char)100 + (char)100 + (char)0 + (char)20;
-    static final String SW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)18 + (char)16 + (char)1;
+    static final String SW = "" + (char)100 + (char)100 + (char)100 + (char)0 + (char)0 + (char)0 + (char)1;
 
     static ArrayList<double[]> gunObss = new ArrayList<double[]>();
     static ArrayList<double[]> surfObss = new ArrayList<double[]>();
