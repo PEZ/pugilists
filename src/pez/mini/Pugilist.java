@@ -32,11 +32,11 @@ public class Pugilist extends AdvancedRobot {
     static Point2D enemyLocation = new Point2D.Double();
     static double enemyDistance;
     static int distanceIndex;
-    static int velocityIndex;
-    static double enemyVelocity;
     static double enemyEnergy;
-    static int enemyTimeSinceVChange;
     static double enemyBearingDirection;
+    static double prevEnemyVelocity;
+    static double prevRobotVelocity;
+    static int enemyTSVC, robotTSVC;
 
     static double enemyFirePower = MAX_BULLET_POWER;
     static double robotVelocity;
@@ -63,14 +63,10 @@ public class Pugilist extends AdvancedRobot {
         }
 
         double direction = robotBearingDirection(ew.startBearing);
-        ew.initObs(enemyFirePower, direction);
-        int accelIndex = 1;
-        if (robotVelocity != getVelocity()) {
-            accelIndex = sign(robotVelocity - getVelocity()) + 1;
-        }
-        ew.obs = new double[] { 0,
-            distanceIndex = (int)Math.min(W.DISTANCE_INDEXES - 1, enemyDistance / 180),
-            (int)Math.abs(robotVelocity / 2), accelIndex, 0, 0, 0 };
+        distanceIndex = (int)Math.min(W.DISTANCE_INDEXES - 1, enemyDistance / 180);
+        if (prevRobotVelocity != robotVelocity) robotTSVC = 0; else robotTSVC++;
+        ew.initObs(enemyFirePower, robotVelocity, prevRobotVelocity, robotLocation, direction, enemyLocation, robotTSVC);
+        prevRobotVelocity = robotVelocity;
         robotVelocity = getVelocity();
         ew.targetLocation = robotLocation;
 
@@ -87,9 +83,7 @@ public class Pugilist extends AdvancedRobot {
         addCustomEvent(ew);
 
         // <gun>
-        if (enemyVelocity != (enemyVelocity = e.getVelocity())) {
-            enemyTimeSinceVChange = 0;
-        }
+        double enemyVelocity = e.getVelocity();
 
         double bulletPower = Math.min(enemyEnergy / 4,
             distanceIndex > 0 ? BULLET_POWER : MAX_BULLET_POWER);
@@ -97,12 +91,10 @@ public class Pugilist extends AdvancedRobot {
         if (enemyVelocity != 0) {
             enemyBearingDirection = sign(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
         }
-        wave.initObs(bulletPower, enemyBearingDirection);
-        int currentVelocityIndex = (int)Math.abs(enemyVelocity / 2);
-        wave.obs = new double[] { 0, distanceIndex, velocityIndex, currentVelocityIndex,
-            (int)Math.clamp((long)(Math.pow(enemyTimeSinceVChange++, 0.45) - 1),
-                0, W.VCHANGE_TIME_INDEXES - 1), wallIndex(wave), 0 };
-        velocityIndex = currentVelocityIndex;
+        if (prevEnemyVelocity != enemyVelocity) enemyTSVC = 0; else enemyTSVC++;
+        wave.initObs(bulletPower, enemyVelocity, prevEnemyVelocity, enemyLocation, enemyBearingDirection,
+                robotLocation, enemyTSVC);
+        prevEnemyVelocity = enemyVelocity;
 
         wave.query(W.gunObss);
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
@@ -212,8 +204,8 @@ class W extends Condition {
     static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
     static final int DIM_GF = 0, DIM_DIST = 1, DIM_2 = 2, DIM_3 = 3,
         DIM_4 = 4, DIM_5 = 5, DIM_6 = 6, NUM_DIMS = 7;
-    static final String GW = "" + (char)100 + (char)100 + (char)100 + (char)100 + (char)100 + (char)0 + (char)20;
-    static final String SW = "" + (char)100 + (char)100 + (char)100 + (char)0 + (char)0 + (char)0 + (char)1;
+    static final String GW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)18 + (char)16 + (char)20;
+    static final String SW = "" + (char)1 + (char)200 + (char)50 + (char)18 + (char)18 + (char)16 + (char)1;
 
     static ArrayList<double[]> gunObss = new ArrayList<double[]>();
     static ArrayList<double[]> surfObss = new ArrayList<double[]>();
@@ -292,9 +284,12 @@ class W extends Condition {
         distanceFromGun += ticks * bulletVelocity;
     }
 
-    void initObs(double power, double direction) {
+    void initObs(double power, double vel, double prevVel, Point2D loc, double direction, Point2D orbitCenter, int tSVC) {
         bulletVelocity = 20 - 3 * power;
         bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
+        obs = new double[] { 0, Pugilist.enemyDistance, prevVel - vel,
+            vel, Pugilist.wallSmooth(loc, orbitCenter, direction),
+            Pugilist.wallSmooth(orbitCenter, loc, direction), tSVC };
     }
 
     int visitingIndex(Point2D target) {
