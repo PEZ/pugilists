@@ -158,6 +158,14 @@ public class Pugilist extends AdvancedRobot {
         return destination;
     }
 
+    static double wallSmooth(Point2D from, Point2D toward, double direction) {
+        double w = 0;
+        while (w < 100 && !fieldRectangle.contains(project(from, absoluteBearing(from, toward)
+                - direction * (Math.PI / 2 + 0.25 - (w++ / 100.0)), Math.clamp(enemyDistance / 1.7, 40.0, 150.0))))
+            ;
+        return w;
+    }
+
     void updateDirectionStats(Condition condition) {
         EW wave = (EW) condition;
         EW.dangerForward += wave.danger(waveImpactLocation(wave, 1.0, 0));
