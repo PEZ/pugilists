@@ -208,7 +208,7 @@ class W extends Condition {
     static final int DISTANCE_INDEXES = 5;
     static final int WALL_INDEXES = 4;
     static final int VCHANGE_TIME_INDEXES = 6;
-    static final int FACTORS = 29;
+    static final int FACTORS = 31;
     static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
     static final int DIM_GF = 0, DIM_DIST = 1, DIM_2 = 2, DIM_3 = 3,
         DIM_4 = 4, DIM_5 = 5, DIM_6 = 6, NUM_DIMS = 7;
@@ -298,8 +298,8 @@ class W extends Condition {
     }
 
     int visitingIndex(Point2D target) {
-        return (int)Math.clamp(((Utils.normalRelativeAngle(gunBearing(target) - startBearing))
-                / bearingDirection) + (FACTORS - 1) / 2 + 0.5, 0, FACTORS - 1);
+        return (int)Math.clamp(Math.round(((Utils.normalRelativeAngle(gunBearing(target) - startBearing))
+                        / bearingDirection) + (FACTORS - 1) / 2), 0, FACTORS - 1);
     }
 
     double gunBearing(Point2D target) {
