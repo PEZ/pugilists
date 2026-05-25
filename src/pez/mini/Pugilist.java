@@ -123,8 +123,8 @@ public class Pugilist extends AdvancedRobot {
     void updateDirectionStats(Wave wave) {
         wave.query(Wave.surfObss);
         double d = Math.abs(wave.distanceFromTarget(wave.targetLocation, 0)) * wave.bulletVelocity;
-        Wave.dangerForward += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, 1.0, 0))] / d;
-        Wave.dangerReverse += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, -1.0, 5))] / d;
+        Wave.dangerForward += Wave.smoothedDanger(wave.visitingIndex(waveImpactLocation(wave, 1.0, 0)), d);
+        Wave.dangerReverse += Wave.smoothedDanger(wave.visitingIndex(waveImpactLocation(wave, -1.0, 5)), d);
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
@@ -241,10 +241,7 @@ class Wave extends Condition {
             double d = 0.01;
             for (int j = DIM_DIST; j < NUM_DIMS; j++)
                 d += Math.abs(o[j] - q[j]) * w.charAt(j - 1);
-            double score = (w.charAt(NUM_DIMS - 1) + i) / (d * d);
-            int gf = (int) o[DIM_GF];
-            for (int b = 0; b < FACTORS; b++)
-                scores[b] += score / (Math.abs(gf - b) + 1);
+            scores[(int) o[DIM_GF]] += (w.charAt(NUM_DIMS - 1) + i) / (d * d);
         } } catch (Exception e) {}
     }
 
@@ -255,6 +252,14 @@ class Wave extends Condition {
                 best = i;
         } } catch (Exception e) {}
         return best;
+    }
+
+    static double smoothedDanger(int idx, double d) {
+        double danger = 0;
+        try { for (int b = 0; ; b++) {
+            danger += scores[b] / ((Math.abs(idx - b) + 1) * d);
+        } } catch (Exception e) {}
+        return danger;
     }
 
     public boolean passed(double distanceOffset) {
