@@ -151,25 +151,24 @@ public class Pugilist extends AdvancedRobot {
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
-        Point2D destination = new Point2D.Double();
+        double s;
         for (;;) {
-            double currentSmoothing = 0;
-            while (currentSmoothing < 100 && !fieldRectangle.contains(destination = project(location,
-                            absoluteBearing(location, enemyLocation) - direction *
-                            (Math.PI / 2 + 0.2 - (currentSmoothing++ / 100.0)),
-                            enemyDistance / 5.0)))
-                ;
-            if (currentSmoothing < 45 || direction == 0)
+            s = wallSmooth(location, enemyLocation, direction);
+            if (s < 45 || direction == 0)
                 break;
             direction = 0;
         }
-        return destination;
+        return orbitProject(location, enemyLocation, direction, s - 1);
+    }
+
+    static Point2D orbitProject(Point2D from, Point2D toward, double direction, double w) {
+        return project(from, absoluteBearing(from, toward)
+                - direction * (Math.PI / 2 + 0.25 - (w / 100.0)), Math.clamp(enemyDistance / 1.7, 40.0, 150.0));
     }
 
     static double wallSmooth(Point2D from, Point2D toward, double direction) {
         double w = 0;
-        while (w < 100 && !fieldRectangle.contains(project(from, absoluteBearing(from, toward)
-                - direction * (Math.PI / 2 + 0.25 - (w++ / 100.0)), Math.clamp(enemyDistance / 1.7, 40.0, 150.0))))
+        while (w < 100 && !fieldRectangle.contains(orbitProject(from, toward, direction, w++)))
             ;
         return w;
     }
