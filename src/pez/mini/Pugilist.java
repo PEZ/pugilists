@@ -157,7 +157,7 @@ public class Pugilist extends AdvancedRobot {
             while (currentSmoothing < 100 && !fieldRectangle.contains(destination = project(location,
                             absoluteBearing(location, enemyLocation) - direction *
                             (Math.PI / 2 + 0.2 - (currentSmoothing++ / 100.0)),
-                            Math.clamp(enemyDistance / 1.7, 40.0, 150.0))))
+                            enemyDistance / 5.0)))
                 ;
             if (currentSmoothing < 45 || direction == 0)
                 break;
