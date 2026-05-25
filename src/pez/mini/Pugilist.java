@@ -119,7 +119,8 @@ public class Pugilist extends AdvancedRobot {
     }
 
     // Surf: compute danger for forward/reverse using pre-smoothed scores
-    void updateDirectionStats(W wave) {
+    void updateDirectionStats(Condition condition) {
+        W wave = (W) condition;
         wave.query();
         double d = Math.abs(wave.distanceFromTarget(wave.targetLocation, 0)) * wave.bulletVelocity;
         W.dangerForward += W.scores[wave.visitingIndex(waveImpactLocation(wave, 1.0, 0))] / d;
