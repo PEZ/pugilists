@@ -55,4 +55,7 @@
                :task (extract-bot/extract! {:bot (first *command-line-args*)})}
 
   rumble-roster {:doc "Generate benchmark roster from LiteRumble: bb rumble-roster [--bot 'Bot 1.0'] [--column APS] [--game minirumble] [--output file.edn]"
-                 :task (rumble-roster/generate! *command-line-args*)}}}
+                 :task (rumble-roster/generate! *command-line-args*)}
+
+  full-roster {:doc "Generate full benchmark roster from LiteRumble, excluding own bot: bb full-roster mini pez.mini.Pugilist"
+               :task (rumble-roster/generate-full! *command-line-args*)}}}

@@ -119,3 +119,27 @@
                      {:keys [bot aps]} bots]
               (println (format "  %-12s %-40s APS %7.2f" (clojure.core/name cat) bot aps))))
         (print edn)))))
+
+(defn generate-full!
+  "Generate a full benchmark roster from LiteRumble, excluding a specific bot.
+   Usage: bb full-roster <weightclass> <bot>
+   Example: bb full-roster mini pez.mini.Pugilist"
+  [[weightclass bot-name]]
+  (let [game        (str weightclass "rumble")
+        short-name  (last (str/split bot-name #"\."))
+        output      (format "config/benchmark-roster-%s-full.edn" weightclass)
+        _           (println (format "Fetching all %s rankings..." game))
+        data        (fetch-rankings game "-APS")
+        _           (println (format "Fetched %d bots" (count data)))
+        bots        (->> data
+                         (remove #(str/starts-with? (:name %) (str bot-name " ")))
+                         (remove #(= (:name %) bot-name))
+                         (sort-by :APS >)
+                         (mapv #(hash-map :bot (:name %) :aps (:APS %))))
+        n           (count bots)
+        header      (str (format ";; Full %s roster (excluding %s) — %d bots\n" game short-name n)
+                         (format ";; Generated %s from LiteRumble Rankings API\n"
+                                 (str (java.time.LocalDateTime/now))))
+        edn         (str header (with-out-str (pp/pprint {:all bots})))]
+    (spit output edn)
+    (println (format "Wrote %d-bot roster to %s" n output))))
