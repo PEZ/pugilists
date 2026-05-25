@@ -181,7 +181,7 @@ public class Pugilist extends AdvancedRobot {
 }
 
 class Wave extends Condition {
-    static final int FACTORS = 101;
+    static final int FACTORS = 75;
     static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
     static final int DIM_GF = 0, DIM_DIST = 1, DIM_ACCEL = 2, DIM_VEL = 3,
         DIM_WALL1 = 4, DIM_WALL2 = 5, DIM_TSVC = 6, NUM_DIMS = 7;
