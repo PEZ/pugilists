@@ -119,12 +119,12 @@ public class Pugilist extends AdvancedRobot {
         Wave.passingWave.record(Wave.surfObss);
     }
 
-    // Surf: compute danger for forward/reverse using shared kernel
+    // Surf: compute danger for forward/reverse using pre-smoothed scores
     void updateDirectionStats(Wave wave) {
         wave.query(Wave.surfObss);
         double d = Math.abs(wave.distanceFromTarget(wave.targetLocation, 0)) * wave.bulletVelocity;
-        Wave.dangerForward += Wave.smoothedDanger(wave.visitingIndex(waveImpactLocation(wave, 1.0, 0)), d);
-        Wave.dangerReverse += Wave.smoothedDanger(wave.visitingIndex(waveImpactLocation(wave, -1.0, 5)), d);
+        Wave.dangerForward += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, 1.0, 0))] / d;
+        Wave.dangerReverse += Wave.scores[wave.visitingIndex(waveImpactLocation(wave, -1.0, 5))] / d;
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
@@ -181,7 +181,7 @@ public class Pugilist extends AdvancedRobot {
 }
 
 class Wave extends Condition {
-    static final int FACTORS = 29;
+    static final int FACTORS = 101;
     static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
     static final int DIM_GF = 0, DIM_DIST = 1, DIM_ACCEL = 2, DIM_VEL = 3,
         DIM_WALL1 = 4, DIM_WALL2 = 5, DIM_TSVC = 6, NUM_DIMS = 7;
@@ -241,7 +241,10 @@ class Wave extends Condition {
             double d = 0.01;
             for (int j = DIM_DIST; j < NUM_DIMS; j++)
                 d += Math.abs(o[j] - q[j]) * w.charAt(j - 1);
-            scores[(int) o[DIM_GF]] += (w.charAt(NUM_DIMS - 1) + i) / (d * d);
+            int gf = (int) o[DIM_GF];
+            double score = (w.charAt(NUM_DIMS - 1) + i) / (d * d);
+            for (int b = 0; b < FACTORS; b++)
+                scores[b] += score / (Math.abs(gf - b) + 1);
         } } catch (Exception e) {}
     }
 
@@ -252,14 +255,6 @@ class Wave extends Condition {
                 best = i;
         } } catch (Exception e) {}
         return best;
-    }
-
-    static double smoothedDanger(int idx, double d) {
-        double danger = 0;
-        try { for (int b = 0; ; b++) {
-            danger += scores[b] / ((Math.abs(idx - b) + 1) * d);
-        } } catch (Exception e) {}
-        return danger;
     }
 
     public boolean passed(double distanceOffset) {
