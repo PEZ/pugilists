@@ -1,4 +1,4 @@
-package pez.mini;
+package pez.pending;
 import robocode.*;
 import robocode.util.Utils;
 import java.awt.geom.*;
