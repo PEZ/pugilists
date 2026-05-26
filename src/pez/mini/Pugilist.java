@@ -178,7 +178,7 @@ public class Pugilist extends AdvancedRobot {
         static ArrayList<double[]> gunObss = new ArrayList<double[]>();
         static ArrayList<double[]> surfObss = new ArrayList<double[]>();
         static double[] scores = new double[FACTORS];
-        static { scores[DIM_GF] = MIDDLE_FACTOR; surfObss.add(scores); }
+        // static { scores[DIM_GF] = MIDDLE_FACTOR; surfObss.add(scores); } // Costs 18 bytes, buys zero APS
         static double dangerForward;
         static double dangerReverse;
         static Wave passingWave;
