@@ -266,9 +266,9 @@ public class Pugilist extends AdvancedRobot {
                 int tSVC) {
             bulletVelocity = 20 - 3 * power;
             bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
-            obs = new double[] { 0, Pugilist.enemyDistance, vel,
-                    prevVel, Pugilist.wallSmooth(loc, orbitCenter, direction),
-                    Pugilist.wallSmooth(orbitCenter, loc, direction), tSVC };
+            obs = new double[] { 0, enemyDistance, vel,
+                    prevVel, wallSmooth(loc, orbitCenter, direction),
+                    wallSmooth(orbitCenter, loc, direction), tSVC };
             // indices: DIM_GF, DIM_DIST, DIM_VEL, DIM_PREV_VEL, DIM_WALL1, DIM_WALL2,
             // DIM_TSVC
         }
@@ -280,7 +280,7 @@ public class Pugilist extends AdvancedRobot {
         }
 
         double gunBearing(Point2D target) {
-            return Pugilist.absoluteBearing(gunLocation, target);
+            return absoluteBearing(gunLocation, target);
         }
 
         double distanceFromTarget(Point2D location, int timeOffset) {
@@ -292,7 +292,7 @@ public class Pugilist extends AdvancedRobot {
             do {
                 impactLocation = project(impactLocation, absoluteBearing(impactLocation,
                         wallSmoothedDestination(impactLocation,
-                                direction * Pugilist.robot.robotBearingDirection(gunBearing(robotLocation)))),
+                                direction * robot.robotBearingDirection(gunBearing(robotLocation)))),
                         MAX_VELOCITY);
                 timeOffset++;
             } while (distanceFromTarget(impactLocation, timeOffset) > -10);
