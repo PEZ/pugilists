@@ -200,7 +200,7 @@ public class Pugilist extends AdvancedRobot {
                     passingWave = this;
                 } else {
                     query(Wave.surfObss);
-                    double d = Math.abs(distanceFromTarget(targetLocation, 0));
+                    double d = distanceFromTarget(targetLocation, 0);
                     Wave.dangerForward += Wave.scores[visitingIndex(waveImpactLocation(1.0, 0))] / d;
                     Wave.dangerReverse += Wave.scores[visitingIndex(waveImpactLocation(-1.0, 5))] / d;
                 }
