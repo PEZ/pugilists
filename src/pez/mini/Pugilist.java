@@ -129,18 +129,14 @@ public class Pugilist extends AdvancedRobot {
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
-        Point2D destination = new Point2D.Double();
+        double s;
         for (;;) {
-            double s = 0;
-            while (s < 100 && !fieldRectangle.contains(destination = project(location,
-                    absoluteBearing(location, enemyLocation) - direction * (Math.PI / 2 + 0.2 - (s++ / 100.0)),
-                    enemyDistance / 5.0)))
-                ;
+            s = wallSmooth(location, enemyLocation, direction);
             if (s < 45 || direction == 0)
                 break;
             direction = 0;
         }
-        return destination;
+        return orbitProject(location, enemyLocation, direction, s - 1);
     }
 
     static Point2D orbitProject(Point2D from, Point2D toward, double direction, double w) {
@@ -293,11 +289,35 @@ public class Pugilist extends AdvancedRobot {
             return gunLocation.distance(location) - distanceFromGun - timeOffset * bulletVelocity;
         }
 
+        Point2D waveOrbitProject(Point2D from, double direction, double w) {
+            return project(from, absoluteBearing(from, gunLocation)
+                    - direction * (Math.PI / 2 + 0.25 - (w / 100.0)),
+                    Math.clamp(gunLocation.distance(from) / 1.7, 40.0, 150.0));
+        }
+
+        double waveWallSmooth(Point2D from, double direction) {
+            double w = 0;
+            while (w < 100 && !fieldRectangle.contains(waveOrbitProject(from, direction, w++)))
+                ;
+            return w;
+        }
+
+        Point2D waveSmoothedDestination(Point2D location, double direction) {
+            double s;
+            for (;;) {
+                s = waveWallSmooth(location, direction);
+                if (s < 45 || direction == 0)
+                    break;
+                direction = 0;
+            }
+            return waveOrbitProject(location, direction, s - 1);
+        }
+
         Point2D waveImpactLocation(double direction, int timeOffset) {
             Point2D impactLocation = project(robotLocation, 0, 0);
             do {
                 impactLocation = project(impactLocation, absoluteBearing(impactLocation,
-                        wallSmoothedDestination(impactLocation,
+                        waveSmoothedDestination(impactLocation,
                                 direction * robot.robotBearingDirection(gunBearing(robotLocation)))),
                         MAX_VELOCITY);
                 timeOffset++;
