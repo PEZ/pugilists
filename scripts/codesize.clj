@@ -4,7 +4,10 @@
             [clojure.string :as str]))
 
 (def build-dir "build/classes/java/main")
+
 (def codesize-jar "CodeSizeUtility/CodeSizeUtility.jar")
+
+(def java-home "/Users/pez/.sdkman/candidates/java/21.0.11-amzn")
 
 (defn- namespace->path
   "Converts a namespace like pez.mini.Pugilist to pez/mini/Pugilist"
@@ -86,3 +89,40 @@
         size (get-size jar-path)]
     (when size (println (str "Codesize: " size)))
     (fs/delete jar-path)))
+
+(defn- extract-class-name [code]
+  (second (re-find #"public class (\w+)" code)))
+
+(defn check-code! [{:keys [code]}]
+  (when (str/blank? code)
+    (println "No code provided. Pipe Java source via stdin: cat Bot.java | bb codesize --code")
+    (System/exit 1))
+  (let [class-name (extract-class-name code)]
+    (when-not class-name
+      (println "Could not find 'public class Foo' in provided code.")
+      (System/exit 1))
+    (let [tmp-dir (str (fs/create-temp-dir))
+          classes-dir (str (fs/create-dirs (str tmp-dir "/classes")))
+          src-file (str tmp-dir "/" class-name ".java")
+          jar-path (str tmp-dir "/bot.jar")
+          javac (str java-home "/bin/javac")
+          robocode-jar (str (fs/home) "/robocode/libs/robocode.jar")]
+      (try
+        (spit src-file code)
+        (let [result (p/shell {:continue true :out :string :err :string}
+                              javac "-cp" robocode-jar "-d" classes-dir src-file)]
+          (when (not= 0 (:exit result))
+            (println "Compilation failed:")
+            (println (:err result))
+            (System/exit 1)))
+        (let [class-files (->> (fs/glob classes-dir "**.class") (mapv str))]
+          (when (empty? class-files)
+            (println "No class files produced.")
+            (System/exit 1))
+          (apply p/shell {:dir classes-dir}
+                 "jar" "cf" jar-path
+                 (mapv #(str (fs/relativize classes-dir %)) class-files)))
+        (let [size (get-size jar-path)]
+          (when size (println (str "Codesize: " size))))
+        (finally
+          (fs/delete-tree tmp-dir))))))

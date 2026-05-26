@@ -11,8 +11,10 @@
                 {:extra-env {"JAVA_HOME" "/Users/pez/.sdkman/candidates/java/21.0.11-amzn"}}
                 "./gradlew" "build")}
 
-  codesize {:doc "Check codesize of a bot: bb codesize pez.mini.Pugilist"
-            :task (codesize/check! {:bot (first *command-line-args*)})}
+  codesize {:doc "Check codesize: bb codesize pez.mini.Pugilist OR cat Bot.java | bb codesize --code"
+            :task (if (= "--code" (first *command-line-args*))
+                    (codesize/check-code! {:code (slurp *in*)})
+                    (codesize/check! {:bot (first *command-line-args*)}))}
 
   battle {:doc "Run headless battles: bb battle pez.mini.Pugilist [rounds] [opponent1 opponent2 ...]"
           :task (let [[bot rounds & opponents] *command-line-args*]
