@@ -202,7 +202,7 @@ public class Pugilist extends AdvancedRobot {
                     query(Wave.surfObss);
                     double d = distanceFromTarget(targetLocation, 0);
                     Wave.dangerForward += Wave.scores[visitingIndex(waveImpactLocation(1.0, 0))] / d;
-                    Wave.dangerReverse += Wave.scores[visitingIndex(waveImpactLocation(-1.0, 5))] / d;
+                    Wave.dangerReverse += Wave.scores[visitingIndex(waveImpactLocation(-1.0, 6))] / d;
                 }
                 if (passed(25)) {
                     r.removeCustomEvent(this);
@@ -295,7 +295,7 @@ public class Pugilist extends AdvancedRobot {
                                 direction * robot.robotBearingDirection(gunBearing(robotLocation)))),
                         MAX_VELOCITY);
                 timeOffset++;
-            } while (distanceFromTarget(impactLocation, timeOffset) > -10);
+            } while (distanceFromTarget(impactLocation, timeOffset) > -2);
             return impactLocation;
         }
     }
