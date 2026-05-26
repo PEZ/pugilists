@@ -87,7 +87,8 @@ public class Pugilist extends AdvancedRobot {
         // <gun>
         double enemyVelocity = e.getVelocity();
 
-        double bulletPower = enemyDistance < 175 ? MAX_BULLET_POWER : Math.clamp(enemyFirePower - 0.175, 0.1, BULLET_POWER);
+        double bulletPower = enemyDistance < 175 ? MAX_BULLET_POWER
+                : Math.clamp(enemyFirePower - 0.175, 0.1, BULLET_POWER);
 
         if (enemyVelocity != 0) {
             enemyBearingDirection = sign(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
@@ -128,14 +129,18 @@ public class Pugilist extends AdvancedRobot {
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
-        double s;
+        Point2D destination = new Point2D.Double();
         for (;;) {
-            s = wallSmooth(location, enemyLocation, direction);
+            double s = 0;
+            while (s < 100 && !fieldRectangle.contains(destination = project(location,
+                    absoluteBearing(location, enemyLocation) - direction * (Math.PI / 2 + 0.2 - (s++ / 100.0)),
+                    enemyDistance / 5.0)))
+                ;
             if (s < 45 || direction == 0)
                 break;
             direction = 0;
         }
-        return orbitProject(location, enemyLocation, direction, s - 1);
+        return destination;
     }
 
     static Point2D orbitProject(Point2D from, Point2D toward, double direction, double w) {
@@ -178,7 +183,8 @@ public class Pugilist extends AdvancedRobot {
         static ArrayList<double[]> gunObss = new ArrayList<double[]>();
         static ArrayList<double[]> surfObss = new ArrayList<double[]>();
         static double[] scores = new double[FACTORS];
-        // static { scores[DIM_GF] = MIDDLE_FACTOR; surfObss.add(scores); } // Costs 18 bytes, buys zero APS
+        // static { scores[DIM_GF] = MIDDLE_FACTOR; surfObss.add(scores); } // Costs 18
+        // bytes, buys zero APS
         static double dangerForward;
         static double dangerReverse;
         static Wave passingWave;
