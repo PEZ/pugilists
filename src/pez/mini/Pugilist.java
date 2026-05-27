@@ -141,7 +141,7 @@ public class Pugilist extends AdvancedRobot {
 
     static Point2D orbitProject(Point2D from, Point2D toward, double direction, double w) {
         return project(from, absoluteBearing(from, toward)
-                - direction * (Math.PI / 2 + 0.25 - (w / 100.0)), Math.clamp(enemyDistance / 1.7, 40.0, 150.0));
+                - direction * (Math.PI / 2 + 0.2 - (w / 100.0)), enemyDistance / 5);
     }
 
     static double wallSmooth(Point2D from, Point2D toward, double direction) {
@@ -169,18 +169,16 @@ public class Pugilist extends AdvancedRobot {
     }
 
     static class Wave extends Condition {
-        static final int FACTORS = 29;
+        static final int FACTORS = 51;
         static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
         static final int DIM_GF = 0, DIM_DIST = 1, DIM_VEL = 2, DIM_PREV_VEL = 3,
                 DIM_WALL1 = 4, DIM_WALL2 = 5, DIM_TSVC = 6, NUM_DIMS = 7;
         static final String GW = "" + (char) 1 + (char) 50 + (char) 50 + (char) 18 + (char) 18 + (char) 16 + (char) 20;
-        static final String SW = "" + (char) 1 + (char) 50 + (char) 50 + (char) 18 + (char) 18 + (char) 16 + (char) 1;
+        static final String SW = "" + (char) 1 + (char) 50 + (char) 50 + (char) 0 + (char) 0 + (char) 0 + (char) 1;
 
         static ArrayList<double[]> gunObss = new ArrayList<double[]>();
         static ArrayList<double[]> surfObss = new ArrayList<double[]>();
         static double[] scores = new double[FACTORS];
-        // static { scores[DIM_GF] = MIDDLE_FACTOR; surfObss.add(scores); } // Costs 18
-        // bytes, buys zero APS
         static double dangerForward;
         static double dangerReverse;
         static Wave passingWave;
@@ -290,15 +288,15 @@ public class Pugilist extends AdvancedRobot {
         }
 
         Point2D impactLocation(double direction, int timeOffset) {
-            Point2D impactLocation = project(robotLocation, 0, 0);
+            Point2D location = project(robotLocation, 0, 0);
             do {
-                impactLocation = project(impactLocation, absoluteBearing(impactLocation,
-                        wallSmoothedDestination(impactLocation,
+                location = project(location, absoluteBearing(location,
+                        wallSmoothedDestination(location,
                                 direction * robot.robotBearingDirection(gunBearing(robotLocation)))),
                         MAX_VELOCITY);
                 timeOffset++;
-            } while (distanceFromTarget(impactLocation, timeOffset) > -2);
-            return impactLocation;
+            } while (distanceFromTarget(location, timeOffset) > -2);
+            return location;
         }
     }
 }
