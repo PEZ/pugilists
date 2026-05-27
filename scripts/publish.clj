@@ -112,7 +112,9 @@
   (sync-existing-jars!)
 
   (println "Creating per-bot JARs:")
-  (let [bots (find-bots)
+  (let [bots (remove (fn [{:keys [classname]}]
+                       (empty? (find-class-files classname)))
+                     (find-bots))
         jar-names (mapv create-bot-jar! bots)
         all-jars (into (load-index) jar-names)]
 
