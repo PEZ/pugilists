@@ -51,23 +51,6 @@
              "ignored-host")
     (reset! ssh-control-path nil)))
 
-(def ^:private shutdown-hook (atom nil))
-
-(defn- register-shutdown-hook!
-  "Register a JVM shutdown hook to clean up SSH ControlMaster on Ctrl-C."
-  []
-  (when-not @shutdown-hook
-    (let [hook (Thread. ^Runnable close-ssh-control!)]
-      (reset! shutdown-hook hook)
-      (.addShutdownHook (Runtime/getRuntime) hook))))
-
-(defn- unregister-shutdown-hook!
-  "Remove the shutdown hook after normal cleanup."
-  []
-  (when-let [hook @shutdown-hook]
-    (try (.removeShutdownHook (Runtime/getRuntime) hook) (catch Exception _))
-    (reset! shutdown-hook nil)))
-
 (defn- ssh!
   "Run a shell command on the remote host via SSH, returning stdout as a string.
    Uses ControlMaster socket if available."
@@ -99,6 +82,42 @@
       (when (not= 0 (:exit result))
         (throw (ex-info (str "Remote host unreachable or Java not found: " (:host ctx))
                         {:host (:host ctx) :exit (:exit result) :err (:err result)}))))))
+
+(def ^:private caffeinate-pid (atom nil))
+(def ^:private remote-ctx (atom nil))
+
+(defn- start-caffeinate!
+  "Start caffeinate on the remote host to prevent macOS CPU throttling."
+  [ctx]
+  (when (= :remote (:mode ctx))
+    (reset! remote-ctx ctx)
+    (let [pid (str/trim (ssh! ctx "caffeinate -disu -t 7200 </dev/null >/dev/null 2>&1 & echo $!"))]
+      (reset! caffeinate-pid pid))))
+
+(defn- stop-caffeinate!
+  "Stop the remote caffeinate process."
+  []
+  (when-let [pid @caffeinate-pid]
+    (when-let [ctx @remote-ctx]
+      (try (ssh! ctx (str "kill " pid)) (catch Exception _)))
+    (reset! caffeinate-pid nil)))
+
+(def ^:private shutdown-hook (atom nil))
+
+(defn- register-shutdown-hook!
+  "Register a JVM shutdown hook to clean up on Ctrl-C."
+  []
+  (when-not @shutdown-hook
+    (let [hook (Thread. ^Runnable (fn [] (stop-caffeinate!) (close-ssh-control!)))]
+      (reset! shutdown-hook hook)
+      (.addShutdownHook (Runtime/getRuntime) hook))))
+
+(defn- unregister-shutdown-hook!
+  "Remove the shutdown hook after normal cleanup."
+  []
+  (when-let [hook @shutdown-hook]
+    (try (.removeShutdownHook (Runtime/getRuntime) hook) (catch Exception _))
+    (reset! shutdown-hook nil)))
 
 ;; Backward-compat vars; replaced by ctx in Phase 4
 (def num-workers 5)
@@ -510,6 +529,7 @@
         commit-info (when commit (resolve-commit commit))
         num-matches (max 1 (quot rounds match-length))]
     (open-ssh-control! ctx)
+    (start-caffeinate! ctx)
     (register-shutdown-hook!)
     (try
       (check-remote! ctx)
@@ -590,6 +610,7 @@
               (fs/delete-if-exists (format ".tmp/benchmark-%d.battle" wid))
               (fs/delete-if-exists (format ".tmp/benchmark-results-%d.txt" wid))))))
       (finally
+        (stop-caffeinate!)
         (close-ssh-control!)
         (unregister-shutdown-hook!)))))
 
