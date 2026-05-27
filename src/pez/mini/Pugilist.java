@@ -169,16 +169,16 @@ public class Pugilist extends AdvancedRobot {
     }
 
     static class Wave extends Condition {
-        static final int FACTORS = 51;
+        static final int FACTORS = 37;
         static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
         static final int DIM_GF = 0, DIM_DIST = 1, DIM_VEL = 2, DIM_PREV_VEL = 3,
                 DIM_WALL1 = 4, DIM_WALL2 = 5, DIM_TSVC = 6, NUM_DIMS = 7;
         static final String GW = "" + (char) 1 + (char) 50 + (char) 50 + (char) 18 + (char) 18 + (char) 16 + (char) 20;
-        static final String SW = "" + (char) 1 + (char) 50 + (char) 50 + (char) 0 + (char) 0 + (char) 0 + (char) 1;
+        static final String SW = "" + (char) 1 + (char) 50 + (char) 50 + (char) 18 + (char) 18 + (char) 16 + (char) 1;
 
         static ArrayList<double[]> gunObss = new ArrayList<double[]>();
         static ArrayList<double[]> surfObss = new ArrayList<double[]>();
-        static double[] scores = new double[FACTORS];
+        static double[] scores;
         static double dangerForward;
         static double dangerReverse;
         static Wave passingWave;
@@ -202,7 +202,7 @@ public class Pugilist extends AdvancedRobot {
                     query(Wave.surfObss);
                     double d = distanceFromTarget(targetLocation, 0);
                     Wave.dangerForward += Wave.scores[visitingIndex(impactLocation(1.0, 0))] / d;
-                    Wave.dangerReverse += Wave.scores[visitingIndex(impactLocation(-1.0, 6))] / d;
+                    Wave.dangerReverse += Wave.scores[visitingIndex(impactLocation(-1.0, 5))] / d;
                 }
                 if (passed(25)) {
                     r.removeCustomEvent(this);
@@ -236,7 +236,7 @@ public class Pugilist extends AdvancedRobot {
                     double score = (w.charAt(NUM_DIMS - 1) + i) / (d * d);
                     int gf = (int) o[DIM_GF];
                     for (int b = 0; b < FACTORS; b++)
-                        scores[b] += score / (Math.abs(gf - b) + 1);
+                        scores[b] += score / Math.sqrt(Math.abs(gf - b) + 1);
                 }
             } catch (Exception e) {
             }
@@ -288,15 +288,15 @@ public class Pugilist extends AdvancedRobot {
         }
 
         Point2D impactLocation(double direction, int timeOffset) {
-            Point2D location = project(robotLocation, 0, 0);
+            Point2D loc = project(robotLocation, 0, 0);
             do {
-                location = project(location, absoluteBearing(location,
-                        wallSmoothedDestination(location,
+                loc = project(loc, absoluteBearing(loc,
+                        wallSmoothedDestination(loc,
                                 direction * robot.robotBearingDirection(gunBearing(robotLocation)))),
                         MAX_VELOCITY);
                 timeOffset++;
-            } while (distanceFromTarget(location, timeOffset) > -2);
-            return location;
+            } while (distanceFromTarget(loc, timeOffset) > -8);
+            return loc;
         }
     }
 }
