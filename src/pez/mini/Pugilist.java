@@ -39,6 +39,7 @@ public class Pugilist extends AdvancedRobot {
 
     static double enemyFirePower = MAX_BULLET_POWER;
     static double robotVelocity;
+    static int robotBD = 1;
     static Pugilist robot;
 
     public void run() {
@@ -46,7 +47,9 @@ public class Pugilist extends AdvancedRobot {
         setAdjustGunForRobotTurn(true);
         robot = this;
         Wave.passingWave = null;
-        turnRadarRightRadians(Double.POSITIVE_INFINITY);
+        while (true) {
+            turnRadarRightRadians(100);
+        }
     }
 
     public void onScannedRobot(ScannedRobotEvent e) {
@@ -129,12 +132,13 @@ public class Pugilist extends AdvancedRobot {
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
-        double s;
-        for (;;) {
-            s = wallSmooth(location, enemyLocation, direction);
-            if (s < 45 || direction == 0)
-                break;
-            direction = 0;
+        double s = wallSmooth(location, enemyLocation, direction);
+        if (s >= 45) {
+            double rs = wallSmooth(location, enemyLocation, -direction);
+            if (rs < s) {
+                direction = -direction;
+                s = rs;
+            }
         }
         return orbitProject(location, enemyLocation, direction, s - 1);
     }
@@ -152,7 +156,8 @@ public class Pugilist extends AdvancedRobot {
     }
 
     double robotBearingDirection(double enemyBearing) {
-        return sign(getVelocity() * Math.sin(getHeadingRadians() - enemyBearing));
+        double v = getVelocity() * Math.sin(getHeadingRadians() - enemyBearing);
+        return v != 0 ? (robotBD = sign(v)) : robotBD;
     }
 
     static Point2D project(Point2D sourceLocation, double angle, double length) {
