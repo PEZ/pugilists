@@ -102,13 +102,22 @@
       (try (ssh! ctx (str "kill " pid)) (catch Exception _)))
     (reset! caffeinate-pid nil)))
 
+(defn- kill-remote-battles!
+  "Kill any remote Java processes running benchmark battles."
+  []
+  (when-let [ctx @remote-ctx]
+    (try (ssh! ctx "pkill -f 'benchmark-[0-9]+\\.battle' 2>/dev/null; true") (catch Exception _))))
+
 (def ^:private shutdown-hook (atom nil))
 
 (defn- register-shutdown-hook!
   "Register a JVM shutdown hook to clean up on Ctrl-C."
   []
   (when-not @shutdown-hook
-    (let [hook (Thread. ^Runnable (fn [] (stop-caffeinate!) (close-ssh-control!)))]
+    (let [hook (Thread. ^Runnable (fn []
+                                   (kill-remote-battles!)
+                                   (stop-caffeinate!)
+                                   (close-ssh-control!)))]
       (reset! shutdown-hook hook)
       (.addShutdownHook (Runtime/getRuntime) hook))))
 
