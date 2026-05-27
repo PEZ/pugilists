@@ -644,7 +644,8 @@
     (println "Usage: bb benchmark-parallel <bot> <rounds> <ref1> [ref2] ... [current]")
     (println "Example: bb benchmark-parallel pez.mini.Pugilist 105 pez.mini.Pugilist_2.5.4 current")
     (System/exit 1))
-  (let [roster-data (load-roster default-roster)
+  (let [ctx (load-exec-ctx true)
+        roster-data (load-roster default-roster)
         n (count refs)
         num-matches (max 1 (quot rounds match-length))
         opponents (into [] (comp cat (map bot-name)) (vals roster-data))
@@ -658,11 +659,11 @@
           (mapv (fn [[i ref]]
                   (let [label (or ref "current")
                         _ (println (format "  [%d] Setting up robocode copy for %s..." i label))
-                        robo-home (ensure-robocode-copy! i)]
+                        robo-home (ensure-robocode-copy! ctx i)]
                     (println (format "  [%d] Building %s..." i label))
                     (binding [*robocode-home* robo-home
                               *worker-id* i]
-                      (build-and-deploy! bot ref))
+                      (build-and-deploy! ctx bot ref))
                     (println (format "  [%d] %s ready" i label))
                     robo-home))
                 (map-indexed vector refs))]
