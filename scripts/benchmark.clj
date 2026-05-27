@@ -7,8 +7,102 @@
 
 (def ^:dynamic *robocode-home* (str (fs/expand-home "~/robocode")))
 (def ^:dynamic *worker-id* 0)
+(defn- load-exec-ctx
+  "Load execution context from benchmark.edn. Returns a context map with
+   :mode (:remote or :local), :host, :robocode-home, :java-home, :num-workers."
+  [local?]
+  (let [config (edn/read-string (slurp "benchmark.edn"))
+        mode   (if local? :local :remote)
+        raw    (get config mode)]
+    (if local?
+      {:mode          :local
+       :robocode-home (str (fs/expand-home "~/robocode"))
+       :java-home     (str (fs/expand-home (get raw :java-home
+                                               "~/.sdkman/candidates/java/21.0.11-amzn")))
+       :num-workers   (get raw :num-workers 5)}
+      {:mode          :remote
+       :host          (:host raw)
+       :robocode-home (:robocode-home raw "~/robocode")
+       :java-home     (:java-home raw "~/.sdkman/candidates/java/21.0.11-amzn")
+       :num-workers   (get raw :num-workers 8)})))
+
+(def ssh-control-path (atom nil))
+
+(defn- open-ssh-control!
+  "Open an SSH ControlMaster socket for connection multiplexing.
+   Stores the socket path in ssh-control-path atom."
+  [ctx]
+  (when (= :remote (:mode ctx))
+    (let [socket (str "/tmp/ssh-bench-" (System/currentTimeMillis) ".sock")]
+      (p/shell {:out :string :err :string}
+               "ssh" "-MNf"
+               "-o" "ControlPersist=yes"
+               "-o" (str "ControlPath=" socket)
+               (:host ctx))
+      (reset! ssh-control-path socket))))
+
+(defn- close-ssh-control!
+  "Close the SSH ControlMaster socket."
+  []
+  (when-let [socket @ssh-control-path]
+    (p/shell {:out :string :err :string :continue true}
+             "ssh" "-O" "exit"
+             "-o" (str "ControlPath=" socket)
+             "ignored-host")
+    (reset! ssh-control-path nil)))
+
+(def ^:private shutdown-hook (atom nil))
+
+(defn- register-shutdown-hook!
+  "Register a JVM shutdown hook to clean up SSH ControlMaster on Ctrl-C."
+  []
+  (when-not @shutdown-hook
+    (let [hook (Thread. ^Runnable close-ssh-control!)]
+      (reset! shutdown-hook hook)
+      (.addShutdownHook (Runtime/getRuntime) hook))))
+
+(defn- unregister-shutdown-hook!
+  "Remove the shutdown hook after normal cleanup."
+  []
+  (when-let [hook @shutdown-hook]
+    (try (.removeShutdownHook (Runtime/getRuntime) hook) (catch Exception _))
+    (reset! shutdown-hook nil)))
+
+(defn- ssh!
+  "Run a shell command on the remote host via SSH, returning stdout as a string.
+   Uses ControlMaster socket if available."
+  [ctx cmd]
+  (let [args (cond-> ["ssh"]
+               @ssh-control-path (into ["-o" (str "ControlPath=" @ssh-control-path)])
+               true (into [(:host ctx) cmd]))
+        result (apply p/shell {:out :string :err :string} args)]
+    (:out result)))
+
+(defn- scp-to-remote!
+  "Copy a local file to remote host:path."
+  [ctx local-path remote-path]
+  (let [args (cond-> ["scp"]
+               @ssh-control-path (into ["-o" (str "ControlPath=" @ssh-control-path)])
+               true (into [local-path (str (:host ctx) ":" remote-path)]))]
+    (apply p/shell {:out :string :err :string} args)))
+
+(defn- check-remote!
+  "Fail fast if the remote host is unreachable or Java is missing."
+  [ctx]
+  (when (= :remote (:mode ctx))
+    (let [result (p/shell {:out :string :err :string :continue true}
+                          "ssh"
+                          "-o" (str "ControlPath=" (or @ssh-control-path "none"))
+                          "-o" "ConnectTimeout=5"
+                          (:host ctx)
+                          (str (:java-home ctx) "/bin/java -version"))]
+      (when (not= 0 (:exit result))
+        (throw (ex-info (str "Remote host unreachable or Java not found: " (:host ctx))
+                        {:host (:host ctx) :exit (:exit result) :err (:err result)}))))))
+
+;; Backward-compat vars; replaced by ctx in Phase 4
 (def num-workers 5)
-(def java-home "/Users/pez/.sdkman/candidates/java/21.0.11-amzn")
+(def java-home (str (fs/expand-home "~/.sdkman/candidates/java/21.0.11-amzn")))
 
 (defn- resolve-commit
   "Resolve a commit ref to its short hash and subject line."
@@ -27,8 +121,10 @@
       (second (re-find #"SourceFile:\s+\"(.+)\"" line)))))
 
 (defn- deploy-jar!
-  "Create bot jar from build output and deploy to Robocode."
-  [bot build-dir]
+  "Create bot jar from build output and deploy to Robocode.
+   Local mode: copies jar directly to ~/robocode/robots/.
+   Remote mode: builds jar to a temp path, scps to remote, deletes robot.database remotely."
+  [ctx bot build-dir]
   (let [ns-path (str/replace bot "." "/")
         class-dir (str build-dir "/classes/java/main/" (subs ns-path 0 (str/last-index-of ns-path "/")))
         source-file (str (subs ns-path (inc (str/last-index-of ns-path "/"))) ".java")
@@ -43,18 +139,25 @@
                                      (= (source-file-attr classes-root cn) source-file)))))
         props-file (str build-dir "/classes/java/main/" ns-path ".properties")
         jar-name (str bot "_benched.jar")
-        jar-path (str *robocode-home* "/robots/" jar-name)
         entries (cond-> (mapv #(subs (str (fs/absolutize %)) (inc (count abs-root))) class-files)
                   (fs/exists? props-file) (conj (subs (str (fs/absolutize props-file))
                                                       (inc (count abs-root)))))]
-    (apply p/shell {:dir classes-root} "jar" "cf" jar-path entries)
-    (fs/delete-if-exists (str *robocode-home* "/robots/robot.database"))))
+    (if (= :remote (:mode ctx))
+      (let [tmp-jar (str (fs/absolutize (str ".tmp/" jar-name)))
+            remote-robots (str (:robocode-home ctx) "/robots/")]
+        (fs/create-dirs ".tmp")
+        (apply p/shell {:dir classes-root} "jar" "cf" tmp-jar entries)
+        (scp-to-remote! ctx tmp-jar (str remote-robots jar-name))
+        (ssh! ctx (str "rm -f " remote-robots "robot.database")))
+      (let [jar-path (str *robocode-home* "/robots/" jar-name)]
+        (apply p/shell {:dir classes-root} "jar" "cf" jar-path entries)
+        (fs/delete-if-exists (str *robocode-home* "/robots/robot.database"))))))
 (defn- build-and-deploy!
   "Build the bot and deploy its jar to Robocode. If commit is provided,
    uses git worktree to build in an isolated directory."
-  [bot commit]
+  [ctx bot commit]
   (if commit
-      (let [worktree-dir (str (fs/absolutize (format ".tmp/benchmark-worktree-%d" *worker-id*)))]
+    (let [worktree-dir (str (fs/absolutize (format ".tmp/benchmark-worktree-%d" *worker-id*)))]
       (try
         (println (format "Creating worktree for %s..." commit))
         (fs/delete-tree worktree-dir)
@@ -66,7 +169,7 @@
                   :extra-env {"JAVA_HOME" java-home}}
                  "./gradlew" "clean" "build")
         (println "Deploying to Robocode...")
-        (deploy-jar! bot (str worktree-dir "/build"))
+        (deploy-jar! ctx bot (str worktree-dir "/build"))
         (println "Ready.\n")
         (finally
           (fs/delete-tree worktree-dir)
@@ -78,7 +181,7 @@
                 :extra-env {"JAVA_HOME" java-home}}
                "./gradlew" "clean" "build")
       (println "Deploying to Robocode...")
-      (deploy-jar! bot "build")
+      (deploy-jar! ctx bot "build")
       (println "Ready.\n"))))
 
 (def default-roster "config/benchmark-roster.edn")
@@ -144,6 +247,51 @@
     (when (fs/exists? results-path)
       (slurp results-path))))
 
+(defn- run-battle-on!
+  "Create battle file and run Robocode, returning results text.
+   Local mode: writes battle file to .tmp/, runs java locally.
+   Remote mode: pipes battle file content via stdin, then runs java in a
+   separate SSH call — both using the ControlMaster socket."
+  [ctx bot opponent rounds worker-id]
+  (if (= :local (:mode ctx))
+    (let [battle-file (create-battle-file! bot opponent rounds)]
+      (run-battle! battle-file))
+    (let [robo-home    *robocode-home*   ; worker-specific remote dir (dynamically bound)
+          java-cmd     (str (:java-home ctx) "/bin/java")
+          battle-path  (format "/tmp/benchmark-%d.battle" worker-id)
+          results-path (format "/tmp/benchmark-results-%d.txt" worker-id)
+          battle-content (str "#Battle Properties\n"
+                              "robocode.battleField.width=800\n"
+                              "robocode.battleField.height=600\n"
+                              "robocode.battle.numRounds=" rounds "\n"
+                              "robocode.battle.gunCoolingRate=0.1\n"
+                              "robocode.battle.rules.inactivityTime=450\n"
+                              "robocode.battle.hideEnemyNames=true\n"
+                              "robocode.battle.selectedRobots=" bot "," opponent "\n")
+          ssh-base      (cond-> ["ssh"]
+                          @ssh-control-path (into ["-o" (str "ControlPath=" @ssh-control-path)])
+                          true (conj (:host ctx)))]
+      ;; Write battle file via stdin — avoids all quoting/escaping issues with content
+      (apply p/shell {:in battle-content :out :string :err :string}
+             (conj (vec ssh-base) (str "cat > " battle-path)))
+      ;; Run Robocode, cat results, cleanup — all in one SSH call
+      ;; Redirect Robocode stdout/stderr to /dev/null so only cat output comes through
+      (ssh! ctx (str "cd " robo-home
+                     " && " java-cmd
+                     " -Djava.awt.headless=true"
+                     " -cp 'libs/*'"
+                     " -Xmx512M"
+                     " -XX:+IgnoreUnrecognizedVMOptions"
+                     " --add-opens=java.base/sun.net.www.protocol.jar=ALL-UNNAMED"
+                     " --add-opens=java.base/java.lang.reflect=ALL-UNNAMED"
+                     " robocode.Robocode"
+                     " -nodisplay -nosound"
+                     " -battle " battle-path
+                     " -results " results-path
+                     " > /dev/null 2>&1"
+                     " ; cat " results-path
+                     " ; rm -f " battle-path " " results-path)))))
+
 (defn- parse-results [results-text]
   (let [lines (str/split-lines (str/trim results-text))
         data-lines (drop 2 lines)]
@@ -162,10 +310,9 @@
     (Math/sqrt (/ (reduce + (map #(Math/pow (- % mean) 2) values))
                   (dec (count values))))))
 
-(defn- run-single-match! [bot opponent rounds]
-  (let [battle-file (create-battle-file! bot opponent rounds)
-        results-text (run-battle! battle-file)
-        results (parse-results results-text)]
+(defn- run-single-match! [ctx bot opponent rounds worker-id]
+  (let [results-text (run-battle-on! ctx bot opponent rounds worker-id)
+        results      (parse-results results-text)]
     (when results
       (let [bot-result (first (filter #(str/starts-with? (:name %) bot) results))
             opp-result (first (filter #(not (str/starts-with? (:name %) bot)) results))]
@@ -175,10 +322,10 @@
               (* 100.0 (/ (:score bot-result) total))
               0.0)))))))
 
-(defn- run-pairing! [bot opponent rounds match-length roster]
+(defn- run-pairing! [ctx bot opponent rounds match-length roster]
   (let [num-matches (max 1 (quot rounds match-length))
         aps-values (doall
-                    (keep (fn [_] (run-single-match! bot opponent match-length))
+                    (keep (fn [_] (run-single-match! ctx bot opponent match-length *worker-id*))
                           (range num-matches)))]
     (when (seq aps-values)
       (let [mean (/ (reduce + aps-values) (count aps-values))
@@ -322,15 +469,23 @@
     (println (format "\nResults saved to %s" path))))
 
 (defn- ensure-robocode-copy!
-  "Create an APFS clone of the robocode installation for a worker."
-  [worker-id]
-  (let [target (format ".tmp/robocode-%d" worker-id)
-        abs-target (str (fs/absolutize target))]
-    (fs/delete-tree target)
-    (fs/create-dirs ".tmp")
-    (p/shell {:out :string :err :string}
-             "cp" "-Rc" (str (fs/expand-home "~/robocode")) target)
-    abs-target))
+  "Create an APFS clone of the robocode installation for a worker.
+   Local mode: cp -Rc ~/robocode .tmp/robocode-N, returns absolute path.
+   Remote mode: cp -Rc on remote machine, returns remote path."
+  [ctx worker-id]
+  (if (= :remote (:mode ctx))
+    (let [target (format "/tmp/robocode-%d" worker-id)
+          robo-home (:robocode-home ctx)]
+      (ssh! ctx (str "rm -rf " target
+                     " && cp -Rc " robo-home " " target))
+      target)
+    (let [target (format ".tmp/robocode-%d" worker-id)
+          abs-target (str (fs/absolutize target))]
+      (fs/delete-tree target)
+      (fs/create-dirs ".tmp")
+      (p/shell {:out :string :err :string}
+               "cp" "-Rc" (str (fs/expand-home "~/robocode")) target)
+      abs-target)))
 
 (defn benchmark!
   "Run benchmark battles and report APS per category.
@@ -339,7 +494,7 @@
             :match-length - rounds per match (default: 35, like LiteRumble)
             :commit - optional git ref to benchmark (default: working tree)
             :roster - path to roster EDN file (default: config/benchmark-roster.edn)"
-  [{:keys [bot rounds match-length commit roster]
+  [{:keys [bot rounds match-length commit roster local?]
     :or {rounds 105 match-length 35}}]
   (when-not bot
     (println "Usage: bb benchmark <bot> [rounds] [match-length] [commit] [roster]")
@@ -349,79 +504,94 @@
     (println "         bb benchmark pez.mini.Pugilist 100 10 HEAD~3")
     (println "         bb benchmark pez.mini.Pugilist 100 10 - config/my-roster.edn")
     (System/exit 1))
-  (let [roster-path (or roster default-roster)
+  (let [ctx         (load-exec-ctx local?)
+        roster-path (or roster default-roster)
         roster-data (load-roster roster-path)
         commit-info (when commit (resolve-commit commit))
         num-matches (max 1 (quot rounds match-length))]
-    (build-and-deploy! bot commit)
-    (let [jar-path (str *robocode-home* "/robots/" bot "_benched.jar")
-          bot-codesize (codesize/get-size jar-path)
-          opponents (into [] (comp cat (map bot-name)) (vals roster-data))
-          total (count opponents)
-          n-workers (min num-workers total)
-          start-ms (System/currentTimeMillis)
-          timestamp (.format (java.time.LocalDateTime/now)
-                             (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd_HHmmss"))
-          ;; Worker 0 = original ~/robocode, workers 1..n-1 = APFS clones
-          _ (when (> n-workers 1)
-              (println (format "Setting up %d robocode instances..." n-workers)))
-          worker-homes (into [*robocode-home*]
-                             (map ensure-robocode-copy!)
-                             (range 1 n-workers))
-          ;; Round-robin shard opponents across workers
-          shards (reduce (fn [acc [i opp]]
-                           (update acc (mod i n-workers) conj opp))
-                         (vec (repeat n-workers []))
-                         (map-indexed vector opponents))
-          opp->index (into {} (map-indexed (fn [i o] [o i]) opponents))]
-      (println (format "Benchmark: %d opponents, %d×%d rounds each, %d workers, bot: %s%s%s\n"
-                       total num-matches match-length n-workers bot
-                       (if commit-info (str " @ " commit-info) "")
-                       (if bot-codesize (str " [" bot-codesize " bytes]") "")))
-      (let [progress (atom 0)
-            futures (mapv (fn [wid]
-                            (let [shard (nth shards wid)
-                                  home (nth worker-homes wid)]
-                              (future
-                                (binding [*robocode-home* home
-                                          *worker-id* wid]
-                                  (doall
-                                   (keep (fn [opponent]
-                                           (locking *out*
-                                             (print (format "        battling %s...\r" opponent))
-                                             (flush))
-                                           (let [result (run-pairing! bot opponent rounds match-length roster-data)
-                                                 done (swap! progress inc)]
+    (open-ssh-control! ctx)
+    (register-shutdown-hook!)
+    (try
+      (check-remote! ctx)
+      (build-and-deploy! ctx bot commit)
+      (let [jar-path (if (= :remote (:mode ctx))
+                       (str (fs/absolutize (str ".tmp/" bot "_benched.jar")))
+                       (str *robocode-home* "/robots/" bot "_benched.jar"))
+            bot-codesize (codesize/get-size jar-path)
+            opponents (into [] (comp cat (map bot-name)) (vals roster-data))
+            total (count opponents)
+            n-workers (min (:num-workers ctx) total)
+            start-ms (System/currentTimeMillis)
+            timestamp (.format (java.time.LocalDateTime/now)
+                               (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd_HHmmss"))
+            ;; Worker 0 = original ~/robocode, workers 1..n-1 = APFS clones
+            _ (when (> n-workers 1)
+                (println (format "Setting up %d robocode instances..." n-workers)))
+            worker-homes (into [(:robocode-home ctx)]
+                               (map (partial ensure-robocode-copy! ctx))
+                               (range 1 n-workers))
+            ;; Round-robin shard opponents across workers
+            shards (reduce (fn [acc [i opp]]
+                             (update acc (mod i n-workers) conj opp))
+                           (vec (repeat n-workers []))
+                           (map-indexed vector opponents))
+            opp->index (into {} (map-indexed (fn [i o] [o i]) opponents))]
+        (println (format "Running %s\nBenchmark: %d opponents, %d\u00d7%d rounds each, %d workers, bot: %s%s%s\n"
+                         (if (= :remote (:mode ctx))
+                           (str "on: " (:host ctx))
+                           "locally")
+                         total num-matches match-length n-workers bot
+                         (if commit-info (str " @ " commit-info) "")
+                         (if bot-codesize (str " [" bot-codesize " bytes]") "")))
+        (let [progress (atom 0)
+              futures (mapv (fn [wid]
+                              (let [shard (nth shards wid)
+                                    home (nth worker-homes wid)]
+                                (future
+                                  (binding [*robocode-home* home
+                                            *worker-id* wid]
+                                    (doall
+                                     (keep (fn [opponent]
                                              (locking *out*
-                                               (if result
-                                                 (let [diff-str (if-let [ra (:roster-aps result)]
-                                                                  (format "  Δ%+.1f" (- (:aps result) ra))
-                                                                  "")]
-                                                   (println (format "  [%2d/%d] vs %-40s %6.2f%% APS  (%.1f–%.1f ±%.1f)%s"
-                                                                    done total opponent
-                                                                    (:aps result) (:min-aps result) (:max-aps result) (:stddev result)
-                                                                    diff-str)))
-                                                 (println (format "  [%2d/%d] vs %-40s FAILED"
-                                                                  done total opponent)))
+                                               (print (format "        battling %s...\r" opponent))
                                                (flush))
-                                             result))
-                                         shard))))))
-                          (range n-workers))
-            results-by-worker (mapv deref futures)
-            all-results (sort-by #(get opp->index (:opponent %))
-                                 (into [] cat results-by-worker))]
-        (let [elapsed-s (/ (- (System/currentTimeMillis) start-ms) 1000.0)]
-          (print-benchmark-report! {:bot bot
-                                    :rounds rounds
-                                    :match-length match-length
-                                    :pairings all-results
-                                    :commit commit-info
-                                    :elapsed-seconds elapsed-s})
-          (println)
-          (save-results! bot rounds match-length all-results timestamp commit-info elapsed-s))
-        (doseq [wid (range n-workers)]
-          (fs/delete-if-exists (format ".tmp/benchmark-%d.battle" wid))
-          (fs/delete-if-exists (format ".tmp/benchmark-results-%d.txt" wid)))))))
+                                             (let [result (run-pairing! ctx bot opponent rounds match-length roster-data)
+                                                   done (swap! progress inc)]
+                                               (locking *out*
+                                                 (if result
+                                                   (let [diff-str (if-let [ra (:roster-aps result)]
+                                                                    (format "  \u0394%+.1f" (- (:aps result) ra))
+                                                                    "")]
+                                                     (println (format "  [%2d/%d] vs %-40s %6.2f%% APS  (%.1f\u2013%.1f \u00b1%.1f)%s"
+                                                                      done total opponent
+                                                                      (:aps result) (:min-aps result) (:max-aps result) (:stddev result)
+                                                                      diff-str)))
+                                                   (println (format "  [%2d/%d] vs %-40s FAILED"
+                                                                    done total opponent)))
+                                                 (flush))
+                                               result))
+                                           shard))))))
+                            (range n-workers))
+              results-by-worker (mapv deref futures)
+              all-results (sort-by #(get opp->index (:opponent %))
+                                   (into [] cat results-by-worker))]
+          (let [elapsed-s (/ (- (System/currentTimeMillis) start-ms) 1000.0)]
+            (print-benchmark-report! {:bot bot
+                                      :rounds rounds
+                                      :match-length match-length
+                                      :pairings all-results
+                                      :commit commit-info
+                                      :elapsed-seconds elapsed-s})
+            (println)
+            (save-results! bot rounds match-length all-results timestamp commit-info elapsed-s))
+          (if (= :remote (:mode ctx))
+            (ssh! ctx (str "rm -rf " (str/join " " (map #(format "/tmp/robocode-%d" %) (range 1 n-workers)))))
+            (doseq [wid (range n-workers)]
+              (fs/delete-if-exists (format ".tmp/benchmark-%d.battle" wid))
+              (fs/delete-if-exists (format ".tmp/benchmark-results-%d.txt" wid))))))
+      (finally
+        (close-ssh-control!)
+        (unregister-shutdown-hook!)))))
 
 (defn- run-benchmark-worker!
   "Run a complete benchmark for a single ref using a specific robocode copy.
@@ -442,7 +612,7 @@
                          (if bot-codesize (str " [" bot-codesize " bytes]") ""))))
       (let [results (doall
                      (map (fn [opponent]
-                            (run-pairing! bot opponent rounds match-length roster-data))
+                            (run-pairing! {:mode :local :robocode-home *robocode-home* :java-home java-home} bot opponent rounds match-length roster-data))
                           opponents))
             elapsed-s (/ (- (System/currentTimeMillis) start-ms) 1000.0)
             overall (/ (reduce + (map :aps results)) (count results))
