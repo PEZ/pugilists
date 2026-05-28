@@ -25,6 +25,7 @@ public class Pugilist extends AdvancedRobot {
     static final double BULLET_POWER = 1.9;
     static final double MAX_BULLET_POWER = 3.0;
     static final double MAX_WALL_SMOOTH = 97;
+    static final double BOT_WIDTH = 40;
 
     static Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
             BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
@@ -108,9 +109,9 @@ public class Pugilist extends AdvancedRobot {
                 wave.bearingDirection * (wave.mostVisited() - Wave.MIDDLE_FACTOR)));
 
         addCustomEvent(wave);
-        // if (getEnergy() >= bulletPower) {
+        if (getEnergy() >= BULLET_POWER && Math.abs(getGunTurnRemainingRadians()) < Math.atan2(BOT_WIDTH / 2, enemyDistance)) {
             setFire(bulletPower);
-        // }
+        }
         // </gun>
 
         if (Wave.dangerReverse < Wave.dangerForward) {
