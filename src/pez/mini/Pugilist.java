@@ -256,7 +256,7 @@ public class Pugilist extends AdvancedRobot {
         void registerVisits(double[] buffer, double depth) {
             try {
                 for (int i = 1; ; i++) {
-                    buffer[i] = rollingAvg(buffer[i], i == visitingIndex(targetLocation) ? 100 : 0, depth);
+                    buffer[i] = (buffer[i] * depth + (i == visitingIndex(targetLocation) ? 100 : 0)) / (depth + 1.0);
                 }
             } catch (Exception e) {}
         }
@@ -271,10 +271,6 @@ public class Pugilist extends AdvancedRobot {
                 }
             } catch (Exception e) {}
             return mostVisited;
-        }
-
-        static double rollingAvg(double value, double newEntry, double n) {
-            return (value * n + newEntry) / (n + 1.0);
         }
 
         double gunBearing(Point2D target) {
