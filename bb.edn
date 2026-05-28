@@ -27,7 +27,7 @@
                                           (first *command-line-args*))
                                     :all (= "--all" (first *command-line-args*))})}
 
-  benchmark {:doc "Run benchmark, queued if one is already running: bb benchmark <bot> [rounds] [match-length] [commit] [roster] [--local]"
+  benchmark {:doc "Run benchmark, queued if the same execution target is already running: bb benchmark <bot> [rounds] [match-length] [commit] [roster] [--local]"
              :task (let [args (remove #{"--local"} *command-line-args*)
                          local? (boolean (some #{"--local"} *command-line-args*))]
                      (benchmark/queued-benchmark! {:bot (first args)
@@ -42,7 +42,7 @@
                     :task (benchmark/report-log! {:log (first *command-line-args*)
                                                   :output (second *command-line-args*)})}
 
-  benchmark-parallel {:doc "Run parallel benchmarks, queued if one is already running: bb benchmark-parallel <bot> <rounds> <ref1> [ref2] ... [current]"
+  benchmark-parallel {:doc "Run parallel local benchmarks, queued if a local benchmark is already running: bb benchmark-parallel <bot> <rounds> <ref1> [ref2] ... [current]"
                       :task (let [[bot rounds & refs] *command-line-args*]
                               (benchmark/queued-benchmark-parallel!
                                {:bot bot
