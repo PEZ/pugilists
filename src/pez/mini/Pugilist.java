@@ -24,7 +24,7 @@ public class Pugilist extends AdvancedRobot {
     static final double WALL_MARGIN = 20;
     static final double BULLET_POWER = 1.9;
     static final double MAX_BULLET_POWER = 3.0;
-    static final double MAX_WALL_SMOOTH = 95;
+    static final double MAX_WALL_SMOOTH = 97;
 
     static Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
             BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
@@ -141,9 +141,12 @@ public class Pugilist extends AdvancedRobot {
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
         double s = wallSmooth(location, enemyLocation, direction);
-        if (s >= MAX_WALL_SMOOTH) {
-            direction = -direction;
-            s = wallSmooth(location, enemyLocation, direction);
+        if (s >= MAX_WALL_SMOOTH - 1) {
+            double rs = wallSmooth(location, enemyLocation, -direction);
+            if (rs < s) {
+                direction = -direction;
+                s = rs;
+            }
         }
         return orbitProject(location, enemyLocation, direction, s - 1);
     }
