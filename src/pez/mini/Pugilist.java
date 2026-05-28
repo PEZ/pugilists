@@ -106,7 +106,7 @@ public class Pugilist extends AdvancedRobot {
 
         wave.query(Wave.gunObss);
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
-                wave.bearingDirection * (Wave.bestGF() - Wave.MIDDLE_FACTOR)));
+                wave.bearingDirection * (Wave.bestGF() - Wave.MIDDLE_GUN_FACTOR)));
 
         addCustomEvent(wave);
         if (getEnergy() >= bulletPower && Math.abs(getGunTurnRemainingRadians()) < 18.0 / enemyDistance) {
@@ -174,8 +174,9 @@ public class Pugilist extends AdvancedRobot {
     }
 
     static class Wave extends Condition {
-        static final int FACTORS = 37;
-        static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
+        static final int GUN_FACTORS = 31;
+        static final int SURF_FACTORS = 13;
+        static final int MIDDLE_GUN_FACTOR = (GUN_FACTORS - 1) / 2;
         static final int DIM_GF = 0, DIM_DIST = 1, DIM_VEL = 2, DIM_PREV_VEL = 3,
                 DIM_WALL1 = 4, DIM_WALL2 = 5, DIM_TSVC = 6, NUM_DIMS = 7;
         static final String GW = "" + (char) 1 + (char) 50 + (char) 50 + (char) 18 + (char) 18 + (char) 16 + (char) 20;
@@ -194,6 +195,7 @@ public class Pugilist extends AdvancedRobot {
         double startBearing;
         double bearingDirection;
         double distanceFromGun;
+        int f;
         boolean surfable;
         double[] obs;
 
@@ -230,25 +232,22 @@ public class Pugilist extends AdvancedRobot {
             dcFill(obss, obs, surfable ? SW : GW);
         }
 
-        static void dcFill(ArrayList<double[]> obss, double[] q, String w) {
-            scores = new double[FACTORS];
+        void dcFill(ArrayList<double[]> obss, double[] q, String w) {
+            scores = new double[f];
             try {
                 for (int i = 0;; i++) {
                     double[] o = obss.get(i);
                     double d = 0.01;
                     for (int j = DIM_DIST; j < NUM_DIMS; j++)
                         d += Math.abs(o[j] - q[j]) * w.charAt(j - 1);
-                    double score = (w.charAt(NUM_DIMS - 1) + i) / (d * d);
-                    int gf = (int) o[DIM_GF];
-                    for (int b = 0; b < FACTORS; b++)
-                        scores[b] += score / Math.sqrt(Math.abs(gf - b) + 1);
+                    scores[(int) o[DIM_GF]] += (w.charAt(NUM_DIMS - 1) + i) / (d * d);
                 }
             } catch (Exception e) {
             }
         }
 
         static int bestGF() {
-            int best = MIDDLE_FACTOR;
+            int best = MIDDLE_GUN_FACTOR;
             try {
                 for (int i = 0;; i++) {
                     if (scores[i] > scores[best])
@@ -269,8 +268,9 @@ public class Pugilist extends AdvancedRobot {
 
         void initObs(double power, double vel, double prevVel, Point2D loc, double direction, Point2D orbitCenter,
                 int tSVC) {
+            f = surfable ? SURF_FACTORS : GUN_FACTORS;
             bulletVelocity = 20 - 3 * power;
-            bearingDirection = Math.asin(8 / bulletVelocity) * direction / MIDDLE_FACTOR;
+            bearingDirection = Math.asin(8 / bulletVelocity) * direction / ((f - 1) / 2);
             obs = new double[] { 0, enemyDistance, vel,
                     prevVel, wallSmooth(loc, orbitCenter, direction),
                     wallSmooth(orbitCenter, loc, direction), tSVC };
@@ -281,7 +281,7 @@ public class Pugilist extends AdvancedRobot {
         int visitingIndex(Point2D target) {
             return (int) Math
                     .clamp((long) (((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection)
-                            + (FACTORS - 1) / 2 + 0.5), 0, FACTORS - 1);
+                            + (f - 1) / 2 + 0.5), 0, f - 1);
         }
 
         double gunBearing(Point2D target) {
