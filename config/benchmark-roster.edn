@@ -22,4 +22,11 @@
   "dft.Guppy"
   "mld.LittleBlackBook"
   "davidalves.net.DuelistMini"
-  "jk.mini.CunobelinDC 1.2"]}
+  "jk.mini.CunobelinDC 1.2"]
+
+ ;; Added behavioural probes
+ :shielders
+ ["wiki.BasicBulletShielder 1.0"]
+
+ :rammers
+ ["kc.micro.rammer.MaxRisk 0.6"]}
