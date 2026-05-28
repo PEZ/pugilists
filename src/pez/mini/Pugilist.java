@@ -218,8 +218,8 @@ public class Pugilist extends AdvancedRobot {
                     r.removeCustomEvent(this);
                 }
                 if (surfable) {
-                    Wave.dangerForward += danger(impactLocation(1.0, 0));
-                    Wave.dangerReverse += danger(impactLocation(-1.0, 5));
+                    Wave.dangerForward += danger(impactLocation(1, 0));
+                    Wave.dangerReverse += danger(impactLocation(-1, 5));
                 }
             } else if (passed(-18)) {
                 if (r.getOthers() > 0) {
@@ -281,7 +281,7 @@ public class Pugilist extends AdvancedRobot {
             return gunLocation.distance(location) - distanceFromGun - timeOffset * bulletVelocity;
         }
 
-        Point2D impactLocation(double direction, int timeOffset) {
+        Point2D impactLocation(int direction, int timeOffset) {
             Point2D loc = robotLocation;
             do {
                 loc = project(loc, absoluteBearing(loc,
