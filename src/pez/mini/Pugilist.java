@@ -41,7 +41,7 @@ public class Pugilist extends AdvancedRobot {
 
     static double enemyFirePower = MAX_BULLET_POWER;
     static double robotVelocity;
-    static int robotBD = 1;
+    static double robotBD = 1;
     static Pugilist robot;
 
     public void run() {
@@ -95,7 +95,7 @@ public class Pugilist extends AdvancedRobot {
                 : Math.clamp(enemyFirePower - 0.175, 0.1, BULLET_POWER);
 
         if (enemyVelocity != 0) {
-            enemyBearingDirection = sign(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
+            enemyBearingDirection = Math.signum(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
         }
         wave.bulletVelocity = 20 - 3 * bulletPower;
         wave.calcBearingDirection(enemyBearingDirection);
@@ -166,7 +166,7 @@ public class Pugilist extends AdvancedRobot {
 
     double robotBearingDirection(double enemyBearing) {
         double v = getVelocity() * Math.sin(getHeadingRadians() - enemyBearing);
-        return v != 0 ? (robotBD = sign(v)) : robotBD;
+        return v != 0 ? (robotBD = Math.signum(v)) : robotBD;
     }
 
     static Point2D project(Point2D sourceLocation, double angle, double length) {
@@ -176,10 +176,6 @@ public class Pugilist extends AdvancedRobot {
 
     static double absoluteBearing(Point2D source, Point2D target) {
         return Math.atan2(target.getX() - source.getX(), target.getY() - source.getY());
-    }
-
-    static int sign(double v) {
-        return v < 0 ? -1 : 1;
     }
 
     static class Wave extends Condition {
