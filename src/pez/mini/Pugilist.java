@@ -235,7 +235,7 @@ public class Pugilist extends AdvancedRobot {
             registerVisits(fastFactors, 1);
         }
 
-        public boolean passed(double distanceOffset) {
+        public boolean passed(int distanceOffset) {
             return distanceFromGun > gunLocation.distance(targetLocation) + distanceOffset;
         }
 
