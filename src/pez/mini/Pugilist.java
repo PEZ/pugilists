@@ -140,7 +140,7 @@ public class Pugilist extends AdvancedRobot {
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
         double s = wallSmooth(location, enemyLocation, direction);
-        if (s >= 45) {
+        if (s >= 75) {
             double rs = wallSmooth(location, enemyLocation, -direction);
             if (rs < s) {
                 direction = -direction;
