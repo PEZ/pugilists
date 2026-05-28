@@ -1,5 +1,7 @@
 {:remote {:host          "afuera@Afueras-Mac-Mini.local"
           :robocode-home "~/robocode"
           :java-home     "~/.sdkman/candidates/java/21.0.11-amzn"
-          :num-workers   4}
+          :num-workers   8
+          ;:cpu-constant  3043241
+          }
  :local  {:num-workers   5}}

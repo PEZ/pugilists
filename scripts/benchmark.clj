@@ -24,7 +24,8 @@
        :host          (:host raw)
        :robocode-home (:robocode-home raw "~/robocode")
        :java-home     (:java-home raw "~/.sdkman/candidates/java/21.0.11-amzn")
-       :num-workers   (get raw :num-workers 8)})))
+       :num-workers   (get raw :num-workers 8)
+       :cpu-constant  (:cpu-constant raw)})))
 
 (def ssh-control-path (atom nil))
 
@@ -506,6 +507,8 @@
           robo-home (:robocode-home ctx)]
       (ssh! ctx (str "rm -rf " target
                      " && cp -Rc " robo-home " " target))
+      (when-let [cpu (:cpu-constant ctx)]
+        (ssh! ctx (format "sed -i '' 's/robocode.cpu.constant=.*/robocode.cpu.constant=%d/' %s/config/robocode.properties" cpu target)))
       target)
     (let [target (format ".tmp/robocode-%d" worker-id)
           abs-target (str (fs/absolutize target))]
