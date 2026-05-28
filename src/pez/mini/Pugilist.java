@@ -32,7 +32,6 @@ public class Pugilist extends AdvancedRobot {
     static Point2D robotLocation = new Point2D.Double();
     static Point2D enemyLocation = new Point2D.Double();
     static double enemyDistance;
-    static int distanceIndex;
     static int velocityIndex;
     static double enemyVelocity;
     static double enemyEnergy;
@@ -70,7 +69,8 @@ public class Pugilist extends AdvancedRobot {
         ew.bulletVelocity = 20 - 3 * enemyFirePower;
         ew.calcBearingDirection(direction);
         ew.enemyWave = true;
-        ew.visits = Wave.surfFactors[distanceIndex = (int) Math.min(Wave.DISTANCE_INDEXES - 1, enemyDistance / 180)]
+        int distanceIndex = (int) Math.min(Wave.DISTANCE_INDEXES - 1, enemyDistance / 180);
+        ew.visits = Wave.surfFactors[distanceIndex]
             [(int) Math.abs(robotVelocity)][(int) Math.abs(robotVelocity = getVelocity())];
         ew.targetLocation = robotLocation;
 
