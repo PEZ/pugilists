@@ -109,8 +109,8 @@ public class Pugilist extends AdvancedRobot {
                 wave.bearingDirection * (wave.mostVisited() - Wave.MIDDLE_FACTOR)));
 
         addCustomEvent(wave);
-        if (getEnergy() >= BULLET_POWER && Math.abs(getGunTurnRemainingRadians()) < Math.atan2(BOT_WIDTH / 2, enemyDistance)) {
-            setFire(bulletPower);
+        if (Math.abs(getGunTurnRemainingRadians()) < Math.atan2(BOT_WIDTH / 2, enemyDistance)) {
+            setFireBullet(bulletPower);
         }
         // </gun>
 
