@@ -101,8 +101,7 @@ public class Pugilist extends AdvancedRobot {
                 [velocityIndex]
                 [velocityIndex = (int) Math.abs(enemyVelocity)]
                 [(int) Math.clamp((long) (Math.pow(enemyTSVC++, 0.45) - 1), 0, Wave.VCHANGE_TIME_INDEXES - 1)]
-                [wallIndex(wave)]
-                [wallIndex(wave, -1)];
+                [wallIndex(wave)];
 
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
                 wave.bearingDirection * (wave.mostVisited() - Wave.MIDDLE_FACTOR)));
@@ -131,15 +130,11 @@ public class Pugilist extends AdvancedRobot {
     }
 
     static int wallIndex(Wave wave) {
-        return wallIndex(wave, 1);
-    }
-
-    static int wallIndex(Wave wave, double direction) {
         int wallIndex = 0;
         do {
             wallIndex++;
         } while (wallIndex < Wave.WALL_INDEXES && fieldRectangle.contains(project(wave.gunLocation,
-                wave.startBearing + direction * wave.bearingDirection * (wallIndex * 5.5), enemyDistance)));
+                wave.startBearing + wave.bearingDirection * (wallIndex * 5.5), enemyDistance)));
         return wallIndex - 1;
     }
 
@@ -192,7 +187,7 @@ public class Pugilist extends AdvancedRobot {
         static final int VCHANGE_TIME_INDEXES = 6;
         static final int FACTORS = 31;
         static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
-        static double[][][][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][WALL_INDEXES][FACTORS];
+        static double[][][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][FACTORS];
         static double[][][][] surfFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][FACTORS];
         static double[] fastFactors = new double[FACTORS];
         static double dangerForward;
