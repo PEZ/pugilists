@@ -128,7 +128,8 @@ public class Pugilist extends AdvancedRobot {
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
-        Wave.passingWave.registerVisits();
+        Wave.passingWave.registerVisits(Wave.passingWave.visits, 1);
+        Wave.passingWave.registerVisits(Wave.fastFactors, 1);
     }
 
     static int wallIndex(Wave wave) {
@@ -224,11 +225,6 @@ public class Pugilist extends AdvancedRobot {
                 r.removeCustomEvent(this);
             }
             return false;
-        }
-
-        void registerVisits() {
-            registerVisits(visits, 1);
-            registerVisits(fastFactors, 1);
         }
 
         public boolean passed(int distanceOffset) {
