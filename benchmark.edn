@@ -4,4 +4,4 @@
           :num-workers   8
           ;:cpu-constant  3043241
           }
- :local  {:num-workers   5}}
+ :local  {:num-workers   10}}
