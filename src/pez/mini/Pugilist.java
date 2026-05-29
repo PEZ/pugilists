@@ -193,6 +193,11 @@ public class Pugilist extends AdvancedRobot {
         static double[][][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][FACTORS];
         static double[][][][] surfFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][FACTORS];
         static double[] fastFactors = new double[FACTORS];
+        static {
+            fastFactors[0] = 0.5;
+            fastFactors[MIDDLE_FACTOR] = 0.5;
+            fastFactors[FACTORS - 1] = 0.5;
+        }
         static double dangerForward;
         static double dangerReverse;
         static Wave passingWave;
@@ -298,7 +303,7 @@ public class Pugilist extends AdvancedRobot {
             int i = 0;
             try {
                 for (;;) {
-                    smoothed += (fastFactors[i] + visits[i] * 2)
+                    smoothed += (fastFactors[i] + visits[i] * 3)
                             / Math.sqrt((Math.abs(visitingIndex(destination) - i) + 1.0));
                     i++;
                 }
