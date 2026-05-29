@@ -512,8 +512,10 @@
       (doseq [line lines]
         (println line)))))
 
-(defn- save-results! [bot rounds match-length results timestamp commit-info elapsed-s]
-  (let [path (format "../pugilists-dev/research/benchmarks/logs/benchmark-%s.edn" timestamp)
+(defn- save-results! [bot rounds match-length results timestamp commit-info elapsed-s jar-path]
+  (let [dir "../pugilists-dev/research/benchmarks/logs/"
+        base (format "benchmark-%s" timestamp)
+        path (str dir base ".edn")
         data (cond-> {:bot bot
                       :rounds rounds
                       :match-length match-length
@@ -527,6 +529,8 @@
                                                         [k (/ (reduce + (map :aps v)) (count v))]))))}
                commit-info (assoc :commit commit-info))]
     (spit path (pr-str data))
+    (when (and jar-path (fs/exists? jar-path))
+      (fs/copy jar-path (str dir base ".jar") {:replace-existing true}))
     (println (format "\nResults saved to %s" path))))
 
 (defn- ensure-robocode-copy!
@@ -647,7 +651,7 @@
                                       :commit commit-info
                                       :elapsed-seconds elapsed-s})
             (println)
-            (save-results! bot rounds match-length all-results timestamp commit-info elapsed-s))
+            (save-results! bot rounds match-length all-results timestamp commit-info elapsed-s jar-path))
           (if (= :remote (:mode ctx))
             (ssh! ctx (str "rm -rf " (str/join " " (map #(format "/tmp/robocode-%d" %) (range 1 n-workers)))))
             (doseq [wid (range n-workers)]
@@ -684,7 +688,7 @@
             wins (count (filter :win? results))
             commit-info (when ref (resolve-commit ref))
             save-ts (format "%s-%s" timestamp (str/replace label #"[^a-zA-Z0-9._-]" "_"))]
-        (save-results! bot rounds match-length results save-ts commit-info elapsed-s)
+        (save-results! bot rounds match-length results save-ts commit-info elapsed-s jar-path)
         (fs/delete-if-exists (format ".tmp/benchmark-%d.battle" worker-id))
         (fs/delete-if-exists (format ".tmp/benchmark-results-%d.txt" worker-id))
         (locking *out*
