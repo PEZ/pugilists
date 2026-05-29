@@ -141,7 +141,7 @@ public class Pugilist extends AdvancedRobot {
         do {
             wallIndex++;
         } while (wallIndex < Wave.WALL_INDEXES && fieldRectangle.contains(project(wave.gunLocation,
-                wave.startBearing + wave.bearingDirection * (wallIndex * 4.0), enemyDistance)));
+                wave.startBearing + wave.bearingDirection * (wallIndex * 7.0), enemyDistance)));
         return wallIndex - 1;
     }
 
