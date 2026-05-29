@@ -88,7 +88,8 @@ public class Pugilist extends AdvancedRobot {
 
         ew.advance(2);
 
-        if (Wave.dangerReverse < Wave.dangerForward) {
+        if (Wave.dangerReverse < Wave.dangerForward
+                || enemyDistance < 100 && Wave.dangerForward + Wave.dangerReverse == 0 && Math.random() < .3) {
             direction = -direction;
         }
         double angle;
