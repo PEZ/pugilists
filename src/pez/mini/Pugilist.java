@@ -109,8 +109,7 @@ public class Pugilist extends AdvancedRobot {
         }
 
         double bulletPower = Math.min(enemyEnergy / 4,
-                enemyDistance < 175 ? MAX_BULLET_POWER
-                : Math.clamp(enemyFirePower - 0.175, 0.1, BULLET_POWER));
+                enemyDistance < 175 ? MAX_BULLET_POWER : BULLET_POWER);
 
         if (enemyVelocity != 0) {
             enemyBearingDirection = Math.signum(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
