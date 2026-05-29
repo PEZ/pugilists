@@ -257,9 +257,10 @@ public class Pugilist extends AdvancedRobot {
         }
 
         void registerVisits(double[] buffer, double depth) {
+            int vi = visitingIndex(targetLocation);
             try {
                 for (int i = 1;; i++) {
-                    buffer[i] = (buffer[i] * depth + (i == visitingIndex(targetLocation) ? 100 : 0)) / (depth + 1.0);
+                    buffer[i] = (buffer[i] * depth + 100.0 / (Math.abs(vi - i) + 1.0)) / (depth + 1.0);
                 }
             } catch (Exception e) {
             }
@@ -299,17 +300,9 @@ public class Pugilist extends AdvancedRobot {
         }
 
         double danger(Point2D destination) {
-            double smoothed = 0;
-            int i = 0;
-            try {
-                for (;;) {
-                    smoothed += (fastFactors[i] + visits[i] * 3)
-                            / (Math.abs(visitingIndex(destination) - i) + 1.0);
-                    i++;
-                }
-            } catch (Exception e) {
-            }
-            return smoothed / Math.abs(distanceFromTarget(targetLocation, 0)) / bulletVelocity;
+            int vi = visitingIndex(destination);
+            return (fastFactors[vi] + visits[vi] * 2)
+                    / Math.abs(distanceFromTarget(targetLocation, 0)) / bulletVelocity;
         }
     }
 }
