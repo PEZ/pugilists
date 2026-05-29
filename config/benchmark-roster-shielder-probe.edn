@@ -1,0 +1,6 @@
+{:shielders
+ [{:bot "wiki.BasicBulletShielder 1.0", :aps 99.55}]
+ :canaries
+ [{:bot "sheldor.mini.Foilist", :aps 48.80}
+  {:bot "kc.micro.rammer.MaxRisk 0.6", :aps 60.63}
+  {:bot "dft.Guppy", :aps 86.10}]}

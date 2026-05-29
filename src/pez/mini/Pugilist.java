@@ -122,7 +122,8 @@ public class Pugilist extends AdvancedRobot {
                         Wave.VCHANGE_TIME_INDEXES - 1)][wallIndex(wave)];
 
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
-                wave.bearingDirection * (wave.mostVisited() - Wave.MIDDLE_FACTOR)));
+                wave.bearingDirection * (wave.mostVisited() - Wave.MIDDLE_FACTOR)
+                + Math.random() * 0.007));
 
         if (Math.abs(getGunTurnRemainingRadians()) < Math.atan2(BOT_WIDTH / 2, enemyDistance)) {
             setFireBullet(bulletPower);
