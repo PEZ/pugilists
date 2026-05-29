@@ -149,6 +149,31 @@
     (when line
       (second (re-find #"SourceFile:\s+\"(.+)\"" line)))))
 
+(defn- read-robot-version
+  "Read robot.version from a bot's built .properties file, or nil if absent."
+  [props-file]
+  (when (fs/exists? props-file)
+    (some->> (slurp props-file)
+             str/split-lines
+             (some #(second (re-find #"^robot\.version=(.+)$" %)))
+             str/trim)))
+
+(defn- check-version-collision!
+  "Throw if a released jar for this bot+version already exists among released-jars.
+   Forgetting to bump robot.version makes Robocode load the stale released jar
+   instead of the freshly built benched jar, silently contaminating results."
+  [bot version released-jars]
+  (when version
+    (let [collision (str bot "_" version ".jar")]
+      (when (contains? (set released-jars) collision)
+        (throw (ex-info
+                (str "\n\nVERSION COLLISION: " collision " already exists in the Robocode robots directory.\n"
+                     "Robocode would load that released jar instead of your freshly built code,\n"
+                     "silently contaminating the benchmark.\n"
+                     "Fix: bump robot.version in src/" (str/replace bot "." "/")
+                     ".properties, rebuild, and re-run the benchmark.\n")
+                {:bot bot :version version :collision collision}))))))
+
 (defn- deploy-jar!
   "Create bot jar from build output and deploy to Robocode.
    Local mode: copies jar directly to ~/robocode/robots/.
@@ -174,11 +199,18 @@
     (if (= :remote (:mode ctx))
       (let [tmp-jar (str (fs/absolutize (str ".tmp/" jar-name)))
             remote-robots (str (:robocode-home ctx) "/robots/")]
+        (check-version-collision! bot (read-robot-version props-file)
+                                  (-> (ssh! ctx (str "ls " remote-robots))
+                                      str/split-lines))
         (fs/create-dirs ".tmp")
         (apply p/shell {:dir classes-root} "jar" "cf" tmp-jar entries)
         (scp-to-remote! ctx tmp-jar (str remote-robots jar-name))
         (ssh! ctx (str "rm -f " remote-robots "robot.database")))
       (let [jar-path (str *robocode-home* "/robots/" jar-name)]
+        (check-version-collision! bot (read-robot-version props-file)
+                                  (->> (fs/list-dir (str *robocode-home* "/robots/"))
+                                       (map (comp str fs/file-name))
+                                       (filter #(str/ends-with? % ".jar"))))
         (apply p/shell {:dir classes-root} "jar" "cf" jar-path entries)
         (fs/delete-if-exists (str *robocode-home* "/robots/robot.database"))))))
 (defn- build-and-deploy!
