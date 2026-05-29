@@ -140,9 +140,10 @@ public class Pugilist extends AdvancedRobot {
         int wallIndex = 0;
         do {
             wallIndex++;
-        } while (wallIndex < Wave.WALL_INDEXES && fieldRectangle.contains(project(wave.gunLocation,
+        } while (wallIndex < 4 && fieldRectangle.contains(project(wave.gunLocation,
                 wave.startBearing + wave.bearingDirection * (wallIndex * 5.5), enemyDistance)));
-        return wallIndex - 1;
+        return wallIndex - 1 + (fieldRectangle.contains(project(wave.gunLocation,
+                wave.startBearing - wave.bearingDirection * 5.5, enemyDistance)) ? 0 : 4);
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
@@ -186,7 +187,7 @@ public class Pugilist extends AdvancedRobot {
     static class Wave extends Condition {
         static final int DISTANCE_INDEXES = 5;
         static final int VELOCITY_INDEXES = 9;
-        static final int WALL_INDEXES = 3;
+        static final int WALL_INDEXES = 8;
         static final int VCHANGE_TIME_INDEXES = 6;
         static final int FACTORS = 31;
         static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
