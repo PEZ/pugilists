@@ -32,7 +32,6 @@ public class Pugilist extends AdvancedRobot {
     static Point2D robotLocation = new Point2D.Double();
     static Point2D enemyLocation = new Point2D.Double();
     static double enemyDistance;
-    static int velocityIndex;
     static double enemyVelocity;
     static double enemyEnergy;
     static double enemyBearingDirection;
@@ -117,7 +116,7 @@ public class Pugilist extends AdvancedRobot {
         }
         wave.bulletVelocity = 20 - 3 * bulletPower;
         wave.calcBearingDirection(enemyBearingDirection);
-        wave.visits = Wave.gunFactors[distanceIndex][velocityIndex][velocityIndex = (int) Math
+        wave.visits = Wave.gunFactors[distanceIndex][(int) Math
                 .abs(enemyVelocity)][(int) Math.clamp((long) (Math.pow(enemyTSVC++, 0.45) - 1), 0,
                         Wave.VCHANGE_TIME_INDEXES - 1)][wallIndex(wave)];
 
@@ -191,7 +190,7 @@ public class Pugilist extends AdvancedRobot {
         static final int VCHANGE_TIME_INDEXES = 6;
         static final int FACTORS = 31;
         static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
-        static double[][][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][FACTORS];
+        static double[][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][FACTORS];
         static double[][][][] surfFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][FACTORS];
         static double[] fastFactors = new double[FACTORS];
         static double dangerForward;
