@@ -32,6 +32,7 @@ public class Pugilist extends AdvancedRobot {
     static Point2D robotLocation = new Point2D.Double();
     static Point2D enemyLocation = new Point2D.Double();
     static double enemyDistance;
+    static int velocityIndex;
     static double enemyVelocity;
     static double enemyEnergy;
     static double enemyBearingDirection;
@@ -73,7 +74,7 @@ public class Pugilist extends AdvancedRobot {
         ew.enemyWave = true;
         int distanceIndex = (int) Math.min(Wave.DISTANCE_INDEXES - 1, enemyDistance / 180);
         ew.visits = Wave.surfFactors[distanceIndex][(int) Math.abs(robotVelocity)][(int) Math
-                .abs(robotVelocity = getVelocity())];
+                .abs(robotVelocity = getVelocity())][wallIndex(ew)/2];
         ew.targetLocation = robotLocation;
 
         robotLocation.setLocation(getX(), getY());
@@ -116,7 +117,7 @@ public class Pugilist extends AdvancedRobot {
         }
         wave.bulletVelocity = 20 - 3 * bulletPower;
         wave.calcBearingDirection(enemyBearingDirection);
-        wave.visits = Wave.gunFactors[distanceIndex][(int) Math
+        wave.visits = Wave.gunFactors[distanceIndex][velocityIndex][velocityIndex = (int) Math
                 .abs(enemyVelocity)][(int) Math.clamp((long) (Math.pow(enemyTSVC++, 0.45) - 1), 0,
                         Wave.VCHANGE_TIME_INDEXES - 1)][wallIndex(wave)];
 
@@ -139,10 +140,9 @@ public class Pugilist extends AdvancedRobot {
         int wallIndex = 0;
         do {
             wallIndex++;
-        } while (wallIndex < 4 && fieldRectangle.contains(project(wave.gunLocation,
+        } while (wallIndex < Wave.WALL_INDEXES && fieldRectangle.contains(project(wave.gunLocation,
                 wave.startBearing + wave.bearingDirection * (wallIndex * 5.5), enemyDistance)));
-        return wallIndex - 1 + (fieldRectangle.contains(project(wave.gunLocation,
-                wave.startBearing - wave.bearingDirection * 5.5, enemyDistance)) ? 0 : 4);
+        return wallIndex - 1;
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
@@ -186,12 +186,12 @@ public class Pugilist extends AdvancedRobot {
     static class Wave extends Condition {
         static final int DISTANCE_INDEXES = 5;
         static final int VELOCITY_INDEXES = 9;
-        static final int WALL_INDEXES = 8;
+        static final int WALL_INDEXES = 4;
         static final int VCHANGE_TIME_INDEXES = 6;
         static final int FACTORS = 31;
         static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
-        static double[][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][FACTORS];
-        static double[][][][] surfFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][FACTORS];
+        static double[][][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][FACTORS];
+        static double[][][][][] surfFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][2][FACTORS];
         static double[] fastFactors = new double[FACTORS];
         static double dangerForward;
         static double dangerReverse;
