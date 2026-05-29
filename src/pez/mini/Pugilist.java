@@ -56,7 +56,7 @@ public class Pugilist extends AdvancedRobot {
     public void onScannedRobot(ScannedRobotEvent e) {
         Wave ew = new Wave();
         Wave wave = new Wave();
-        
+
         // <movement>
         addCustomEvent(ew);
         ew.gunLocation = project(enemyLocation, 0, 0);
@@ -110,7 +110,7 @@ public class Pugilist extends AdvancedRobot {
 
         double bulletPower = Math.min(enemyEnergy / 4,
                 enemyDistance < 175 ? MAX_BULLET_POWER
-                : Math.clamp(enemyFirePower - 0.175, 0.1, BULLET_POWER));
+                        : Math.clamp(enemyFirePower - 0.175, 0.1, BULLET_POWER));
 
         if (enemyVelocity != 0) {
             enemyBearingDirection = Math.signum(enemyVelocity * Math.sin(e.getHeadingRadians() - enemyAbsoluteBearing));
@@ -159,7 +159,8 @@ public class Pugilist extends AdvancedRobot {
 
     static Point2D orbitProject(Point2D from, Point2D toward, double direction, double w) {
         return project(from, absoluteBearing(from, toward)
-                - direction * (Math.PI / 2 + 0.2 + Math.min(0.4, 30 / enemyDistance) - (w / 100.0)), Math.max(30, enemyDistance / 5));
+                - direction * (Math.PI / 2 + 0.2 + Math.min(0.4, 30 / enemyDistance) - (w / 100.0)),
+                Math.max(30, enemyDistance / 5));
     }
 
     static int wallSmooth(Point2D from, Point2D toward, double direction) {
@@ -216,7 +217,7 @@ public class Pugilist extends AdvancedRobot {
             advance(1);
             Pugilist r = Pugilist.robot;
             if (enemyWave) {
-                if (passed(-20)) {
+                if (passed(-25)) {
                     surfable = false;
                     passingWave = this;
                 }
