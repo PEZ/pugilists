@@ -39,6 +39,7 @@ public class Pugilist extends AdvancedRobot {
     static int enemyTSVC;
 
     static double enemyFirePower = MAX_BULLET_POWER;
+    static double enemyGunHeat;
     static double robotVelocity;
     static double robotBD = 1;
     static Pugilist robot;
@@ -63,9 +64,10 @@ public class Pugilist extends AdvancedRobot {
         ew.startBearing = ew.gunBearing(robotLocation);
 
         double enemyDeltaEnergy = enemyEnergy - (enemyEnergy = e.getEnergy());
-        if (enemyDeltaEnergy > 0 && enemyDeltaEnergy <= 3.0) {
+        if ((enemyGunHeat -= 0.1) < 0 && enemyDeltaEnergy > 0 && enemyDeltaEnergy <= 3.0) {
             enemyFirePower = enemyDeltaEnergy;
             ew.surfable = true;
+            enemyGunHeat = 1 + enemyDeltaEnergy / 5;
         }
 
         double direction = robotBearingDirection(ew.startBearing);
@@ -132,8 +134,13 @@ public class Pugilist extends AdvancedRobot {
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
+        enemyEnergy += e.getPower() * 3;
         Wave.passingWave.registerVisits(Wave.passingWave.visits, 5);
         Wave.passingWave.registerVisits(Wave.fastFactors, 1);
+    }
+
+    public void onBulletHit(BulletHitEvent e) {
+        enemyEnergy -= Rules.getBulletDamage(e.getBullet().getPower());
     }
 
     static int wallIndex(Wave wave) {
