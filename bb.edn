@@ -13,20 +13,26 @@
                 "./gradlew" "build")}
 
   codesize {:doc "Check codesize: bb codesize pez.mini.Pugilist OR bb codesize --code [code-string] (stdin if omitted)"
-            :task (if (= "--code" (first *command-line-args*))
-                    (codesize/check-code! {:code (or (second *command-line-args*) (slurp *in*))})
-                    (codesize/check! {:bot (first *command-line-args*)}))}
+            :task (let [opts (cli/parse-opts *command-line-args*
+                                            {:coerce {:code :boolean}
+                                             :args->opts [:arg]})]
+                    (if (:code opts)
+                      (codesize/check-code! {:code (or (:arg opts) (slurp *in*))})
+                      (codesize/check! {:bot (:arg opts)})))}
 
   battle {:doc "Run headless battles: bb battle pez.mini.Pugilist [rounds] [opponent1 opponent2 ...]"
-          :task (let [[bot rounds & opponents] *command-line-args*]
-                  (battle/battle! {:bot bot
-                                   :rounds (parse-long (or rounds "35"))
-                                   :opponents (when (seq opponents) opponents)}))}
+          :task (let [{:keys [opts args]} (cli/parse-args *command-line-args*
+                                                         {:args->opts [:bot :rounds]})]
+                  (battle/battle! {:bot (:bot opts)
+                                   :rounds (or (:rounds opts) 35)
+                                   :opponents (when (seq args) args)}))}
 
   install {:doc "Install a bot from RoboRumble participants: bb install voidious.mini.Komarious (or --all)"
-           :task (install/install! {:bot (when-not (= "--all" (first *command-line-args*))
-                                          (first *command-line-args*))
-                                    :all (= "--all" (first *command-line-args*))})}
+           :task (let [opts (cli/parse-opts *command-line-args*
+                                           {:coerce {:all :boolean}
+                                            :args->opts [:bot]})]
+                   (install/install! {:bot (when-not (:all opts) (:bot opts))
+                                      :all (boolean (:all opts))}))}
 
   benchmark {:doc "Run benchmark, queued if the same execution target is already running: bb benchmark <bot> [rounds] [match-length] [commit] [roster] [--local] [--workers N]"
              :task (let [opts (cli/parse-opts *command-line-args*
@@ -42,16 +48,17 @@
                                                    :num-workers (:workers opts)}))}
 
   benchmark-report {:doc "Render benchmark log in report format: bb benchmark-report <log.edn> [output.md]"
-                    :task (benchmark/report-log! {:log (first *command-line-args*)
-                                                  :output (second *command-line-args*)})}
+                    :task (benchmark/report-log! (cli/parse-opts *command-line-args*
+                                                                {:args->opts [:log :output]}))}
 
   benchmark-parallel {:doc "Run parallel local benchmarks, queued if a local benchmark is already running: bb benchmark-parallel <bot> <rounds> <ref1> [ref2] ... [current]"
-                      :task (let [[bot rounds & refs] *command-line-args*]
+                      :task (let [{:keys [opts args]} (cli/parse-args *command-line-args*
+                                                                      {:args->opts [:bot :rounds]})]
                               (benchmark/queued-benchmark-parallel!
-                               {:bot bot
-                                :rounds (parse-long (or rounds "105"))
+                               {:bot (:bot opts)
+                                :rounds (or (:rounds opts) 105)
                                 :match-length 35
-                                :refs (mapv (fn [r] (when-not (= "current" r) r)) refs)}))}
+                                :refs (mapv (fn [r] (when-not (= "current" r) r)) args)}))}
 
   publish {:doc "Build and deploy to Netlify"
            :task (publish/publish!)}
