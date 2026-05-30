@@ -137,7 +137,8 @@
     (let [target (format "/tmp/robocode-%d" worker-id)
           robo-home (:robocode-home ctx)]
       (ssh! ctx (str "rm -rf " target
-                     " && cp -Rc " robo-home " " target))
+                     " && cp -Rc " robo-home " " target
+                     " && rm -rf " target "/roborumble/temp/*"))
       (when-let [cpu (:cpu-constant ctx)]
         (ssh! ctx (format "sed -i '' 's/robocode.cpu.constant=.*/robocode.cpu.constant=%d/' %s/config/robocode.properties" cpu target)))
       target)
@@ -147,6 +148,8 @@
       (fs/create-dirs ".tmp")
       (p/shell {:out :string :err :string}
                "cp" "-Rc" (str (fs/expand-home "~/robocode")) target)
+      (fs/delete-tree (str target "/roborumble/temp"))
+      (fs/create-dirs (str target "/roborumble/temp"))
       abs-target)))
 
 ;; --- Shutdown hooks ---
