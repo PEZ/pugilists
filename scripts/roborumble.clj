@@ -1,141 +1,14 @@
 (ns roborumble
   (:require [babashka.fs :as fs]
             [babashka.process :as p]
-            [clojure.edn :as edn]
-            [clojure.string :as str]))
-
-(defn- load-exec-ctx
-  "Load execution context from roborumble.edn. Returns a context map with
-   :mode (:remote or :local), :host, :robocode-home, :java-home, :num-workers."
-  [local?]
-  (let [config (edn/read-string (slurp "roborumble.edn"))
-        mode   (if local? :local :remote)
-        raw    (get config mode)]
-    (if local?
-      {:mode          :local
-       :robocode-home (str (fs/expand-home "~/robocode"))
-       :java-home     (str (fs/expand-home (get raw :java-home
-                                               "~/.sdkman/candidates/java/21.0.11-amzn")))
-       :num-workers   (get raw :num-workers 4)}
-      {:mode          :remote
-       :host          (:host raw)
-       :robocode-home (:robocode-home raw "~/robocode")
-       :java-home     (:java-home raw "~/.sdkman/candidates/java/21.0.11-amzn")
-       :num-workers   (get raw :num-workers 4)})))
-
-;; --- SSH helpers (copied from benchmark.clj) ---
-
-(def ^:private ssh-control-path (atom nil))
-
-(defn- open-ssh-control!
-  "Open an SSH ControlMaster socket for connection multiplexing."
-  [ctx]
-  (when (= :remote (:mode ctx))
-    (let [socket (str "/tmp/ssh-roborumble-" (System/currentTimeMillis) ".sock")]
-      (p/shell {:out :string :err :string}
-               "ssh" "-MNf"
-               "-o" "ControlPersist=yes"
-               "-o" (str "ControlPath=" socket)
-               (:host ctx))
-      (reset! ssh-control-path socket))))
-
-(defn- close-ssh-control!
-  "Close the SSH ControlMaster socket."
-  []
-  (when-let [socket @ssh-control-path]
-    (p/shell {:out :string :err :string :continue true}
-             "ssh" "-O" "exit"
-             "-o" (str "ControlPath=" socket)
-             "ignored-host")
-    (reset! ssh-control-path nil)))
-
-(defn- ssh!
-  "Run a shell command on the remote host via SSH, returning stdout."
-  [ctx cmd]
-  (let [args (cond-> ["ssh"]
-               @ssh-control-path (into ["-o" (str "ControlPath=" @ssh-control-path)])
-               true (into [(:host ctx) cmd]))
-        result (apply p/shell {:out :string :err :string} args)]
-    (:out result)))
-
-(defn- check-remote!
-  "Fail fast if the remote host is unreachable or Java is missing."
-  [ctx]
-  (when (= :remote (:mode ctx))
-    (let [result (p/shell {:out :string :err :string :continue true}
-                          "ssh"
-                          "-o" (str "ControlPath=" (or @ssh-control-path "none"))
-                          "-o" "ConnectTimeout=5"
-                          (:host ctx)
-                          (str (:java-home ctx) "/bin/java -version"))]
-      (when (not= 0 (:exit result))
-        (throw (ex-info (str "Remote host unreachable or Java not found: " (:host ctx))
-                        {:host (:host ctx) :exit (:exit result) :err (:err result)}))))))
-
-(defn- check-robocode-installed!
-  "Verify the target host has a working Robocode installation."
-  [ctx]
-  (if (= :remote (:mode ctx))
-    (let [result (p/shell {:out :string :err :string :continue true}
-                          "ssh"
-                          "-o" (str "ControlPath=" (or @ssh-control-path "none"))
-                          (:host ctx)
-                          (str "test -d " (:robocode-home ctx) "/libs && echo OK"))]
-      (when (or (not= 0 (:exit result))
-                (not (str/includes? (:out result) "OK")))
-        (throw (ex-info (str "Robocode not installed on remote: " (:robocode-home ctx))
-                        {:host (:host ctx) :robocode-home (:robocode-home ctx)}))))
-    (when-not (fs/exists? (str (fs/expand-home "~/robocode") "/libs"))
-      (throw (ex-info "Robocode not installed locally: ~/robocode/libs not found" {})))))
-
-;; --- Caffeinate helpers (copied from benchmark.clj) ---
-
-(def ^:private caffeinate-pid (atom nil))
-(def ^:private remote-ctx (atom nil))
-
-(defn- start-caffeinate!
-  "Start caffeinate on the remote host to prevent macOS CPU throttling."
-  [ctx]
-  (when (= :remote (:mode ctx))
-    (reset! remote-ctx ctx)
-    (let [pid (str/trim (ssh! ctx "caffeinate -disu -t 7200 </dev/null >/dev/null 2>&1 & echo $!"))]
-      (reset! caffeinate-pid pid))))
-
-(defn- stop-caffeinate!
-  "Stop the remote caffeinate process."
-  []
-  (when-let [pid @caffeinate-pid]
-    (when-let [ctx @remote-ctx]
-      (try (ssh! ctx (str "kill " pid)) (catch Exception _)))
-    (reset! caffeinate-pid nil)))
-
-;; --- Worker setup (copied from benchmark.clj) ---
-
-(defn- ensure-robocode-copy!
-  "Create an APFS clone of the robocode installation for a worker."
-  [ctx worker-id]
-  (if (= :remote (:mode ctx))
-    (let [target (format "/tmp/robocode-%d" worker-id)]
-      (ssh! ctx (str "rm -rf " target
-                     " && cp -Rc " (:robocode-home ctx) " " target))
-      target)
-    (let [target (format ".tmp/robocode-%d" worker-id)
-          abs-target (str (fs/absolutize target))]
-      (fs/delete-tree target)
-      (fs/create-dirs ".tmp")
-      (p/shell {:out :string :err :string}
-               "cp" "-Rc" (str (fs/expand-home "~/robocode")) target)
-      abs-target)))
-
-;; --- Shutdown hook ---
-
-(def ^:private shutdown-hook (atom nil))
+            [clojure.string :as str]
+            [remote]))
 
 (defn- kill-remote-workers!
   "Kill any remote Java processes running RoboRumble."
   []
-  (when-let [ctx @remote-ctx]
-    (try (ssh! ctx "pkill -f 'roborumble.RoboRumbleAtHome' 2>/dev/null; true")
+  (when-let [ctx @remote/remote-ctx]
+    (try (remote/ssh! ctx "pkill -f 'roborumble.RoboRumbleAtHome' 2>/dev/null; true")
          (catch Exception _))))
 
 (defn- cleanup-worker-copies!
@@ -143,30 +16,10 @@
   [ctx n-workers]
   (try
     (if (= :remote (:mode ctx))
-      (ssh! ctx (str "rm -rf " (str/join " " (map #(format "/tmp/robocode-%d" %) (range n-workers)))))
+      (remote/ssh! ctx (str "rm -rf " (str/join " " (map #(format "/tmp/robocode-%d" %) (range n-workers)))))
       (doseq [wid (range n-workers)]
         (fs/delete-tree (format ".tmp/robocode-%d" wid))))
     (catch Exception _)))
-
-(defn- register-shutdown-hook!
-  "Register a JVM shutdown hook to clean up on Ctrl-C."
-  [ctx n-workers]
-  (when-not @shutdown-hook
-    (let [hook (Thread. ^Runnable (fn []
-                                   (println "\nShutting down...")
-                                   (kill-remote-workers!)
-                                   (cleanup-worker-copies! ctx n-workers)
-                                   (stop-caffeinate!)
-                                   (close-ssh-control!)))]
-      (reset! shutdown-hook hook)
-      (.addShutdownHook (Runtime/getRuntime) hook))))
-
-(defn- unregister-shutdown-hook!
-  "Remove the shutdown hook after normal cleanup."
-  []
-  (when-let [hook @shutdown-hook]
-    (try (.removeShutdownHook (Runtime/getRuntime) hook) (catch Exception _))
-    (reset! shutdown-hook nil)))
 
 ;; --- Worker ---
 
@@ -190,7 +43,7 @@
         prefix (format "[W%d]" *worker-id*)
         cmd (if (= :remote (:mode ctx))
               (cond-> ["ssh"]
-                @ssh-control-path (into ["-o" (str "ControlPath=" @ssh-control-path)])
+                @remote/ssh-control-path (into ["-o" (str "ControlPath=" @remote/ssh-control-path)])
                 true (into [(:host ctx)
                             (str "cd " robocode-home
                                  " && " java-cmd
@@ -258,23 +111,28 @@
   "Run N parallel RoboRumble client workers.
    Options: :local? - run locally instead of on remote host"
   [{:keys [local?]}]
-  (let [ctx (load-exec-ctx local?)
+  (let [ctx (remote/load-exec-ctx "roborumble.edn" local?)
         n-workers (:num-workers ctx)
         scope (if local? :local :remote)]
     (with-roborumble-lock scope
       (fn []
-        (open-ssh-control! ctx)
-        (start-caffeinate! ctx)
-        (register-shutdown-hook! ctx n-workers)
+        (remote/open-ssh-control! ctx "roborumble")
+        (remote/start-caffeinate! ctx)
+        (remote/register-shutdown-hook! (fn []
+                                          (println "\nShutting down...")
+                                          (kill-remote-workers!)
+                                          (cleanup-worker-copies! ctx n-workers)
+                                          (remote/stop-caffeinate!)
+                                          (remote/close-ssh-control!)))
         (try
-          (check-remote! ctx)
-          (check-robocode-installed! ctx)
+          (remote/check-remote! ctx)
+          (remote/check-robocode-installed! ctx)
           (println (format "RoboRumble: %d workers %s"
                            n-workers
                            (if (= :remote (:mode ctx))
                              (str "on " (:host ctx))
                              "locally")))
-          (let [worker-homes (mapv (partial ensure-robocode-copy! ctx) (range n-workers))
+          (let [worker-homes (mapv (partial remote/ensure-robocode-copy! ctx) (range n-workers))
                 futures (mapv (fn [wid]
                                 (future
                                   (binding [*worker-id* wid]
@@ -290,6 +148,6 @@
           (finally
             (kill-remote-workers!)
             (cleanup-worker-copies! ctx n-workers)
-            (stop-caffeinate!)
-            (close-ssh-control!)
-            (unregister-shutdown-hook!)))))))
+            (remote/stop-caffeinate!)
+            (remote/close-ssh-control!)
+            (remote/unregister-shutdown-hook!)))))))

@@ -3,147 +3,17 @@
             [babashka.process :as p]
             [clojure.edn :as edn]
             [clojure.string :as str]
-            [codesize]))
+            [codesize]
+            [remote]))
 
 (def ^:dynamic *robocode-home* (str (fs/expand-home "~/robocode")))
 (def ^:dynamic *worker-id* 0)
-(defn- load-exec-ctx
-  "Load execution context from benchmark.edn. Returns a context map with
-   :mode (:remote or :local), :host, :robocode-home, :java-home, :num-workers."
-  [local?]
-  (let [config (edn/read-string (slurp "benchmark.edn"))
-        mode   (if local? :local :remote)
-        raw    (get config mode)]
-    (if local?
-      {:mode          :local
-       :robocode-home (str (fs/expand-home "~/robocode"))
-       :java-home     (str (fs/expand-home (get raw :java-home
-                                               "~/.sdkman/candidates/java/21.0.11-amzn")))
-       :num-workers   (get raw :num-workers 5)}
-      {:mode          :remote
-       :host          (:host raw)
-       :robocode-home (:robocode-home raw "~/robocode")
-       :java-home     (:java-home raw "~/.sdkman/candidates/java/21.0.11-amzn")
-       :num-workers   (get raw :num-workers 8)
-       :cpu-constant  (:cpu-constant raw)})))
-
-(def ssh-control-path (atom nil))
-
-(defn- open-ssh-control!
-  "Open an SSH ControlMaster socket for connection multiplexing.
-   Stores the socket path in ssh-control-path atom."
-  [ctx]
-  (when (= :remote (:mode ctx))
-    (let [socket (str "/tmp/ssh-bench-" (System/currentTimeMillis) ".sock")]
-      (p/shell {:out :string :err :string}
-               "ssh" "-MNf"
-               "-o" "ControlPersist=yes"
-               "-o" (str "ControlPath=" socket)
-               (:host ctx))
-      (reset! ssh-control-path socket))))
-
-(defn- close-ssh-control!
-  "Close the SSH ControlMaster socket."
-  []
-  (when-let [socket @ssh-control-path]
-    (p/shell {:out :string :err :string :continue true}
-             "ssh" "-O" "exit"
-             "-o" (str "ControlPath=" socket)
-             "ignored-host")
-    (reset! ssh-control-path nil)))
-
-(defn- ssh!
-  "Run a shell command on the remote host via SSH, returning stdout as a string.
-   Uses ControlMaster socket if available."
-  [ctx cmd]
-  (let [args (cond-> ["ssh"]
-               @ssh-control-path (into ["-o" (str "ControlPath=" @ssh-control-path)])
-               true (into [(:host ctx) cmd]))
-        result (apply p/shell {:out :string :err :string} args)]
-    (:out result)))
-
-(defn- scp-to-remote!
-  "Copy a local file to remote host:path."
-  [ctx local-path remote-path]
-  (let [args (cond-> ["scp"]
-               @ssh-control-path (into ["-o" (str "ControlPath=" @ssh-control-path)])
-               true (into [local-path (str (:host ctx) ":" remote-path)]))]
-    (apply p/shell {:out :string :err :string} args)))
-
-(defn- check-remote!
-  "Fail fast if the remote host is unreachable or Java is missing."
-  [ctx]
-  (when (= :remote (:mode ctx))
-    (let [result (p/shell {:out :string :err :string :continue true}
-                          "ssh"
-                          "-o" (str "ControlPath=" (or @ssh-control-path "none"))
-                          "-o" "ConnectTimeout=5"
-                          (:host ctx)
-                          (str (:java-home ctx) "/bin/java -version"))]
-      (when (not= 0 (:exit result))
-        (throw (ex-info (str "Remote host unreachable or Java not found: " (:host ctx))
-                        {:host (:host ctx) :exit (:exit result) :err (:err result)}))))))
-
-(defn- check-robocode-installed!
-  "Verify the target host has a working Robocode installation."
-  [ctx]
-  (if (= :remote (:mode ctx))
-    (let [result (p/shell {:out :string :err :string :continue true}
-                          "ssh"
-                          "-o" (str "ControlPath=" (or @ssh-control-path "none"))
-                          (:host ctx)
-                          (str "test -d " (:robocode-home ctx) "/libs && echo OK"))]
-      (when (or (not= 0 (:exit result))
-                (not (str/includes? (:out result) "OK")))
-        (throw (ex-info (str "Robocode not installed on remote: " (:robocode-home ctx))
-                        {:host (:host ctx) :robocode-home (:robocode-home ctx)}))))
-    (when-not (fs/exists? (str (fs/expand-home "~/robocode") "/libs"))
-      (throw (ex-info "Robocode not installed locally: ~/robocode/libs not found" {})))))
-
-(def ^:private caffeinate-pid (atom nil))
-(def ^:private remote-ctx (atom nil))
-
-(defn- start-caffeinate!
-  "Start caffeinate on the remote host to prevent macOS CPU throttling."
-  [ctx]
-  (when (= :remote (:mode ctx))
-    (reset! remote-ctx ctx)
-    (let [pid (str/trim (ssh! ctx "caffeinate -disu -t 7200 </dev/null >/dev/null 2>&1 & echo $!"))]
-      (reset! caffeinate-pid pid))))
-
-(defn- stop-caffeinate!
-  "Stop the remote caffeinate process."
-  []
-  (when-let [pid @caffeinate-pid]
-    (when-let [ctx @remote-ctx]
-      (try (ssh! ctx (str "kill " pid)) (catch Exception _)))
-    (reset! caffeinate-pid nil)))
 
 (defn- kill-remote-battles!
   "Kill any remote Java processes running benchmark battles."
   []
-  (when-let [ctx @remote-ctx]
-    (try (ssh! ctx "pkill -f 'benchmark-[0-9]+\\.battle' 2>/dev/null; true") (catch Exception _))))
-
-(def ^:private shutdown-hook (atom nil))
-
-(defn- register-shutdown-hook!
-  "Register a JVM shutdown hook to clean up on Ctrl-C."
-  []
-  (when-not @shutdown-hook
-    (let [hook (Thread. ^Runnable (fn []
-                                   (kill-remote-battles!)
-                                   (stop-caffeinate!)
-                                   (close-ssh-control!)))]
-      (reset! shutdown-hook hook)
-      (.addShutdownHook (Runtime/getRuntime) hook))))
-
-(defn- unregister-shutdown-hook!
-  "Remove the shutdown hook after normal cleanup."
-  []
-  (when-let [hook @shutdown-hook]
-    (try (.removeShutdownHook (Runtime/getRuntime) hook) (catch Exception _))
-    (reset! shutdown-hook nil)))
+  (when-let [ctx @remote/remote-ctx]
+    (try (remote/ssh! ctx "pkill -f 'benchmark-[0-9]+\\.battle' 2>/dev/null; true") (catch Exception _))))
 
 ;; Backward-compat vars; replaced by ctx in Phase 4
 (def num-workers 5)
@@ -216,12 +86,12 @@
       (let [tmp-jar (str (fs/absolutize (str ".tmp/" jar-name)))
             remote-robots (str (:robocode-home ctx) "/robots/")]
         (check-version-collision! bot (read-robot-version props-file)
-                                  (-> (ssh! ctx (str "ls " remote-robots))
+                                  (-> (remote/ssh! ctx (str "ls " remote-robots))
                                       str/split-lines))
         (fs/create-dirs ".tmp")
         (apply p/shell {:dir classes-root} "jar" "cf" tmp-jar entries)
-        (scp-to-remote! ctx tmp-jar (str remote-robots jar-name))
-        (ssh! ctx (str "rm -f " remote-robots "robot.database")))
+        (remote/scp-to-remote! ctx tmp-jar (str remote-robots jar-name))
+        (remote/ssh! ctx (str "rm -f " remote-robots "robot.database")))
       (let [jar-path (str *robocode-home* "/robots/" jar-name)]
         (check-version-collision! bot (read-robot-version props-file)
                                   (->> (fs/list-dir (str *robocode-home* "/robots/"))
@@ -346,28 +216,28 @@
                               "robocode.battle.hideEnemyNames=true\n"
                               "robocode.battle.selectedRobots=" bot "," opponent "\n")
           ssh-base      (cond-> ["ssh"]
-                          @ssh-control-path (into ["-o" (str "ControlPath=" @ssh-control-path)])
+                          @remote/ssh-control-path (into ["-o" (str "ControlPath=" @remote/ssh-control-path)])
                           true (conj (:host ctx)))]
       ;; Write battle file via stdin — avoids all quoting/escaping issues with content
       (apply p/shell {:in battle-content :out :string :err :string}
              (conj (vec ssh-base) (str "cat > " battle-path)))
       ;; Run Robocode, cat results, cleanup — all in one SSH call
       ;; Redirect Robocode stdout/stderr to /dev/null so only cat output comes through
-      (ssh! ctx (str "cd " robo-home
-                     " && " java-cmd
-                     " -Djava.awt.headless=true"
-                     " -cp 'libs/*'"
-                     " -Xmx512M"
-                     " -XX:+IgnoreUnrecognizedVMOptions"
-                     " --add-opens=java.base/sun.net.www.protocol.jar=ALL-UNNAMED"
-                     " --add-opens=java.base/java.lang.reflect=ALL-UNNAMED"
-                     " robocode.Robocode"
-                     " -nodisplay -nosound"
-                     " -battle " battle-path
-                     " -results " results-path
-                     " > /dev/null 2>&1"
-                     " ; cat " results-path
-                     " ; rm -f " battle-path " " results-path)))))
+      (remote/ssh! ctx (str "cd " robo-home
+                            " && " java-cmd
+                            " -Djava.awt.headless=true"
+                            " -cp 'libs/*'"
+                            " -Xmx512M"
+                            " -XX:+IgnoreUnrecognizedVMOptions"
+                            " --add-opens=java.base/sun.net.www.protocol.jar=ALL-UNNAMED"
+                            " --add-opens=java.base/java.lang.reflect=ALL-UNNAMED"
+                            " robocode.Robocode"
+                            " -nodisplay -nosound"
+                            " -battle " battle-path
+                            " -results " results-path
+                            " > /dev/null 2>&1"
+                            " ; cat " results-path
+                            " ; rm -f " battle-path " " results-path)))))
 
 (defn- parse-results [results-text]
   (let [lines (str/split-lines (str/trim results-text))
@@ -549,27 +419,6 @@
       (fs/copy jar-path (str dir base ".jar") {:replace-existing true}))
     (println (format "\nResults saved to %s" path))))
 
-(defn- ensure-robocode-copy!
-  "Create an APFS clone of the robocode installation for a worker.
-   Local mode: cp -Rc ~/robocode .tmp/robocode-N, returns absolute path.
-   Remote mode: cp -Rc on remote machine, returns remote path."
-  [ctx worker-id]
-  (if (= :remote (:mode ctx))
-    (let [target (format "/tmp/robocode-%d" worker-id)
-          robo-home (:robocode-home ctx)]
-      (ssh! ctx (str "rm -rf " target
-                     " && cp -Rc " robo-home " " target))
-      (when-let [cpu (:cpu-constant ctx)]
-        (ssh! ctx (format "sed -i '' 's/robocode.cpu.constant=.*/robocode.cpu.constant=%d/' %s/config/robocode.properties" cpu target)))
-      target)
-    (let [target (format ".tmp/robocode-%d" worker-id)
-          abs-target (str (fs/absolutize target))]
-      (fs/delete-tree target)
-      (fs/create-dirs ".tmp")
-      (p/shell {:out :string :err :string}
-               "cp" "-Rc" (str (fs/expand-home "~/robocode")) target)
-      abs-target)))
-
 (defn benchmark!
   "Run benchmark battles and report APS per category.
    Options: :bot - fully qualified bot name
@@ -587,17 +436,20 @@
     (println "         bb benchmark pez.mini.Pugilist 100 10 HEAD~3")
     (println "         bb benchmark pez.mini.Pugilist 100 10 - config/my-roster.edn")
     (System/exit 1))
-  (let [ctx         (load-exec-ctx local?)
+  (let [ctx         (remote/load-exec-ctx "benchmark.edn" local?)
         roster-path (or roster default-roster)
         roster-data (load-roster roster-path)
         commit-info (when commit (resolve-commit commit))
         num-matches (max 1 (quot rounds match-length))]
-    (open-ssh-control! ctx)
-    (start-caffeinate! ctx)
-    (register-shutdown-hook!)
+    (remote/open-ssh-control! ctx "bench")
+    (remote/start-caffeinate! ctx)
+    (remote/register-shutdown-hook! (fn []
+                                      (kill-remote-battles!)
+                                      (remote/stop-caffeinate!)
+                                      (remote/close-ssh-control!)))
     (try
-      (check-remote! ctx)
-      (check-robocode-installed! ctx)
+      (remote/check-remote! ctx)
+      (remote/check-robocode-installed! ctx)
       (build-and-deploy! ctx bot commit)
       (let [jar-path (if (= :remote (:mode ctx))
                        (str (fs/absolutize (str ".tmp/" bot "_benched.jar")))
@@ -609,19 +461,16 @@
             start-ms (System/currentTimeMillis)
             timestamp (.format (java.time.LocalDateTime/now)
                                (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd_HHmmss"))
-            ;; Worker 0 = original ~/robocode, workers 1..n-1 = APFS clones
-            _ (when (> n-workers 1)
-                (println (format "Setting up %d robocode instances..." n-workers)))
-            worker-homes (into [(:robocode-home ctx)]
-                               (map (partial ensure-robocode-copy! ctx))
-                               (range 1 n-workers))
+            ;; All workers use APFS clones — original ~/robocode is never a battle dir
+            _ (println (format "Setting up %d robocode instance%s..." n-workers (if (> n-workers 1) "s" "")))
+            worker-homes (mapv (partial remote/ensure-robocode-copy! ctx) (range n-workers))
             ;; Round-robin shard opponents across workers
             shards (reduce (fn [acc [i opp]]
                              (update acc (mod i n-workers) conj opp))
                            (vec (repeat n-workers []))
                            (map-indexed vector opponents))
             opp->index (into {} (map-indexed (fn [i o] [o i]) opponents))]
-        (println (format "Running %s\nBenchmark: %d opponents, %d\u00d7%d rounds each, %d workers, bot: %s%s%s\n"
+        (println (format "Running %s\nBenchmark: %d opponents, %d×%d rounds each, %d workers, bot: %s%s%s\n"
                          (if (= :remote (:mode ctx))
                            (str "on: " (:host ctx))
                            "locally")
@@ -645,9 +494,9 @@
                                                (locking *out*
                                                  (if result
                                                    (let [diff-str (if-let [ra (:roster-aps result)]
-                                                                    (format "  \u0394%+.1f" (- (:aps result) ra))
+                                                                    (format "  Δ%+.1f" (- (:aps result) ra))
                                                                     "")]
-                                                     (println (format "  [%2d/%d] vs %-40s %6.2f%% APS  (%.1f\u2013%.1f \u00b1%.1f)%s"
+                                                     (println (format "  [%2d/%d] vs %-40s %6.2f%% APS  (%.1f–%.1f ±%.1f)%s"
                                                                       done total opponent
                                                                       (:aps result) (:min-aps result) (:max-aps result) (:stddev result)
                                                                       diff-str)))
@@ -670,14 +519,15 @@
             (println)
             (save-results! bot rounds match-length all-results timestamp commit-info elapsed-s jar-path))
           (if (= :remote (:mode ctx))
-            (ssh! ctx (str "rm -rf " (str/join " " (map #(format "/tmp/robocode-%d" %) (range 1 n-workers)))))
+            (remote/ssh! ctx (str "rm -rf " (str/join " " (map #(format "/tmp/robocode-%d" %) (range n-workers)))))
             (doseq [wid (range n-workers)]
+              (fs/delete-tree (format ".tmp/robocode-%d" wid))
               (fs/delete-if-exists (format ".tmp/benchmark-%d.battle" wid))
               (fs/delete-if-exists (format ".tmp/benchmark-results-%d.txt" wid))))))
       (finally
-        (stop-caffeinate!)
-        (close-ssh-control!)
-        (unregister-shutdown-hook!)))))
+        (remote/stop-caffeinate!)
+        (remote/close-ssh-control!)
+        (remote/unregister-shutdown-hook!)))))
 
 (defn- run-benchmark-worker!
   "Run a complete benchmark for a single ref using a specific robocode copy.
@@ -730,7 +580,7 @@
     (println "Usage: bb benchmark-parallel <bot> <rounds> <ref1> [ref2] ... [current]")
     (println "Example: bb benchmark-parallel pez.mini.Pugilist 105 pez.mini.Pugilist_2.5.4 current")
     (System/exit 1))
-  (let [ctx (load-exec-ctx true)
+  (let [ctx (remote/load-exec-ctx "benchmark.edn" true)
         roster-data (load-roster default-roster)
         n (count refs)
         num-matches (max 1 (quot rounds match-length))
@@ -745,7 +595,7 @@
           (mapv (fn [[i ref]]
                   (let [label (or ref "current")
                         _ (println (format "  [%d] Setting up robocode copy for %s..." i label))
-                        robo-home (ensure-robocode-copy! ctx i)]
+                        robo-home (remote/ensure-robocode-copy! ctx i)]
                     (println (format "  [%d] Building %s..." i label))
                     (binding [*robocode-home* robo-home
                               *worker-id* i]
