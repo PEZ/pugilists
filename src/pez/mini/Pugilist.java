@@ -117,10 +117,9 @@ public class Pugilist extends AdvancedRobot {
         }
         wave.bulletVelocity = 20 - 3 * bulletPower;
         wave.calcBearingDirection(enemyBearingDirection);
-        wave.ws = wallSmooth(enemyLocation, robotLocation, enemyBearingDirection);
         wave.visits = Wave.gunFactors[distanceIndex][velocityIndex][velocityIndex = (int) Math
                 .abs(enemyVelocity)][(int) Math.clamp((long) (Math.pow(enemyTSVC++, 0.45) - 1), 0,
-                        Wave.VCHANGE_TIME_INDEXES - 1)];
+                        Wave.VCHANGE_TIME_INDEXES - 1)][wallSmooth(enemyLocation, robotLocation, enemyBearingDirection) / (MAX_WALL_SMOOTH / Wave.WALL_INDEXES + 1)];
 
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
                 wave.bearingDirection * (wave.mostVisited() - Wave.MIDDLE_FACTOR)
@@ -183,7 +182,7 @@ public class Pugilist extends AdvancedRobot {
         static final int VCHANGE_TIME_INDEXES = 6;
         static final int FACTORS = 31;
         static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
-        static double[][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][FACTORS];
+        static double[][][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][FACTORS];
         static double[][][][] surfFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][FACTORS];
         static double[] fastFactors = new double[FACTORS];
         static {
@@ -203,7 +202,6 @@ public class Pugilist extends AdvancedRobot {
         double distanceFromGun;
         boolean enemyWave;
         boolean surfable;
-        int ws;
         double[] visits;
 
         public boolean test() {
@@ -223,7 +221,7 @@ public class Pugilist extends AdvancedRobot {
                 }
             } else if (passed(0)) {
                 if (r.getOthers() > 0) {
-                    registerVisits(visits, ws < 40 ? 200 : 500);
+                    registerVisits(visits, 500);
                 }
                 r.removeCustomEvent(this);
             }
