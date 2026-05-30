@@ -28,10 +28,15 @@
                                     :all (= "--all" (first *command-line-args*))})}
 
   benchmark {:doc "Run benchmark, queued if the same execution target is already running: bb benchmark <bot> [rounds] [match-length] [commit] [roster] [--local] [--workers N]"
-             :task (let [workers-idx (.indexOf (vec *command-line-args*) "--workers")
-                         num-workers (when (pos? workers-idx) (parse-long (nth *command-line-args* (inc workers-idx))))
-                         args (cond->> (remove #{"--local"} *command-line-args*)
-                                workers-idx (remove #{"--workers" (str num-workers)}))
+             :task (let [num-workers (or (some (fn [a] (when (clojure.string/starts-with? a "--workers=")
+                                                        (parse-long (subs a 10))))
+                                               *command-line-args*)
+                                        (let [idx (.indexOf (vec *command-line-args*) "--workers")]
+                                          (when (>= idx 0)
+                                            (parse-long (nth *command-line-args* (inc idx) nil)))))
+                         args (->> *command-line-args*
+                                   (remove #{"--local" "--workers" (str num-workers)})
+                                   (remove (fn [a] (clojure.string/starts-with? a "--workers="))))
                          local? (boolean (some #{"--local"} *command-line-args*))]
                      (benchmark/queued-benchmark! {:bot (first args)
                                                    :rounds (parse-long (or (second args) "100"))
@@ -58,8 +63,12 @@
            :task (publish/publish!)}
 
   roborumble {:doc "Run RoboRumble client (remote by default): bb roborumble [--local] [--workers N]"
-              :task (let [workers-idx (.indexOf (vec *command-line-args*) "--workers")
-                          num-workers (when (pos? workers-idx) (parse-long (nth *command-line-args* (inc workers-idx))))
+              :task (let [num-workers (or (some (fn [a] (when (clojure.string/starts-with? a "--workers=")
+                                                         (parse-long (subs a 10))))
+                                                *command-line-args*)
+                                         (let [idx (.indexOf (vec *command-line-args*) "--workers")]
+                                           (when (>= idx 0)
+                                             (parse-long (nth *command-line-args* (inc idx) nil)))))
                           local? (boolean (some #{"--local"} *command-line-args*))]
                       (roborumble/run! {:local? local? :num-workers num-workers}))}
 
