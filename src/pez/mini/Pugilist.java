@@ -119,7 +119,7 @@ public class Pugilist extends AdvancedRobot {
         wave.calcBearingDirection(enemyBearingDirection);
         wave.visits = Wave.gunFactors[distanceIndex][velocityIndex][velocityIndex = (int) Math
                 .abs(enemyVelocity)][(int) Math.clamp((long) (Math.pow(enemyTSVC++, 0.45) - 1), 0,
-                        Wave.VCHANGE_TIME_INDEXES - 1)][wallIndex(wave)];
+                        Wave.VCHANGE_TIME_INDEXES - 1)][wallSmooth(enemyLocation, robotLocation, enemyBearingDirection) / 25];
 
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
                 wave.bearingDirection * (wave.mostVisited() - Wave.MIDDLE_FACTOR)
@@ -134,15 +134,6 @@ public class Pugilist extends AdvancedRobot {
     public void onHitByBullet(HitByBulletEvent e) {
         Wave.passingWave.registerVisits(Wave.passingWave.visits, 5);
         Wave.passingWave.registerVisits(Wave.fastFactors, 1);
-    }
-
-    static int wallIndex(Wave wave) {
-        int wallIndex = 0;
-        do {
-            wallIndex++;
-        } while (wallIndex < Wave.WALL_INDEXES && fieldRectangle.contains(project(wave.gunLocation,
-                wave.startBearing + wave.bearingDirection * (wallIndex * 5.5), enemyDistance)));
-        return wallIndex - 1;
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
