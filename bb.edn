@@ -1,7 +1,7 @@
 {:paths ["scripts"]
  :deps {org.babashka/http-client {:mvn/version "0.4.22"}}
  :tasks
- {:requires ([robocode] [codesize] [battle] [install] [benchmark] [publish] [extract-bot] [rumble-roster])
+ {:requires ([robocode] [codesize] [battle] [install] [benchmark] [publish] [extract-bot] [rumble-roster] [roborumble])
 
   robocode {:doc "Launch Robocode"
             :task (robocode/launch! nil)}
@@ -53,8 +53,9 @@
   publish {:doc "Build and deploy to Netlify"
            :task (publish/publish!)}
 
-  roborumble {:doc "Run the RoboRumble client"
-              :task (robocode/roborumble! nil)}
+  roborumble {:doc "Run RoboRumble client (remote by default): bb roborumble [--local]"
+              :task (let [local? (boolean (some #{"--local"} *command-line-args*))]
+                      (roborumble/run! {:local? local?}))}
 
   extract-bot {:doc "Copy a bot jar to research/bots: bb extract-bot sheldor.mini.Foilist"
                :task (extract-bot/extract! {:bot (first *command-line-args*)})}

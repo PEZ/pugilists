@@ -84,6 +84,22 @@
         (throw (ex-info (str "Remote host unreachable or Java not found: " (:host ctx))
                         {:host (:host ctx) :exit (:exit result) :err (:err result)}))))))
 
+(defn- check-robocode-installed!
+  "Verify the target host has a working Robocode installation."
+  [ctx]
+  (if (= :remote (:mode ctx))
+    (let [result (p/shell {:out :string :err :string :continue true}
+                          "ssh"
+                          "-o" (str "ControlPath=" (or @ssh-control-path "none"))
+                          (:host ctx)
+                          (str "test -d " (:robocode-home ctx) "/libs && echo OK"))]
+      (when (or (not= 0 (:exit result))
+                (not (str/includes? (:out result) "OK")))
+        (throw (ex-info (str "Robocode not installed on remote: " (:robocode-home ctx))
+                        {:host (:host ctx) :robocode-home (:robocode-home ctx)}))))
+    (when-not (fs/exists? (str (fs/expand-home "~/robocode") "/libs"))
+      (throw (ex-info "Robocode not installed locally: ~/robocode/libs not found" {})))))
+
 (def ^:private caffeinate-pid (atom nil))
 (def ^:private remote-ctx (atom nil))
 
@@ -581,6 +597,7 @@
     (register-shutdown-hook!)
     (try
       (check-remote! ctx)
+      (check-robocode-installed! ctx)
       (build-and-deploy! ctx bot commit)
       (let [jar-path (if (= :remote (:mode ctx))
                        (str (fs/absolutize (str ".tmp/" bot "_benched.jar")))
