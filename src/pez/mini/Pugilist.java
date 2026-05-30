@@ -178,7 +178,7 @@ public class Pugilist extends AdvancedRobot {
     static class Wave extends Condition {
         static final int DISTANCE_INDEXES = 5;
         static final int VELOCITY_INDEXES = 9;
-        static final int WALL_INDEXES = 4;
+        static final int WALL_INDEXES = 5;
         static final int VCHANGE_TIME_INDEXES = 6;
         static final int FACTORS = 31;
         static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
