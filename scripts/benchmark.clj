@@ -426,7 +426,7 @@
             :match-length - rounds per match (default: 35, like LiteRumble)
             :commit - optional git ref to benchmark (default: working tree)
             :roster - path to roster EDN file (default: config/benchmark-roster.edn)"
-  [{:keys [bot rounds match-length commit roster local?]
+  [{:keys [bot rounds match-length commit roster local? num-workers]
     :or {rounds 105 match-length 35}}]
   (when-not bot
     (println "Usage: bb benchmark <bot> [rounds] [match-length] [commit] [roster]")
@@ -436,7 +436,8 @@
     (println "         bb benchmark pez.mini.Pugilist 100 10 HEAD~3")
     (println "         bb benchmark pez.mini.Pugilist 100 10 - config/my-roster.edn")
     (System/exit 1))
-  (let [ctx         (remote/load-exec-ctx "benchmark.edn" local?)
+  (let [ctx         (cond-> (remote/load-exec-ctx "benchmark.edn" local?)
+                      num-workers (assoc :num-workers num-workers))
         roster-path (or roster default-roster)
         roster-data (load-roster roster-path)
         commit-info (when commit (resolve-commit commit))

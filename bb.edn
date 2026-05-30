@@ -27,8 +27,11 @@
                                           (first *command-line-args*))
                                     :all (= "--all" (first *command-line-args*))})}
 
-  benchmark {:doc "Run benchmark, queued if the same execution target is already running: bb benchmark <bot> [rounds] [match-length] [commit] [roster] [--local]"
-             :task (let [args (remove #{"--local"} *command-line-args*)
+  benchmark {:doc "Run benchmark, queued if the same execution target is already running: bb benchmark <bot> [rounds] [match-length] [commit] [roster] [--local] [--workers N]"
+             :task (let [workers-idx (.indexOf (vec *command-line-args*) "--workers")
+                         num-workers (when (pos? workers-idx) (parse-long (nth *command-line-args* (inc workers-idx))))
+                         args (cond->> (remove #{"--local"} *command-line-args*)
+                                workers-idx (remove #{"--workers" (str num-workers)}))
                          local? (boolean (some #{"--local"} *command-line-args*))]
                      (benchmark/queued-benchmark! {:bot (first args)
                                                    :rounds (parse-long (or (second args) "100"))
@@ -36,7 +39,8 @@
                                                    :commit (let [c (nth args 3 nil)]
                                                              (when-not (= "-" c) c))
                                                    :roster (nth args 4 nil)
-                                                   :local? local?}))}
+                                                   :local? local?
+                                                   :num-workers num-workers}))}
 
   benchmark-report {:doc "Render benchmark log in report format: bb benchmark-report <log.edn> [output.md]"
                     :task (benchmark/report-log! {:log (first *command-line-args*)
@@ -53,9 +57,11 @@
   publish {:doc "Build and deploy to Netlify"
            :task (publish/publish!)}
 
-  roborumble {:doc "Run RoboRumble client (remote by default): bb roborumble [--local]"
-              :task (let [local? (boolean (some #{"--local"} *command-line-args*))]
-                      (roborumble/run! {:local? local?}))}
+  roborumble {:doc "Run RoboRumble client (remote by default): bb roborumble [--local] [--workers N]"
+              :task (let [workers-idx (.indexOf (vec *command-line-args*) "--workers")
+                          num-workers (when (pos? workers-idx) (parse-long (nth *command-line-args* (inc workers-idx))))
+                          local? (boolean (some #{"--local"} *command-line-args*))]
+                      (roborumble/run! {:local? local? :num-workers num-workers}))}
 
   extract-bot {:doc "Copy a bot jar to research/bots: bb extract-bot sheldor.mini.Foilist"
                :task (extract-bot/extract! {:bot (first *command-line-args*)})}

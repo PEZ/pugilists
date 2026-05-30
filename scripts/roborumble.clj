@@ -109,9 +109,11 @@
 
 (defn run!
   "Run N parallel RoboRumble client workers.
-   Options: :local? - run locally instead of on remote host"
-  [{:keys [local?]}]
-  (let [ctx (remote/load-exec-ctx "roborumble.edn" local?)
+   Options: :local? - run locally instead of on remote host
+            :num-workers - override worker count from config"
+  [{:keys [local? num-workers]}]
+  (let [ctx (cond-> (remote/load-exec-ctx "roborumble.edn" local?)
+              num-workers (assoc :num-workers num-workers))
         n-workers (:num-workers ctx)
         scope (if local? :local :remote)]
     (with-roborumble-lock scope
