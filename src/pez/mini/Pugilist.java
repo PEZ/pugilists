@@ -117,9 +117,10 @@ public class Pugilist extends AdvancedRobot {
         }
         wave.bulletVelocity = 20 - 3 * bulletPower;
         wave.calcBearingDirection(enemyBearingDirection);
+        int ws = wallSmooth(enemyLocation, robotLocation, enemyBearingDirection);
         wave.visits = Wave.gunFactors[distanceIndex][velocityIndex][velocityIndex = (int) Math
                 .abs(enemyVelocity)][(int) Math.clamp((long) (Math.pow(enemyTSVC++, 0.45) - 1), 0,
-                        Wave.VCHANGE_TIME_INDEXES - 1)][wallSmooth(enemyLocation, robotLocation, enemyBearingDirection) / (MAX_WALL_SMOOTH / Wave.WALL_INDEXES + 1)];
+                        Wave.VCHANGE_TIME_INDEXES - 1)][ws * ws * Wave.WALL_INDEXES / ((MAX_WALL_SMOOTH + 1) * (MAX_WALL_SMOOTH + 1))];
 
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
                 wave.bearingDirection * (wave.mostVisited() - Wave.MIDDLE_FACTOR)
