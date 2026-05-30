@@ -38,6 +38,7 @@ public class Pugilist extends AdvancedRobot {
     static double enemyBearingDirection;
     static int enemyTSVC;
 
+    static int wallSmoothSurf;
     static double enemyFirePower = MAX_BULLET_POWER;
     static double robotVelocity;
     static double robotBD = 1;
@@ -73,8 +74,6 @@ public class Pugilist extends AdvancedRobot {
         ew.calcBearingDirection(direction);
         ew.enemyWave = true;
         int distanceIndex = (int) Math.min(Wave.DISTANCE_INDEXES - 1, enemyDistance / 180);
-        ew.visits = Wave.surfFactors[distanceIndex][(int) Math.abs(robotVelocity)][(int) Math
-                .abs(robotVelocity = getVelocity())];
         ew.targetLocation = robotLocation;
 
         robotLocation.setLocation(getX(), getY());
@@ -96,8 +95,11 @@ public class Pugilist extends AdvancedRobot {
                 .cos(angle = wave.gunBearing(wallSmoothedDestination(robotLocation, direction)) - getHeadingRadians())
                 * 100);
         setTurnRightRadians(Math.tan(angle));
-
         setTurnRadarRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getRadarHeadingRadians()) * 2);
+
+        ew.visits = Wave.surfFactors[distanceIndex][(int) Math.abs(robotVelocity / 2)][(int) Math
+                .abs(robotVelocity = getVelocity() / 2)][wallSmoothIndex(wallSmoothSurf)];
+
         Wave.dangerForward = Wave.dangerReverse = 0;
         // </movement>
 
@@ -118,8 +120,10 @@ public class Pugilist extends AdvancedRobot {
         wave.bulletVelocity = 20 - 3 * bulletPower;
         wave.calcBearingDirection(enemyBearingDirection);
         wave.visits = Wave.gunFactors[distanceIndex][velocityIndex][velocityIndex = (int) Math
-                .abs(enemyVelocity)][(int) Math.clamp((long) (Math.pow(enemyTSVC++, 0.45) - 1), 0,
-                        Wave.VCHANGE_TIME_INDEXES - 1)][wallSmooth(enemyLocation, robotLocation, enemyBearingDirection) / (MAX_WALL_SMOOTH / Wave.WALL_INDEXES + 1)];
+                .abs(enemyVelocity / 2)][(int) Math.min((int) Math.pow(enemyTSVC++, 0.45),
+                        Wave.VCHANGE_TIME_INDEXES - 1)][wallSmoothIndex(
+                                wallSmooth(enemyLocation, robotLocation, enemyBearingDirection))][wallSmoothIndex(
+                                        wallSmooth(enemyLocation, robotLocation, -enemyBearingDirection))];
 
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
                 wave.bearingDirection * (wave.mostVisited() - Wave.MIDDLE_FACTOR)
@@ -136,6 +140,10 @@ public class Pugilist extends AdvancedRobot {
         Wave.passingWave.registerVisits(Wave.fastFactors, 1);
     }
 
+    static int wallSmoothIndex(int smoothing) {
+        return smoothing / (MAX_WALL_SMOOTH / (Wave.WALL_INDEXES - 1));
+    }
+
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
         int s = wallSmooth(location, enemyLocation, direction);
         if (s >= MAX_WALL_SMOOTH - 1) {
@@ -145,6 +153,9 @@ public class Pugilist extends AdvancedRobot {
                 s = rs;
             }
         }
+        wallSmoothSurf = s;
+        // System.out.println("wall smooth: " + s);
+
         return orbitProject(location, enemyLocation, direction, s - 1);
     }
 
@@ -177,13 +188,13 @@ public class Pugilist extends AdvancedRobot {
 
     static class Wave extends Condition {
         static final int DISTANCE_INDEXES = 5;
-        static final int VELOCITY_INDEXES = 9;
+        static final int VELOCITY_INDEXES = 5;
         static final int WALL_INDEXES = 4;
-        static final int VCHANGE_TIME_INDEXES = 6;
+        static final int VCHANGE_TIME_INDEXES = 5;
         static final int FACTORS = 31;
         static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
-        static double[][][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][FACTORS];
-        static double[][][][] surfFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][FACTORS];
+        static double[][][][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][WALL_INDEXES][FACTORS];
+        static double[][][][][] surfFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][WALL_INDEXES][FACTORS];
         static double[] fastFactors = new double[FACTORS];
         static {
             fastFactors[0] = 0.05;
