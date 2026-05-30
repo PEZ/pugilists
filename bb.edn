@@ -1,7 +1,8 @@
 {:paths ["scripts"]
  :deps {org.babashka/http-client {:mvn/version "0.4.22"}}
  :tasks
- {:requires ([robocode] [codesize] [battle] [install] [benchmark] [publish] [extract-bot] [rumble-roster] [roborumble])
+ {:requires ([babashka.cli :as cli]
+             [robocode] [codesize] [battle] [install] [benchmark] [publish] [extract-bot] [rumble-roster] [roborumble])
 
   robocode {:doc "Launch Robocode"
             :task (robocode/launch! nil)}
@@ -28,24 +29,17 @@
                                     :all (= "--all" (first *command-line-args*))})}
 
   benchmark {:doc "Run benchmark, queued if the same execution target is already running: bb benchmark <bot> [rounds] [match-length] [commit] [roster] [--local] [--workers N]"
-             :task (let [num-workers (or (some (fn [a] (when (clojure.string/starts-with? a "--workers=")
-                                                        (parse-long (subs a 10))))
-                                               *command-line-args*)
-                                        (let [idx (.indexOf (vec *command-line-args*) "--workers")]
-                                          (when (>= idx 0)
-                                            (parse-long (nth *command-line-args* (inc idx) nil)))))
-                         args (->> *command-line-args*
-                                   (remove #{"--local" "--workers" (str num-workers)})
-                                   (remove (fn [a] (clojure.string/starts-with? a "--workers="))))
-                         local? (boolean (some #{"--local"} *command-line-args*))]
-                     (benchmark/queued-benchmark! {:bot (first args)
-                                                   :rounds (parse-long (or (second args) "100"))
-                                                   :match-length (parse-long (or (nth args 2 nil) "35"))
-                                                   :commit (let [c (nth args 3 nil)]
+             :task (let [opts (cli/parse-opts *command-line-args*
+                                             {:coerce {:workers :int :local :boolean}
+                                              :args->opts [:bot :rounds :match-length :commit :roster]})]
+                     (benchmark/queued-benchmark! {:bot (:bot opts)
+                                                   :rounds (or (:rounds opts) 100)
+                                                   :match-length (or (:match-length opts) 35)
+                                                   :commit (let [c (:commit opts)]
                                                              (when-not (= "-" c) c))
-                                                   :roster (nth args 4 nil)
-                                                   :local? local?
-                                                   :num-workers num-workers}))}
+                                                   :roster (:roster opts)
+                                                   :local? (boolean (:local opts))
+                                                   :num-workers (:workers opts)}))}
 
   benchmark-report {:doc "Render benchmark log in report format: bb benchmark-report <log.edn> [output.md]"
                     :task (benchmark/report-log! {:log (first *command-line-args*)
@@ -63,14 +57,10 @@
            :task (publish/publish!)}
 
   roborumble {:doc "Run RoboRumble client (remote by default): bb roborumble [--local] [--workers N]"
-              :task (let [num-workers (or (some (fn [a] (when (clojure.string/starts-with? a "--workers=")
-                                                         (parse-long (subs a 10))))
-                                                *command-line-args*)
-                                         (let [idx (.indexOf (vec *command-line-args*) "--workers")]
-                                           (when (>= idx 0)
-                                             (parse-long (nth *command-line-args* (inc idx) nil)))))
-                          local? (boolean (some #{"--local"} *command-line-args*))]
-                      (roborumble/run! {:local? local? :num-workers num-workers}))}
+              :task (let [opts (cli/parse-opts *command-line-args*
+                                              {:coerce {:workers :int :local :boolean}})]
+                      (roborumble/run! {:local? (boolean (:local opts))
+                                        :num-workers (:workers opts)}))}
 
   extract-bot {:doc "Copy a bot jar to research/bots: bb extract-bot sheldor.mini.Foilist"
                :task (extract-bot/extract! {:bot (first *command-line-args*)})}
