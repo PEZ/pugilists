@@ -297,8 +297,10 @@ public class Pugilist extends AdvancedRobot {
 
         double danger(Point2D destination) {
             int vi = visitingIndex(destination);
+            double d = enemyLocation.distance(destination);
             return (fastFactors[vi] + visits[vi] * 2)
-                    / Math.abs(distanceFromTarget(targetLocation, 0)) / bulletVelocity;
+                    / Math.abs(distanceFromTarget(targetLocation, 0)) / bulletVelocity
+                    / (d * d);
         }
     }
 }
