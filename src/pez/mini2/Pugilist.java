@@ -196,11 +196,6 @@ public class Pugilist extends AdvancedRobot {
         static double[][][][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][WALL_INDEXES][FACTORS];
         static double[][][][][] surfFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][WALL_INDEXES][FACTORS];
         static double[] fastFactors = new double[FACTORS];
-        static {
-            fastFactors[0] = 0.05;
-            fastFactors[MIDDLE_FACTOR] = 0.05;
-            fastFactors[FACTORS - 1] = 0.05;
-        }
         static double dangerForward;
         static double dangerReverse;
         static Wave passingWave;
