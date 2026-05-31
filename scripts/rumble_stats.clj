@@ -46,12 +46,15 @@
    :NPP "NPP" :survival "Surv" :KNNPBI "KNNPBI" :battles "Btl"})
 
 (defn- format-summary [data]
-  (let [stats (dissoc data :pairingsList)]
+  (let [stats (dissoc data :pairingsList)
+        pairings (:pairingsList data)
+        wins (count (filter #(> (:APS %) 50) pairings))
+        losses (count (filter #(< (:APS %) 50) pairings))]
     (str "\n" (:name stats) "\n"
          (format "  APS: %.2f (±%.2f)  PWIN: %.2f  ANPP: %.2f\n"
                  (:APS stats) (:APS_CI stats) (:PWIN stats) (:ANPP stats))
-         (format "  Survival: %.2f  Vote: %.2f\n"
-                 (:survival stats) (:vote stats))
+         (format "  Survival: %.2f  Vote: %.2f  W/L: %d/%d\n"
+                 (:survival stats) (:vote stats) wins losses)
          (format "  Pairings: %d  Battles: %d  Latest: %s\n"
                  (:pairings stats) (:battles stats) (:latest stats)))))
 
