@@ -220,8 +220,8 @@ public class Pugilist extends AdvancedRobot {
                     r.removeCustomEvent(this);
                 }
                 if (surfable) {
-                    Wave.dangerForward += danger(impactLocation(1, 0));
-                    Wave.dangerReverse += danger(impactLocation(-1, 5));
+                    Wave.dangerForward += danger(impactLocation(1, robot.getVelocity()));
+                    Wave.dangerReverse += danger(impactLocation(-1, robot.getVelocity()));
                 }
             } else if (passed(0)) {
                 if (r.getOthers() > 0) {
@@ -283,15 +283,19 @@ public class Pugilist extends AdvancedRobot {
             return gunLocation.distance(location) - distanceFromGun - timeOffset * bulletVelocity;
         }
 
-        Point2D impactLocation(int direction, int timeOffset) {
+        Point2D impactLocation(int direction, double v) {
+            double heading = robot.getHeadingRadians(), turnRate;
             Point2D loc = robotLocation;
+            int t = 0;
             do {
-                loc = project(loc, absoluteBearing(loc,
+                turnRate = Rules.getTurnRateRadians(Math.abs(v));
+                heading += Math.clamp(Utils.normalRelativeAngle(absoluteBearing(loc,
                         wallSmoothedDestination(loc,
-                                direction * robot.robotBearingDirection(gunBearing(robotLocation)))),
-                        MAX_VELOCITY);
-                timeOffset++;
-            } while (distanceFromTarget(loc, timeOffset) > -8);
+                                direction * robot.robotBearingDirection(gunBearing(robotLocation))))
+                        - heading), -turnRate, turnRate);
+                v = Math.clamp(v + (v * direction < 0 ? 2 * direction : direction), -8, 8);
+                loc = project(loc, heading, v * direction);
+            } while (distanceFromTarget(loc, ++t) > -8);
             return loc;
         }
 
