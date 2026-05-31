@@ -221,7 +221,7 @@ public class Pugilist extends AdvancedRobot {
                 }
                 if (surfable) {
                     Wave.dangerForward += danger(impactLocation(1, 0));
-                    Wave.dangerReverse += danger(impactLocation(-1, 5));
+                    Wave.dangerReverse += danger(impactLocation(-1, 0));
                 }
             } else if (passed(0)) {
                 if (r.getOthers() > 0) {
