@@ -212,7 +212,6 @@
                               "robocode.battle.numRounds=" rounds "\n"
                               "robocode.battle.gunCoolingRate=0.1\n"
                               "robocode.battle.rules.inactivityTime=450\n"
-                              "robocode.battle.hideEnemyNames=true\n"
                               "robocode.battle.selectedRobots=" bot "," opponent "\n")
           ssh-base      (cond-> ["ssh"]
                           @remote/ssh-control-path (into ["-o" (str "ControlPath=" @remote/ssh-control-path)])
