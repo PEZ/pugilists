@@ -78,5 +78,5 @@
   full-roster {:doc "Generate full benchmark roster from LiteRumble, excluding own bot: bb full-roster mini pez.mini.Pugilist"
                :task (rumble-roster/generate-full! *command-line-args*)}
 
-  rumble-stats {:doc "Query LiteRumble bot stats: bb rumble-stats <url-or-bot-version> [--sort COL] [--head N] [--tail N] [--asc] [--columns] [--edn]"
+  rumble-stats {:doc "Query LiteRumble stats: bb rumble-stats <url-or-bot-version> [--rankings] [--sort COL] [--head N] [--tail N] [--asc] [--columns] [--edn]"
                 :task (rumble-stats/stats! *command-line-args*)}}}
