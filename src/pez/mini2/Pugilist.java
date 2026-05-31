@@ -140,7 +140,7 @@ public class Pugilist extends AdvancedRobot {
     }
 
     public void onBulletHit(BulletHitEvent e) {
-        gunDepth = Math.min(400, gunDepth + 30);
+        gunDepth = Math.min(600, gunDepth + 50);
     }
 
     static int wallSmoothIndex(int smoothing) {
@@ -231,7 +231,7 @@ public class Pugilist extends AdvancedRobot {
             } else if (passed(0)) {
                 if (r.getOthers() > 0) {
                     registerVisits(visits, (int)gunDepth);
-                    gunDepth *= 0.99;
+                    gunDepth *= 0.995;
                 }
                 r.removeCustomEvent(this);
             }
