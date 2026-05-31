@@ -1,4 +1,4 @@
-package pez.mini;
+package pez.mini2;
 
 import robocode.*;
 import robocode.util.Utils;
