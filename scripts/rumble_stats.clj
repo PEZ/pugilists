@@ -98,6 +98,13 @@
        :game (or game "minirumble")
        :bot-version input})))
 
+(defn- match-bot-filter? [name patterns]
+  (some #(re-find % name) patterns))
+
+(defn- parse-bot-filters [s]
+  (when s
+    (mapv re-pattern (str/split s #","))))
+
 (defn- resolve-sort-key [col-name]
   (let [aliases {"aps" :APS "ci" :APS_CI "npp" :NPP "surv" :survival
                  "survival" :survival "knnpbi" :KNNPBI "battles" :battles
@@ -112,7 +119,7 @@
     (println (str "Agent-readable output: " path))))
 
 (defn stats!
-  "Fetch and display LiteRumble stats.\n  Input: URL or bot-version string (or game name with --rankings).\n  Options:\n    --game GAME     Game type (default: minirumble)\n    --rankings      Treat input as game name and show full leaderboard\n    --sort COL      Sort by column (APS, KNNPBI, NPP, PWIN, ANPP, survival, vote, battles, rank)\n    --asc           Sort ascending (default: descending)\n    --head N        Show top N entries\n    --tail N        Show bottom N entries\n    --columns       List available columns only\n    --edn           Write full data to .tmp/rumble-stats.edn"
+  "Fetch and display LiteRumble stats.\n  Input: URL or bot-version string (or game name with --rankings).\n  Options:\n    --game GAME     Game type (default: minirumble)\n    --rankings      Treat input as game name and show full leaderboard\n    --sort COL      Sort by column (APS, KNNPBI, NPP, PWIN, ANPP, survival, vote, battles, rank)\n    --asc           Sort ascending (default: descending)\n    --head N        Show top N entries\n    --tail N        Show bottom N entries\n    --filter-bots PATTERNS  Comma-separated regexes to filter by bot name\n    --columns       List available columns only\n    --edn           Write full data to .tmp/rumble-stats.edn"
   [args]
   (let [{:keys [opts args]} (cli/parse-args args
                                             {:coerce {:head :int :tail :int
@@ -128,27 +135,36 @@
       (println "  bb rumble-stats minirumble --rankings --head 20")
       (println "  bb rumble-stats 'https://literumble.appspot.com/Rankings?game=minirumble' --head 20")
       (println "  bb rumble-stats microrumble --rankings --sort vote --head 10")
+      (println "\nFiltering:")
+      (println "  bb rumble-stats 'pez.mini.Pugilist 2.5.11' --filter-bots 'sheldor,Foilist'")
+      (println "  bb rumble-stats minirumble --rankings --filter-bots 'pez\\.mini'")
       (System/exit 1))
-    (let [{:keys [page-type game bot-version]} (resolve-input input (:game opts) (:rankings opts))]
+    (let [{:keys [page-type game bot-version]} (resolve-input input (:game opts) (:rankings opts))
+          bot-filters (parse-bot-filters (:filter-bots opts))]
       (case page-type
         :rankings
         (let [_ (println (format "Fetching %s rankings..." game))
               data (fetch-rankings game)
+              filtered (if bot-filters
+                         (filter #(match-bot-filter? (:name %) bot-filters) data)
+                         data)
               sort-key (when (:sort opts) (resolve-sort-key (:sort opts)))
               _ (when (and (:sort opts) (not sort-key))
                   (println (format "Unknown sort column: %s" (:sort opts)))
                   (System/exit 1))
               sorted (if sort-key
-                       (sort-by sort-key (if (:asc opts) compare (fn [a b] (compare b a))) data)
-                       data)
+                       (sort-by sort-key (if (:asc opts) compare (fn [a b] (compare b a))) filtered)
+                       filtered)
               sliced (cond
                        (:head opts) (take (:head opts) sorted)
                        (:tail opts) (take-last (:tail opts) sorted)
                        :else sorted)]
           (println (format "\n%s rankings — %d participants" game (count data)))
+          (when bot-filters
+            (println (format "Filtered to %d matching bots" (count filtered))))
           (when (or sort-key (:head opts) (:tail opts))
             (println (format "%d of %d%s%s"
-                             (count sliced) (count data)
+                             (count sliced) (count filtered)
                              (if sort-key (str ", sorted by " (name sort-key)) "")
                              (if (:asc opts) " asc" " desc"))))
           (println)
@@ -162,13 +178,17 @@
         :bot-details
         (let [_ (println (format "Fetching %s details for %s..." game bot-version))
               data (fetch-bot-details game bot-version)
-              pairings (:pairingsList data)]
+              pairings (if bot-filters
+                         (filter #(match-bot-filter? (:name %) bot-filters) (:pairingsList data))
+                         (:pairingsList data))]
           (println (format-summary data))
           (when (:columns opts)
             (println "Available sort columns:")
             (println "  APS, NPP, survival, KNNPBI, battles, rank, name, CI")
             (println (format "\nPairings table columns: %s" (str/join ", " (map (comp name) pairing-columns)))))
-          (when (or (:sort opts) (:head opts) (:tail opts))
+          (when bot-filters
+            (println (format "Filtered to %d of %d pairings" (count pairings) (count (:pairingsList data)))))
+          (when (or (:sort opts) (:head opts) (:tail opts) bot-filters)
             (let [sort-key (when (:sort opts) (resolve-sort-key (:sort opts)))
                   _ (when (and (:sort opts) (not sort-key))
                       (println (format "Unknown sort column: %s" (:sort opts)))
