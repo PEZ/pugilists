@@ -197,6 +197,7 @@ public class Pugilist extends AdvancedRobot {
         static double dangerForward;
         static double dangerReverse;
         static Wave passingWave;
+        static String T = "33222221111000000";
 
         double bulletVelocity;
         Point2D gunLocation;
@@ -220,12 +221,13 @@ public class Pugilist extends AdvancedRobot {
                     r.removeCustomEvent(this);
                 }
                 if (surfable) {
-                    Wave.dangerForward += danger(impactLocation(1, 0));
-                    Wave.dangerReverse += danger(impactLocation(-1, 5));
+                    int v = (int)r.getVelocity();
+                    Wave.dangerForward += danger(impactLocation(1, T.charAt(v + 8) - 48));
+                    Wave.dangerReverse += danger(impactLocation(-1, T.charAt(8 - v) - 48));
                 }
             } else if (passed(0)) {
                 if (r.getOthers() > 0) {
-                    registerVisits(visits, 600);
+                    registerVisits(visits, 100);
                 }
                 r.removeCustomEvent(this);
             }
