@@ -197,7 +197,7 @@ public class Pugilist extends AdvancedRobot {
         static double dangerForward;
         static double dangerReverse;
         static Wave passingWave;
-        static String T = "33222221111000000";
+        static String T = "44433332221110000";
 
         double bulletVelocity;
         Point2D gunLocation;
