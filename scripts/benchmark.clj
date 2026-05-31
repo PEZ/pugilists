@@ -100,6 +100,22 @@
                                        (filter #(str/ends-with? % ".jar"))))
         (apply p/shell {:dir classes-root} "jar" "cf" jar-path entries)
         (fs/delete-if-exists (str *robocode-home* "/robots/robot.database"))))))
+(defn- deploy-jar-file!
+  "Deploy a pre-built jar to Robocode, skipping the build step."
+  [ctx bot jar-path]
+  (let [jar-name (str bot "_benched.jar")]
+    (println (format "Deploying jar: %s" jar-path))
+    (when-not (fs/exists? jar-path)
+      (throw (ex-info (str "Jar not found: " jar-path) {:jar jar-path})))
+    (if (= :remote (:mode ctx))
+      (let [remote-robots (str (:robocode-home ctx) "/robots/")]
+        (remote/scp-to-remote! ctx (str (fs/absolutize jar-path)) (str remote-robots jar-name))
+        (remote/ssh! ctx (str "rm -f " remote-robots "robot.database")))
+      (let [dest (str *robocode-home* "/robots/" jar-name)]
+        (fs/copy jar-path dest {:replace-existing true})
+        (fs/delete-if-exists (str *robocode-home* "/robots/robot.database"))))
+    (println "Ready.\n")))
+
 (defn- build-and-deploy!
   "Build the bot and deploy its jar to Robocode. If commit is provided,
    uses git worktree to build in an isolated directory."
@@ -424,8 +440,9 @@
             :rounds - total rounds per opponent (default: 100)
             :match-length - rounds per match (default: 35, like LiteRumble)
             :commit - optional git ref to benchmark (default: working tree)
-            :roster - path to roster EDN file (default: config/benchmark-roster.edn)"
-  [{:keys [bot rounds match-length commit roster local? num-workers]
+            :roster - path to roster EDN file (default: config/benchmark-roster.edn)
+            :jar - path to a pre-built jar to benchmark (skips build)"
+  [{:keys [bot rounds match-length commit roster local? num-workers jar]
     :or {rounds 105 match-length 35}}]
   (when-not bot
     (println "Usage: bb benchmark <bot> [rounds] [match-length] [commit] [roster]")
@@ -450,7 +467,9 @@
     (try
       (remote/check-remote! ctx)
       (remote/check-robocode-installed! ctx)
-      (build-and-deploy! ctx bot commit)
+      (if jar
+        (deploy-jar-file! ctx bot jar)
+        (build-and-deploy! ctx bot commit))
       (let [jar-path (if (= :remote (:mode ctx))
                        (str (fs/absolutize (str ".tmp/" bot "_benched.jar")))
                        (str *robocode-home* "/robots/" bot "_benched.jar"))

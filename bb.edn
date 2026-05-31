@@ -34,7 +34,7 @@
                    (install/install! {:bot (when-not (:all opts) (:bot opts))
                                       :all (boolean (:all opts))}))}
 
-  benchmark {:doc "Run benchmark, queued if the same execution target is already running: bb benchmark <bot> [rounds] [match-length] [commit] [roster] [--local] [--workers N]"
+  benchmark {:doc "Run benchmark, queued if the same execution target is already running: bb benchmark <bot> [rounds] [match-length] [commit] [roster] [--local] [--workers N] [--jar path]"
              :task (let [opts (cli/parse-opts *command-line-args*
                                              {:coerce {:workers :int :local :boolean}
                                               :args->opts [:bot :rounds :match-length :commit :roster]})]
@@ -45,7 +45,8 @@
                                                              (when-not (= "-" c) c))
                                                    :roster (:roster opts)
                                                    :local? (boolean (:local opts))
-                                                   :num-workers (:workers opts)}))}
+                                                   :num-workers (:workers opts)
+                                                   :jar (:jar opts)}))}
 
   benchmark-report {:doc "Render benchmark log in report format: bb benchmark-report <log.edn> [output.md]"
                     :task (benchmark/report-log! (cli/parse-opts *command-line-args*
