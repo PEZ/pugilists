@@ -97,8 +97,8 @@ public class Pugilist extends AdvancedRobot {
         setTurnRightRadians(Math.tan(angle));
         setTurnRadarRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getRadarHeadingRadians()) * 2);
 
-        ew.visits = Wave.surfFactors[(int) Math.min(3, enemyDistance / 200)][(int) Math
-                .abs(robotVelocity = getVelocity() / 2)];
+        ew.visits = Wave.surfFactors[distanceIndex][(int) Math.abs(robotVelocity / 2)][(int) Math
+                .abs(robotVelocity = getVelocity() / 2)][wallSmoothIndex(wallSmoothSurf)];
 
         Wave.dangerForward = Wave.dangerReverse = 0;
         // </movement>
@@ -192,7 +192,7 @@ public class Pugilist extends AdvancedRobot {
         static final int FACTORS = 31;
         static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
         static double[][][][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][WALL_INDEXES][FACTORS];
-        static double[][][] surfFactors = new double[4][VELOCITY_INDEXES][FACTORS];
+        static double[][][][][] surfFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][WALL_INDEXES][FACTORS];
         static double[] fastFactors = new double[FACTORS];
         static double dangerForward;
         static double dangerReverse;
@@ -221,11 +221,11 @@ public class Pugilist extends AdvancedRobot {
                 }
                 if (surfable) {
                     Wave.dangerForward += danger(impactLocation(1, 0));
-                    Wave.dangerReverse += danger(impactLocation(-1, 0));
+                    Wave.dangerReverse += danger(impactLocation(-1, 5));
                 }
             } else if (passed(0)) {
                 if (r.getOthers() > 0) {
-                    registerVisits(visits, 600);
+                    registerVisits(visits, 500);
                 }
                 r.removeCustomEvent(this);
             }
@@ -285,22 +285,11 @@ public class Pugilist extends AdvancedRobot {
 
         Point2D impactLocation(int direction, int timeOffset) {
             Point2D loc = robotLocation;
-            double heading = robot.getHeadingRadians();
-            double velocity = robot.getVelocity();
-            double orbDir = direction * robot.robotBearingDirection(gunBearing(robotLocation));
             do {
-                double moveAngle = absoluteBearing(loc,
-                        wallSmoothedDestination(loc, orbDir)) - heading;
-                double moveDir = 1;
-                if (Math.cos(moveAngle) < 0) {
-                    moveAngle += Math.PI;
-                    moveDir = -1;
-                }
-                double maxTurn = Rules.getTurnRateRadians(Math.abs(velocity));
-                heading = Utils.normalRelativeAngle(heading +
-                        Math.clamp(Utils.normalRelativeAngle(moveAngle), -maxTurn, maxTurn));
-                velocity = Math.clamp(velocity + (velocity * moveDir < 0 ? 2 * moveDir : moveDir), -8, 8);
-                loc = project(loc, heading, velocity);
+                loc = project(loc, absoluteBearing(loc,
+                        wallSmoothedDestination(loc,
+                                direction * robot.robotBearingDirection(gunBearing(robotLocation)))),
+                        MAX_VELOCITY);
                 timeOffset++;
             } while (distanceFromTarget(loc, timeOffset) > -8);
             return loc;
