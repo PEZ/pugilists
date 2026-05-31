@@ -97,8 +97,8 @@ public class Pugilist extends AdvancedRobot {
         setTurnRightRadians(Math.tan(angle));
         setTurnRadarRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getRadarHeadingRadians()) * 2);
 
-        ew.visits = Wave.surfFactors[(int) Math.min(3, enemyDistance / 200)][(int) Math
-                .abs(robotVelocity = getVelocity() / 2)];
+        ew.visits = Wave.surfFactors[distanceIndex][(int) Math.abs(robotVelocity / 2)][(int) Math
+                .abs(robotVelocity = getVelocity() / 2)][wallSmoothIndex(wallSmoothSurf)];
 
         Wave.dangerForward = Wave.dangerReverse = 0;
         // </movement>
@@ -192,7 +192,7 @@ public class Pugilist extends AdvancedRobot {
         static final int FACTORS = 31;
         static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
         static double[][][][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][WALL_INDEXES][FACTORS];
-        static double[][][] surfFactors = new double[4][5][FACTORS];
+        static double[][][][][] surfFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][WALL_INDEXES][FACTORS];
         static double[] fastFactors = new double[FACTORS];
         static double dangerForward;
         static double dangerReverse;
@@ -225,7 +225,7 @@ public class Pugilist extends AdvancedRobot {
                 }
             } else if (passed(0)) {
                 if (r.getOthers() > 0) {
-                    registerVisits(visits, 600);
+                    registerVisits(visits, 500);
                 }
                 r.removeCustomEvent(this);
             }
