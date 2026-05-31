@@ -225,7 +225,7 @@ public class Pugilist extends AdvancedRobot {
                 }
             } else if (passed(0)) {
                 if (r.getOthers() > 0) {
-                    registerVisits(visits, 500);
+                    registerVisits(visits, 600);
                 }
                 r.removeCustomEvent(this);
             }
