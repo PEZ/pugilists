@@ -2,7 +2,8 @@
   (:require [babashka.fs :as fs]
             [babashka.process :as p]
             [clojure.string :as str]
-            [remote]))
+            [remote]
+            [robocode-lock]))
 
 (defn- kill-remote-workers!
   "Kill any remote Java processes running RoboRumble."
@@ -86,40 +87,6 @@
     (prefix-stream! prefix (:err proc))
     @proc))
 
-;; --- Queuing (same pattern as benchmark) ---
-
-(def ^:private lock-dir ".tmp")
-
-(defn- lock-path [scope]
-  (str lock-dir "/roborumble-" (name scope) ".lock"))
-
-(defn- lock-options []
-  (into-array java.nio.file.OpenOption
-              [java.nio.file.StandardOpenOption/CREATE
-               java.nio.file.StandardOpenOption/READ
-               java.nio.file.StandardOpenOption/WRITE]))
-
-(defn- with-roborumble-lock [scope f]
-  (fs/create-dirs lock-dir)
-  (let [lp (lock-path scope)]
-    (with-open [channel (java.nio.channels.FileChannel/open
-                         (.toPath (fs/file lp))
-                         (lock-options))]
-      (let [lock (or (.tryLock channel)
-                     (do (println (format "Another roborumble is running (%s). Waiting..." (name scope)))
-                         (.lock channel)))]
-        (try
-          (let [content (pr-str {:pid (.pid (java.lang.ProcessHandle/current))
-                                 :started-at (str (java.time.Instant/now))})]
-            (.truncate channel 0)
-            (.position channel 0)
-            (.write channel (java.nio.ByteBuffer/wrap (.getBytes content "UTF-8")))
-            (.force channel true))
-          (f)
-          (finally
-            (.truncate channel 0)
-            (.force channel true)))))))
-
 ;; --- Main orchestration ---
 
 (defn run!
@@ -131,7 +98,8 @@
               num-workers (assoc :num-workers num-workers))
         n-workers (:num-workers ctx)
         scope (if local? :local :remote)]
-    (with-roborumble-lock scope
+    (robocode-lock/with-robocode-lock scope
+      (format "roborumble (%s, %d workers)" (name scope) n-workers)
       (fn []
         (remote/open-ssh-control! ctx "roborumble")
         (remote/start-caffeinate! ctx)

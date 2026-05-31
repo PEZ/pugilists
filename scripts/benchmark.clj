@@ -4,7 +4,8 @@
             [clojure.edn :as edn]
             [clojure.string :as str]
             [codesize]
-            [remote]))
+            [remote]
+            [robocode-lock]))
 
 (def ^:dynamic *robocode-home* (str (fs/expand-home "~/robocode")))
 (def ^:dynamic *worker-id* 0)
@@ -627,114 +628,10 @@
         (println (format "\n  Robocode copies in .tmp/robocode-{0..%d} (rm -rf .tmp/robocode-* to clean)" (dec n)))
         (println)))))
 
-(def benchmark-lock-dir ".tmp")
-
-(defn- benchmark-lock-path
-  "Return the queue lock path for a benchmark execution scope."
-  [scope]
-  (str benchmark-lock-dir "/benchmark-" (name scope) ".lock"))
-
 (defn- benchmark-lock-scope
   "Choose the queue lock scope for a benchmark invocation."
   [opts]
   (if (:local? opts) :local :remote))
-
-(defn- benchmark-lock-options
-  "Open options for the benchmark coordination lock."
-  []
-  (into-array java.nio.file.OpenOption
-              [java.nio.file.StandardOpenOption/CREATE
-               java.nio.file.StandardOpenOption/READ
-               java.nio.file.StandardOpenOption/WRITE]))
-
-(defn- read-benchmark-lock-owner
-  "Read metadata for the benchmark currently holding the queue lock."
-  [lock-path]
-  (when (fs/exists? lock-path)
-    (let [content (str/trim (slurp lock-path))]
-      (when (seq content)
-        (try
-          (edn/read-string content)
-          (catch Exception _
-            {:raw content}))))))
-
-(defn- format-benchmark-lock-owner
-  "Format benchmark lock metadata for queue status output."
-  [owner]
-  (if-let [benchmark (:benchmark owner)]
-    (format "%s, pid %s, started %s"
-            benchmark
-            (:pid owner "?")
-            (:started-at owner "?"))
-    (pr-str owner)))
-
-(defn- benchmark-lock-scope-label
-  "Describe a queue lock scope for user-facing status output."
-  [scope]
-  (case scope
-    :local "local benchmark"
-    :remote "remote benchmark"
-    (str (name scope) " benchmark")))
-
-(defn- announce-benchmark-queued!
-  "Tell the user this benchmark is waiting behind another benchmark."
-  [lock-path scope label]
-  (let [scope-label (benchmark-lock-scope-label scope)]
-    (if-let [owner (read-benchmark-lock-owner lock-path)]
-      (println (format "Another %s is running (%s). Queued: %s"
-                       scope-label
-                       (format-benchmark-lock-owner owner)
-                       label))
-      (println (format "Another %s is running. Queued: %s"
-                       scope-label
-                       label)))))
-
-(defn- wait-for-benchmark-lock!
-  "Wait until the benchmark queue lock is available."
-  [channel lock-path scope label]
-  (announce-benchmark-queued! lock-path scope label)
-  (let [lock (.lock channel)]
-    (println (format "Benchmark queue ready: %s" label))
-    lock))
-
-(defn- write-benchmark-lock-owner!
-  "Record the benchmark holding the queue lock."
-  [channel label]
-  (let [content (pr-str {:pid (.pid (java.lang.ProcessHandle/current))
-                         :started-at (str (java.time.Instant/now))
-                         :benchmark label})]
-    (.truncate channel 0)
-    (.position channel 0)
-    (.write channel (java.nio.ByteBuffer/wrap (.getBytes content "UTF-8")))
-    (.force channel true)))
-
-(defn- clear-benchmark-lock-owner!
-  "Clear benchmark lock metadata before releasing the queue lock."
-  [channel]
-  (.truncate channel 0)
-  (.force channel true))
-
-(defn- acquire-benchmark-lock!
-  "Acquire the benchmark queue lock, waiting if another benchmark holds it."
-  [channel lock-path scope label]
-  (let [lock (or (.tryLock channel)
-                 (wait-for-benchmark-lock! channel lock-path scope label))]
-    (write-benchmark-lock-owner! channel label)
-    lock))
-
-(defn- with-benchmark-lock
-  "Run f while holding the benchmark queue lock."
-  [scope label f]
-  (fs/create-dirs benchmark-lock-dir)
-  (let [lock-path (benchmark-lock-path scope)]
-    (with-open [channel (java.nio.channels.FileChannel/open
-                         (.toPath (fs/file lock-path))
-                         (benchmark-lock-options))]
-      (let [_lock (acquire-benchmark-lock! channel lock-path scope label)]
-        (try
-          (f)
-          (finally
-            (clear-benchmark-lock-owner! channel)))))))
 
 (defn- benchmark-lock-label
   "Describe a queued benchmark for status output and lock metadata."
@@ -744,19 +641,19 @@
     (str kind " " (pr-str summary))))
 
 (defn queued-benchmark!
-  "Run benchmark!, waiting for any benchmark already running on the same execution target."
+  "Run benchmark!, waiting for any robocode task already running on the same execution target."
   [opts]
   (if (:bot opts)
-    (with-benchmark-lock (benchmark-lock-scope opts)
+    (robocode-lock/with-robocode-lock (benchmark-lock-scope opts)
       (benchmark-lock-label "benchmark" opts)
       #(benchmark! opts))
     (benchmark! opts)))
 
 (defn queued-benchmark-parallel!
-  "Run benchmark-parallel!, waiting for any already-running local benchmark to finish."
+  "Run benchmark-parallel!, waiting for any robocode task already running locally."
   [opts]
   (if (and (:bot opts) (seq (:refs opts)))
-    (with-benchmark-lock :local
+    (robocode-lock/with-robocode-lock :local
       (benchmark-lock-label "benchmark-parallel" (assoc opts :local? true))
       #(benchmark-parallel! opts))
     (benchmark-parallel! opts)))
