@@ -284,17 +284,23 @@ public class Pugilist extends AdvancedRobot {
         }
 
         Point2D impactLocation(int direction, double v) {
-            double heading = robot.getHeadingRadians(), turnRate;
+            double heading = robot.getHeadingRadians(), moveAngle, turnRate, moveDir;
             Point2D loc = robotLocation;
             int t = 0;
             do {
-                turnRate = Rules.getTurnRateRadians(Math.abs(v));
-                heading += Math.clamp(Utils.normalRelativeAngle(absoluteBearing(loc,
+                moveDir = 1;
+                moveAngle = absoluteBearing(loc,
                         wallSmoothedDestination(loc,
                                 direction * robot.robotBearingDirection(gunBearing(robotLocation))))
-                        - heading), -turnRate, turnRate);
-                v = Math.clamp(v + (v * direction < 0 ? 2 * direction : direction), -8, 8);
-                loc = project(loc, heading, v * direction);
+                        - heading;
+                if (Math.cos(moveAngle) < 0) {
+                    moveAngle += Math.PI;
+                    moveDir = -1;
+                }
+                turnRate = Rules.getTurnRateRadians(Math.abs(v));
+                heading += Math.clamp(Utils.normalRelativeAngle(moveAngle), -turnRate, turnRate);
+                v = Math.clamp(v + (v * moveDir < 0 ? 2 * moveDir : moveDir), -8, 8);
+                loc = project(loc, heading, v);
             } while (distanceFromTarget(loc, ++t) > -8);
             return loc;
         }
