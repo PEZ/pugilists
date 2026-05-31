@@ -220,8 +220,8 @@ public class Pugilist extends AdvancedRobot {
                     r.removeCustomEvent(this);
                 }
                 if (surfable) {
-                    Wave.dangerForward += danger(impactLocation(1, robot.getVelocity()));
-                    Wave.dangerReverse += danger(impactLocation(-1, robot.getVelocity()));
+                    Wave.dangerForward += danger(impactLocation(1, 0));
+                    Wave.dangerReverse += danger(impactLocation(-1, 0));
                 }
             } else if (passed(0)) {
                 if (r.getOthers() > 0) {
@@ -283,25 +283,15 @@ public class Pugilist extends AdvancedRobot {
             return gunLocation.distance(location) - distanceFromGun - timeOffset * bulletVelocity;
         }
 
-        Point2D impactLocation(int direction, double v) {
-            double heading = robot.getHeadingRadians(), moveAngle, turnRate, moveDir;
+        Point2D impactLocation(int direction, int timeOffset) {
             Point2D loc = robotLocation;
-            int t = 0;
             do {
-                moveDir = 1;
-                moveAngle = absoluteBearing(loc,
+                loc = project(loc, absoluteBearing(loc,
                         wallSmoothedDestination(loc,
-                                direction * robot.robotBearingDirection(gunBearing(robotLocation))))
-                        - heading;
-                if (Math.cos(moveAngle) < 0) {
-                    moveAngle += Math.PI;
-                    moveDir = -1;
-                }
-                turnRate = Rules.getTurnRateRadians(Math.abs(v));
-                heading += Math.clamp(Utils.normalRelativeAngle(moveAngle), -turnRate, turnRate);
-                v = Math.clamp(v + (v * moveDir < 0 ? 2 * moveDir : moveDir), -8, 8);
-                loc = project(loc, heading, v);
-            } while (distanceFromTarget(loc, ++t) > -8);
+                                direction * robot.robotBearingDirection(gunBearing(robotLocation)))),
+                        MAX_VELOCITY);
+                timeOffset++;
+            } while (distanceFromTarget(loc, timeOffset) > -8);
             return loc;
         }
 
