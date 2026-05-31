@@ -189,7 +189,7 @@ public class Pugilist extends AdvancedRobot {
         static final int VELOCITY_INDEXES = 5;
         static final int WALL_INDEXES = 3;
         static final int VCHANGE_TIME_INDEXES = 5;
-        static final int FACTORS = 47;
+        static final int FACTORS = 31;
         static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
         static double[][][][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][WALL_INDEXES][FACTORS];
         static double[][][][][] surfFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][WALL_INDEXES][FACTORS];
