@@ -221,11 +221,11 @@ public class Pugilist extends AdvancedRobot {
                 }
                 if (surfable) {
                     Wave.dangerForward += danger(impactLocation(1, 0));
-                    Wave.dangerReverse += danger(impactLocation(-1, 5));
+                    Wave.dangerReverse += danger(impactLocation(-1, 0));
                 }
             } else if (passed(0)) {
                 if (r.getOthers() > 0) {
-                    registerVisits(visits, 500);
+                    registerVisits(visits, 600);
                 }
                 r.removeCustomEvent(this);
             }
@@ -285,11 +285,22 @@ public class Pugilist extends AdvancedRobot {
 
         Point2D impactLocation(int direction, int timeOffset) {
             Point2D loc = robotLocation;
+            double heading = robot.getHeadingRadians();
+            double velocity = robot.getVelocity();
+            double orbDir = direction * robot.robotBearingDirection(gunBearing(robotLocation));
             do {
-                loc = project(loc, absoluteBearing(loc,
-                        wallSmoothedDestination(loc,
-                                direction * robot.robotBearingDirection(gunBearing(robotLocation)))),
-                        MAX_VELOCITY);
+                double moveAngle = absoluteBearing(loc,
+                        wallSmoothedDestination(loc, orbDir)) - heading;
+                double moveDir = 1;
+                if (Math.cos(moveAngle) < 0) {
+                    moveAngle += Math.PI;
+                    moveDir = -1;
+                }
+                double maxTurn = Rules.getTurnRateRadians(Math.abs(velocity));
+                heading = Utils.normalRelativeAngle(heading +
+                        Math.clamp(Utils.normalRelativeAngle(moveAngle), -maxTurn, maxTurn));
+                velocity = Math.clamp(velocity + (velocity * moveDir < 0 ? 2 * moveDir : moveDir), -8, 8);
+                loc = project(loc, heading, velocity);
                 timeOffset++;
             } while (distanceFromTarget(loc, timeOffset) > -8);
             return loc;
