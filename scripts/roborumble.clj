@@ -21,6 +21,21 @@
         (fs/delete-tree (format ".tmp/robocode-%d" wid))))
     (catch Exception _)))
 
+(defn- cleanup-stale-results!
+  "Remove roborumble results files older than 24 hours to avoid upload rejections."
+  [ctx]
+  (let [max-age-ms (* 24 60 60 1000)
+        now (System/currentTimeMillis)
+        results-dir (if (= :remote (:mode ctx))
+                      (str (:robocode-home ctx) "/roborumble/files")
+                      (str (fs/expand-home "~/robocode") "/roborumble/files"))]
+    (if (= :remote (:mode ctx))
+      (remote/ssh! ctx (str "find " results-dir " -name 'results*.txt' -mmin +1440 -delete 2>/dev/null; true"))
+      (doseq [f (fs/glob results-dir "results*.txt")]
+        (when (> (- now (inst-ms (fs/last-modified-time f))) max-age-ms)
+          (println (format "  Removing stale results: %s" (fs/file-name f)))
+          (fs/delete f))))))
+
 ;; --- Worker ---
 
 (def ^:dynamic *worker-id* 0)
@@ -129,6 +144,7 @@
         (try
           (remote/check-remote! ctx)
           (remote/check-robocode-installed! ctx)
+          (cleanup-stale-results! ctx)
           (println (format "RoboRumble: %d workers %s"
                            n-workers
                            (if (= :remote (:mode ctx))
