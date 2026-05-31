@@ -134,7 +134,7 @@ public class Pugilist extends AdvancedRobot {
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
-        Wave.passingWave.registerVisits(Wave.passingWave.visits, 1);
+        Wave.passingWave.registerVisits(Wave.passingWave.visits, 5);
         Wave.passingWave.registerVisits(Wave.fastFactors, 1);
     }
 
