@@ -168,7 +168,6 @@
                      "robocode.battle.numRounds=" rounds "\n"
                      "robocode.battle.gunCoolingRate=0.1\n"
                      "robocode.battle.rules.inactivityTime=450\n"
-                     "robocode.battle.hideEnemyNames=true\n"
                      "robocode.battle.selectedRobots=" bot "," opponent "\n")]
     (fs/create-dirs ".tmp")
     (spit path content)

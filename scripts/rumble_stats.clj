@@ -112,6 +112,9 @@
                  "pwin" :PWIN "anpp" :ANPP "vote" :vote "pairings" :pairings}]
     (get aliases (str/lower-case col-name))))
 
+(def ^:private game-names
+  #{"minirumble" "microrumble" "nanorumble" "meleerumble" "twinduel"})
+
 (defn- write-agent-output! [data]
   (fs/create-dirs ".tmp")
   (let [path ".tmp/rumble-stats.edn"]
@@ -138,6 +141,10 @@
       (println "\nFiltering:")
       (println "  bb rumble-stats 'pez.mini.Pugilist 2.5.11' --filter-bots 'sheldor,Foilist'")
       (println "  bb rumble-stats minirumble --rankings --filter-bots 'pez\\.mini'")
+      (System/exit 1))
+    (when (and (game-names input) (not (:rankings opts)))
+      (println (format "'%s' is a game name. Did you mean:" input))
+      (println (format "  bb rumble-stats %s --rankings" input))
       (System/exit 1))
     (let [{:keys [page-type game bot-version]} (resolve-input input (:game opts) (:rankings opts))
           bot-filters (parse-bot-filters (:filter-bots opts))]
@@ -182,6 +189,9 @@
                          (filter #(match-bot-filter? (:name %) bot-filters) (:pairingsList data))
                          (:pairingsList data))]
           (println (format-summary data))
+          (when-not (or (:sort opts) (:head opts) (:tail opts) bot-filters)
+            (println "Show pairings table with --head N, --tail N, --sort COL, or --filter-bots PATTERNS")
+            (println "  Columns: APS, NPP, survival, KNNPBI, battles, rank, name, CI"))
           (when (:columns opts)
             (println "Available sort columns:")
             (println "  APS, NPP, survival, KNNPBI, battles, rank, name, CI")
