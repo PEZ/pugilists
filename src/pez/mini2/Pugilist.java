@@ -119,13 +119,13 @@ public class Pugilist extends AdvancedRobot {
         }
         wave.bulletVelocity = 20 - 3 * bulletPower;
         wave.calcBearingDirection(enemyBearingDirection);
+        int wallSmoothIndex = wallSmoothIndex(
+                wallSmooth(enemyLocation, robotLocation, enemyBearingDirection));
         wave.visits = Wave.gunFactors[distanceIndex][velocityIndex][velocityIndex = (int) Math
                 .abs(enemyVelocity / 2)][(int) Math.min((int) Math.pow(enemyTSVC++, 0.45),
-                        Wave.VCHANGE_TIME_INDEXES - 1)][wallSmoothIndex(
-                                wallSmooth(enemyLocation, robotLocation, enemyBearingDirection))][wallSmoothIndex(
+                        Wave.VCHANGE_TIME_INDEXES - 1)][wallSmoothIndex][wallSmoothIndex(
                                         wallSmooth(enemyLocation, robotLocation, -enemyBearingDirection))];
-        wave.fastVisits = Wave.fastGunFactors[distanceIndex][velocityIndex][wallSmoothIndex(
-                wallSmooth(enemyLocation, robotLocation, enemyBearingDirection))];
+        wave.fastVisits = Wave.fastGunFactors[distanceIndex][velocityIndex][wallSmoothIndex];
 
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
                 wave.bearingDirection * (wave.mostVisited() - Wave.MIDDLE_FACTOR)
@@ -137,7 +137,7 @@ public class Pugilist extends AdvancedRobot {
 
     public void onHitByBullet(HitByBulletEvent e) {
         Wave.passingWave.registerVisits(Wave.passingWave.visits, 5);
-        Wave.passingWave.registerVisits(Wave.passingWave.fastVisits, 1);
+        Wave.passingWave.registerVisits(Wave.fastFactors, 1);
     }
 
     static int wallSmoothIndex(int smoothing) {
