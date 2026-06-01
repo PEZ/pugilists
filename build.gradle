@@ -24,3 +24,7 @@ java {
         languageVersion = JavaLanguageVersion.of(21)
     }
 }
+
+jar {
+    from(sourceSets.main.allJava)
+}
