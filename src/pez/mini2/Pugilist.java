@@ -229,7 +229,7 @@ public class Pugilist extends AdvancedRobot {
                 }
             } else if (passed(0)) {
                 if (r.getOthers() > 0) {
-                    registerVisits(visits, 100);
+                    registerVisits(visits, 25);
                     registerVisits(fastVisits, 500);
                 }
                 r.removeCustomEvent(this);
@@ -271,7 +271,7 @@ public class Pugilist extends AdvancedRobot {
             int mostVisited = MIDDLE_FACTOR, i = FACTORS - 1;
             try {
                 for (;;) {
-                    if (fastVisits[--i]  + visits[i] * 10 > fastVisits[mostVisited] + visits[mostVisited] * 10) {
+                    if (fastVisits[--i]  + visits[i] * 25 > fastVisits[mostVisited] + visits[mostVisited] * 25) {
                         mostVisited = i;
                     }
                 }
