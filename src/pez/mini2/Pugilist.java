@@ -99,6 +99,7 @@ public class Pugilist extends AdvancedRobot {
 
         ew.visits = Wave.surfFactors[distanceIndex][(int) Math.abs(robotVelocity / 2)][(int) Math
                 .abs(robotVelocity = getVelocity() / 2)][wallSmoothIndex(wallSmoothSurf)];
+        Wave.selfVelocityIndex = (int) (robotBD * Math.min(2, (int) Math.abs(robotVelocity))) + 2;
 
         Wave.dangerForward = Wave.dangerReverse = 0;
         // </movement>
@@ -194,6 +195,8 @@ public class Pugilist extends AdvancedRobot {
         static double[][][][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][WALL_INDEXES][FACTORS];
         static double[][][][][] surfFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][WALL_INDEXES][FACTORS];
         static double[] fastFactors = new double[FACTORS];
+        static double[][] gunFastFactors = new double[5][FACTORS];
+        static int selfVelocityIndex;
         static double dangerForward;
         static double dangerReverse;
         static Wave passingWave;
@@ -226,6 +229,7 @@ public class Pugilist extends AdvancedRobot {
             } else if (passed(0)) {
                 if (r.getOthers() > 0) {
                     registerVisits(visits, 100);
+                    registerVisits(gunFastFactors[selfVelocityIndex], 1);
                 }
                 r.removeCustomEvent(this);
             }
@@ -263,10 +267,11 @@ public class Pugilist extends AdvancedRobot {
         }
 
         int mostVisited() {
+            double[] gff = gunFastFactors[selfVelocityIndex];
             int mostVisited = MIDDLE_FACTOR, i = FACTORS - 1;
             try {
                 for (;;) {
-                    if (visits[--i] > visits[mostVisited]) {
+                    if (visits[--i] + gff[i] > visits[mostVisited] + gff[mostVisited]) {
                         mostVisited = i;
                     }
                 }
