@@ -125,10 +125,8 @@ public class Pugilist extends AdvancedRobot {
                                 wallSmooth(enemyLocation, robotLocation, enemyBearingDirection))][wallSmoothIndex(
                                         wallSmooth(enemyLocation, robotLocation, -enemyBearingDirection))];
 
-        int gunMV = wave.mostVisited();
-        Wave.gunGFIndex = gunMV / 9;
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
-                wave.bearingDirection * (gunMV - Wave.MIDDLE_FACTOR)
+                wave.bearingDirection * (wave.mostVisited() - Wave.MIDDLE_FACTOR)
                 + Math.random() * 0.007));
 
         setFireBullet(bulletPower);
@@ -137,7 +135,7 @@ public class Pugilist extends AdvancedRobot {
 
     public void onHitByBullet(HitByBulletEvent e) {
         Wave.passingWave.registerVisits(Wave.passingWave.visits, 5);
-        Wave.passingWave.registerVisits(Wave.fastFactors[Wave.gunGFIndex], 1);
+        Wave.passingWave.registerVisits(Wave.fastFactors, 1);
     }
 
     static int wallSmoothIndex(int smoothing) {
@@ -195,8 +193,7 @@ public class Pugilist extends AdvancedRobot {
         static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
         static double[][][][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][WALL_INDEXES][FACTORS];
         static double[][][][][] surfFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][WALL_INDEXES][FACTORS];
-        static double[][] fastFactors = new double[5][FACTORS];
-        static int gunGFIndex;
+        static double[] fastFactors = new double[FACTORS];
         static double dangerForward;
         static double dangerReverse;
         static Wave passingWave;
@@ -300,7 +297,7 @@ public class Pugilist extends AdvancedRobot {
 
         double danger(Point2D destination) {
             int vi = visitingIndex(destination);
-            return (fastFactors[gunGFIndex][vi] + visits[vi] * 2)
+            return (fastFactors[vi] + visits[vi] * 2)
                     / Math.abs(distanceFromTarget(targetLocation, 0)) / bulletVelocity;
         }
     }
