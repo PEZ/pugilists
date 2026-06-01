@@ -42,7 +42,6 @@ public class Pugilist extends AdvancedRobot {
     static double enemyFirePower = MAX_BULLET_POWER;
     static double robotVelocity;
     static double robotBD = 1;
-    static double gunDepth = 100;
     static Pugilist robot;
 
     public void run() {
@@ -139,10 +138,6 @@ public class Pugilist extends AdvancedRobot {
         Wave.passingWave.registerVisits(Wave.fastFactors, 1);
     }
 
-    public void onBulletHit(BulletHitEvent e) {
-        gunDepth = Math.min(600, gunDepth + 50);
-    }
-
     static int wallSmoothIndex(int smoothing) {
         return smoothing / (MAX_WALL_SMOOTH / (Wave.WALL_INDEXES - 1));
     }
@@ -230,8 +225,7 @@ public class Pugilist extends AdvancedRobot {
                 }
             } else if (passed(0)) {
                 if (r.getOthers() > 0) {
-                    registerVisits(visits, (int)gunDepth);
-                    gunDepth *= 0.995;
+                    registerVisits(visits, 100);
                 }
                 r.removeCustomEvent(this);
             }
