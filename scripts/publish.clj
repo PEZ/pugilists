@@ -74,7 +74,11 @@
         class-files (find-class-files classname)
         props-file (find-properties-file classname)]
     (println (str "  " jar-name))
-    (let [entries (cond-> (mapv (fn [f] (subs (str (fs/absolutize f)) (inc (count abs-classes)))) class-files)
+    (let [source-files (->> (fs/list-dir (str classes-dir "/" (fs/parent (namespace->path classname))))
+                            (map str)
+                            (filter #(re-find #"\.java$" (str (fs/file-name %)))))
+          entries (cond-> (into (mapv (fn [f] (subs (str (fs/absolutize f)) (inc (count abs-classes)))) class-files)
+                                (mapv (fn [f] (subs (str (fs/absolutize f)) (inc (count abs-classes)))) source-files))
                     props-file (conj (subs (str (fs/absolutize props-file)) (inc (count abs-classes)))))]
       (apply p/shell {:dir classes-dir}
              "jar" "cf" jar-path

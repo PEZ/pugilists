@@ -25,6 +25,12 @@ java {
     }
 }
 
-jar {
-    from(sourceSets.main.allJava)
+tasks.named('classes') {
+    doLast {
+        copy {
+            from('src')
+            into(sourceSets.main.java.destinationDirectory)
+            include '**/*.java'
+        }
+    }
 }

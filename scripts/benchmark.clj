@@ -79,8 +79,12 @@
                                          cn (-> rel (str/replace ".class" "") (str/replace "/" "."))]
                                      (= (source-file-attr classes-root cn) source-file)))))
         props-file (str build-dir "/classes/java/main/" ns-path ".properties")
+        source-files (->> (fs/list-dir class-dir)
+                          (map str)
+                          (filter #(re-find #"\.java$" (str (fs/file-name %)))))
         jar-name (str bot "_benched.jar")
-        entries (cond-> (mapv #(subs (str (fs/absolutize %)) (inc (count abs-root))) class-files)
+        entries (cond-> (into (mapv #(subs (str (fs/absolutize %)) (inc (count abs-root))) class-files)
+                              (mapv #(subs (str (fs/absolutize %)) (inc (count abs-root))) source-files))
                   (fs/exists? props-file) (conj (subs (str (fs/absolutize props-file))
                                                       (inc (count abs-root)))))]
     (if (= :remote (:mode ctx))
