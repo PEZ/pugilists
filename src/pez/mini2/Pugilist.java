@@ -42,12 +42,10 @@ public class Pugilist extends AdvancedRobot {
     static double enemyFirePower = MAX_BULLET_POWER;
     static double robotVelocity;
     static double robotBD = 1;
-    static Pugilist robot;
 
     public void run() {
         setAdjustRadarForGunTurn(true);
         setAdjustGunForRobotTurn(true);
-        robot = this;
         Wave.passingWave = null;
         while (true) { // Loop neeede if the radar "slips" off the enemy
             turnRadarRightRadians(100);
@@ -57,6 +55,7 @@ public class Pugilist extends AdvancedRobot {
     public void onScannedRobot(ScannedRobotEvent e) {
         Wave ew = new Wave();
         Wave wave = new Wave();
+        ew.r = wave.r = this;
 
         // <movement>
         addCustomEvent(ew);
@@ -207,10 +206,10 @@ public class Pugilist extends AdvancedRobot {
         boolean enemyWave;
         boolean surfable;
         double[] visits;
+        Pugilist r;
 
         public boolean test() {
             advance(1);
-            Pugilist r = Pugilist.robot;
             if (enemyWave) {
                 if (passed(-25)) {
                     surfable = false;
@@ -287,7 +286,8 @@ public class Pugilist extends AdvancedRobot {
             Point2D loc = robotLocation;
             do {
                 loc = project(loc, absoluteBearing(loc,
-                        wallSmoothedDestination(loc, direction * robotBD)),
+                        wallSmoothedDestination(loc,
+                                direction * r.robotBearingDirection(gunBearing(robotLocation)))),
                         MAX_VELOCITY);
                 timeOffset++;
             } while (distanceFromTarget(loc, timeOffset) > -8);
