@@ -29,7 +29,6 @@ public class Pugilist extends AdvancedRobot {
     static final int MAX_WALL_SMOOTH = 97;
 
     static int wallMargin;
-
     static Rectangle2D fieldRectangle;
     static Point2D robotLocation = new Point2D.Double();
     static Point2D enemyLocation = new Point2D.Double();
@@ -89,9 +88,10 @@ public class Pugilist extends AdvancedRobot {
         double angle = e.getHeadingRadians()
                 - (wave.startBearing = enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians());
 
-        boolean rammer = (approach = (approach * 4 - enemyVelocity * Math.cos(angle)) / 5) > 4.5;
-
-        wallMargin = rammer ? WALL_MARGIN_RAMMER : WALL_MARGIN;
+        wallMargin = (ramLean = (approach = (approach * 4
+                - enemyVelocity * Math.cos(angle)) / 5) > 4.5 ? 0.3 : 0) > 0
+                        ? WALL_MARGIN_RAMMER
+                        : WALL_MARGIN;
         fieldRectangle = new Rectangle2D.Double(wallMargin, wallMargin,
                 BATTLE_FIELD_WIDTH - wallMargin * 2, BATTLE_FIELD_HEIGHT - wallMargin * 2);
 
