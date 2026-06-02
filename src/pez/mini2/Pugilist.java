@@ -26,7 +26,7 @@ public class Pugilist extends AdvancedRobot {
     static final double MAX_BULLET_POWER = 3.0;
     static final int MAX_WALL_SMOOTH = 97;
     static final double BOT_WIDTH = 40;
-    static final double FIGHTING_DISTANCE = 600;
+    static final double FIGHTING_DISTANCE = 700;
 
     static Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
             BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
