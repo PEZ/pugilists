@@ -80,7 +80,7 @@ public class Pugilist extends AdvancedRobot {
 
         double enemyAbsoluteBearing;
         wave.startBearing = enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
-        MAX_WALL_SMOOTH = (ramLean = (approach = (approach * 4 - e.getVelocity() * Math.cos(e.getHeadingRadians() - enemyAbsoluteBearing)) / 5) > 4.5 ? 0.3 : 0) > 0 ? 200 : 97;
+        MAX_WALL_SMOOTH = (ramLean = (approach = (approach * 4 - e.getVelocity() * Math.cos(e.getHeadingRadians() - enemyAbsoluteBearing)) / 5) > 4.5 ? 0.3 : 0) > 0 ? 150 : 97;
         enemyLocation.setLocation(
                 project(wave.gunLocation = project(robotLocation, 0, 0), enemyAbsoluteBearing, enemyDistance));
         wave.targetLocation = enemyLocation;
