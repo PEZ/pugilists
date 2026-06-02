@@ -1,0 +1,48 @@
+{;; APS-rammer roster: the full aps-push roster + 6 added rammers.
+ ;; Purpose: measure anti-rammer experiments where APS lives — the negative-KNNPBI
+ ;; ram/close-range population — while keeping every aps-roster canary so collateral
+ ;; on surfers/close-range fighters (Foilist, CunobelinDC, Guppy) is caught in the
+ ;; same run. :aps values are Pugilist's pairwise minirumble APS (2.5.15, 2026-06-02).
+
+ :top-5
+ [{:bot "sheldor.mini.FoilistMC 1.0" :aps 89.02}
+  {:bot "jk.mini.CunobelinDC 1.2" :aps 88.81}
+  {:bot "sheldor.mini.Foilist 1.3.1" :aps 88.52}
+  {:bot "voidious.mini.Komarious 1.88" :aps 87.58}
+  {:bot "simonton.mini.WeeksOnEnd 1.10.4" :aps 87.39}]
+
+ ;; Worst KNNPBI — bots where Pugilist underperforms most vs the field
+ :problematic
+ [{:bot "mn.micro.perceptual.Mimic 1.0.0" :aps 38.33}
+  {:bot "janm.Jammy 1.0" :aps 49.35}
+  {:bot "wiki.nano.Flick 1.0" :aps 64.95}
+  {:bot "kurios.DOSexe .9a" :aps 50.04}
+  {:bot "agrach.MicroDalek 1.0" :aps 48.20}]
+
+ :shielders
+ [{:bot "rsim.mini.BulletCatcher 0.4" :aps 72.73}
+  {:bot "wiki.BasicBulletShielder 1.0", :aps 99.55}]
+
+ ;; Ram/close-range population — where anti-rammer APS lives.
+ ;; Sorted worst-KNNPBI first. Guppy is close-range (not a pure rammer) but
+ ;; charges in, so it's the canary for "don't break what we already win."
+ :rammers
+ [{:bot "bayen.UbaRamLT 1.0" :aps 63.88}
+  {:bot "blir.nano.Bruce R1.0.0" :aps 72.57}
+  {:bot "kc.micro.rammer.MaxRisk 0.6" :aps 58.51}
+  {:bot "demetrix.nano.SledgeHammer 0.22" :aps 61.51}
+  {:bot "radnor.RamRod 1.0" :aps 64.29}
+  {:bot "supersample.SuperRamFire 1.0" :aps 76.73}
+  {:bot "dft.Guppy 1.0" :aps 86.50}]
+
+ :random
+ [{:bot "wiki.mini.Sedan 1.0" :aps 75.87}
+  {:bot "dz.OthoMicro 0.12" :aps 61.05}
+  {:bot "suh.nano.AngularMirrorC 1.00" :aps 45.20}
+  {:bot "pe.mini.SandboxMini 1.2" :aps 67.59}
+  {:bot "squidM.SquidmanNano 1.0" :aps 48.09}
+  {:bot "GarmBox.Oranges 1.0.1" :aps 51.84}
+  {:bot "zzx.Gron 1.14" :aps 49.21}
+  {:bot "dummy.mini.Parakeet 2.40" :aps 64.97}
+  {:bot "robar.micro.Topaz 0.25" :aps 70.36}
+  {:bot "ers.nano.lig.LigMA 1.9" :aps 68.18}]}
