@@ -24,7 +24,7 @@ public class Pugilist extends AdvancedRobot {
     static final double WALL_MARGIN = 20;
     static final double BULLET_POWER = 1.9;
     static final double MAX_BULLET_POWER = 3.0;
-    static int MAX_WALL_SMOOTH = 97;
+    static final int MAX_WALL_SMOOTH = 150;
     static final double BOT_WIDTH = 40;
 
     static Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
@@ -80,7 +80,7 @@ public class Pugilist extends AdvancedRobot {
 
         double enemyAbsoluteBearing;
         wave.startBearing = enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians();
-        MAX_WALL_SMOOTH = (ramLean = (approach = (approach * 4 - e.getVelocity() * Math.cos(e.getHeadingRadians() - enemyAbsoluteBearing)) / 5) > 4.5 ? 0.3 : 0) > 0 ? 150 : 97;
+        ramLean = (approach = (approach * 4 - e.getVelocity() * Math.cos(e.getHeadingRadians() - enemyAbsoluteBearing)) / 5) > 4.5 ? 0.3 : 0;
         enemyLocation.setLocation(
                 project(wave.gunLocation = project(robotLocation, 0, 0), enemyAbsoluteBearing, enemyDistance));
         wave.targetLocation = enemyLocation;
