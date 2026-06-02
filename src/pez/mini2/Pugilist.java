@@ -287,8 +287,7 @@ public class Pugilist extends AdvancedRobot {
             Point2D loc = robotLocation;
             do {
                 loc = project(loc, absoluteBearing(loc,
-                        wallSmoothedDestination(loc,
-                                direction * robot.robotBearingDirection(gunBearing(robotLocation)))),
+                        wallSmoothedDestination(loc, direction * robotBD)),
                         MAX_VELOCITY);
                 timeOffset++;
             } while (distanceFromTarget(loc, timeOffset) > -8);
