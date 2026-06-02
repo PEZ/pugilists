@@ -119,13 +119,11 @@ public class Pugilist extends AdvancedRobot {
         }
         wave.bulletVelocity = 20 - 3 * bulletPower;
         wave.calcBearingDirection(enemyBearingDirection);
-        int wallSmoothIndex = wallSmoothIndex(
-                wallSmooth(enemyLocation, robotLocation, enemyBearingDirection));
         wave.visits = Wave.gunFactors[distanceIndex][velocityIndex][velocityIndex = (int) Math
                 .abs(enemyVelocity / 2)][(int) Math.min((int) Math.pow(enemyTSVC++, 0.45),
-                        Wave.VCHANGE_TIME_INDEXES - 1)][wallSmoothIndex][wallSmoothIndex(
+                        Wave.VCHANGE_TIME_INDEXES - 1)][wallSmoothIndex(
+                                wallSmooth(enemyLocation, robotLocation, enemyBearingDirection))][wallSmoothIndex(
                                         wallSmooth(enemyLocation, robotLocation, -enemyBearingDirection))];
-        wave.fastVisits = Wave.fastGunFactors[distanceIndex][velocityIndex][wallSmoothIndex];
 
         setTurnGunRightRadians(Utils.normalRelativeAngle(enemyAbsoluteBearing - getGunHeadingRadians() +
                 wave.bearingDirection * (wave.mostVisited() - Wave.MIDDLE_FACTOR)
@@ -194,7 +192,6 @@ public class Pugilist extends AdvancedRobot {
         static final int FACTORS = 45;
         static final int MIDDLE_FACTOR = (FACTORS - 1) / 2;
         static double[][][][][][][] gunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][VCHANGE_TIME_INDEXES][WALL_INDEXES][WALL_INDEXES][FACTORS];
-        static double[][][][] fastGunFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][WALL_INDEXES][FACTORS];
         static double[][][][][] surfFactors = new double[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][WALL_INDEXES][FACTORS];
         static double[] fastFactors = new double[FACTORS];
         static double dangerForward;
@@ -210,7 +207,6 @@ public class Pugilist extends AdvancedRobot {
         boolean enemyWave;
         boolean surfable;
         double[] visits;
-        double[] fastVisits;
 
         public boolean test() {
             advance(1);
@@ -229,8 +225,7 @@ public class Pugilist extends AdvancedRobot {
                 }
             } else if (passed(0)) {
                 if (r.getOthers() > 0) {
-                    registerVisits(visits, 25);
-                    registerVisits(fastVisits, 500);
+                    registerVisits(visits, 100);
                 }
                 r.removeCustomEvent(this);
             }
@@ -271,7 +266,7 @@ public class Pugilist extends AdvancedRobot {
             int mostVisited = MIDDLE_FACTOR, i = FACTORS - 1;
             try {
                 for (;;) {
-                    if (fastVisits[--i]  + visits[i] > fastVisits[mostVisited] + visits[mostVisited]) {
+                    if (visits[--i] > visits[mostVisited]) {
                         mostVisited = i;
                     }
                 }
