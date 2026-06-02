@@ -26,7 +26,6 @@ public class Pugilist extends AdvancedRobot {
     static final double MAX_BULLET_POWER = 3.0;
     static final int MAX_WALL_SMOOTH = 97;
     static final double BOT_WIDTH = 40;
-    static final double FIGHTING_DISTANCE = 800;
 
     static Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
             BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
@@ -159,8 +158,7 @@ public class Pugilist extends AdvancedRobot {
 
     static Point2D orbitProject(Point2D from, Point2D toward, double direction, double w) {
         return project(from, absoluteBearing(from, toward)
-                - direction * (Math.PI / 2 + Math.clamp((FIGHTING_DISTANCE - enemyDistance) / 600, -0.5, 0.5)
-                        + Math.min(0.4, 30 / enemyDistance) - (w / 100.0)),
+                - direction * (Math.PI / 2 + 0.2 + Math.min(0.4, 30 / enemyDistance) - (w / 100.0)),
                 Math.max(30, enemyDistance / 5));
     }
 
