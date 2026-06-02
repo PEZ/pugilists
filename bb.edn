@@ -70,7 +70,7 @@
                       (roborumble/run! {:local? (boolean (:local opts))
                                         :num-workers (:workers opts)}))}
 
-  extract-bot {:doc "Copy a bot jar to research/bots: bb extract-bot sheldor.mini.Foilist"
+  extract-bot {:doc "Extract bot source to pugilists-dev/competition/src: bb extract-bot sheldor.mini.Foilist"
                :task (extract-bot/extract! {:bot (first *command-line-args*)})}
 
   rumble-roster {:doc "Generate benchmark roster from LiteRumble: bb rumble-roster [--bot 'Bot 1.0'] [--column APS] [--game minirumble] [--output file.edn]"

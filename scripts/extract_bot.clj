@@ -5,7 +5,7 @@
 
 (def robots-dir (str (fs/expand-home "~/robocode/robots")))
 (def participants-file (str (fs/expand-home "~/robocode/roborumble/files/particip1v1.txt")))
-(def target-dir "research/bots")
+(def target-dir "../pugilists-dev/competition/src")
 
 (defn- lookup-version [bot-name]
   (let [prefix (str bot-name " ")]
@@ -20,7 +20,7 @@
   (str robots-dir "/" bot-name "_" version ".jar"))
 
 (defn extract!
-  "Extract source files from a bot jar into research/bots/<bot-name>/.
+  "Extract source files from a bot jar into pugilists-dev/competition/src/<bot-name>/.
    Looks up the version from the RoboRumble participants file.
    Options: :bot - bot name (e.g. sheldor.mini.Foilist)"
   [{:keys [bot]}]
