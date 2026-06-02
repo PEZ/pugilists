@@ -21,17 +21,15 @@ public class Pugilist extends AdvancedRobot {
     static final double MAX_VELOCITY = 8;
     static final double BATTLE_FIELD_WIDTH = 800;
     static final double BATTLE_FIELD_HEIGHT = 600;
-    static final double WALL_MARGIN = 20;
     static final double BULLET_POWER = 1.9;
     static final double MAX_BULLET_POWER = 3.0;
     static final double BOT_WIDTH = 40;
-    static final int MAX_WALL_SMOOTH_RAMMER = 150;
+    static final double WALL_MARGIN = 20;
+    static final double WALL_MARGIN_RAMMER = 100;
     static final int MAX_WALL_SMOOTH = 97;
+    static final int WALL_SMOOTH_DIVISOR = 48;
+    static final int WALL_SMOOTH_LIMIT = 96;
 
-    static int maxWallSmooth;
-
-    static Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
-            BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
     static Point2D robotLocation = new Point2D.Double();
     static Point2D enemyLocation = new Point2D.Double();
     static double enemyDistance;
@@ -89,10 +87,8 @@ public class Pugilist extends AdvancedRobot {
 
         double angle = e.getHeadingRadians()
                 - (wave.startBearing = enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians());
-        maxWallSmooth = (ramLean = (approach = (approach * 4
-                - enemyVelocity * Math.cos(angle)) / 5) > 4.5 ? 0.3 : 0) > 0
-                        ? MAX_WALL_SMOOTH_RAMMER
-                        : MAX_WALL_SMOOTH;
+        ramLean = (approach = (approach * 4
+                - enemyVelocity * Math.cos(angle)) / 5) > 4.5 ? 0.3 : 0;
         enemyLocation.setLocation(
                 project(wave.gunLocation = project(robotLocation, 0, 0), enemyAbsoluteBearing, enemyDistance));
         wave.targetLocation = enemyLocation;
@@ -150,12 +146,12 @@ public class Pugilist extends AdvancedRobot {
     }
 
     static int wallSmoothIndex(int smoothing) {
-        return smoothing / (maxWallSmooth / 2);
+        return smoothing / WALL_SMOOTH_DIVISOR;
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
         int s = wallSmooth(location, enemyLocation, direction);
-        if (s >= maxWallSmooth - 1) {
+        if (s >= WALL_SMOOTH_LIMIT) {
             int rs = wallSmooth(location, enemyLocation, -direction);
             if (rs < s) {
                 direction = -direction;
@@ -170,13 +166,16 @@ public class Pugilist extends AdvancedRobot {
 
     static Point2D orbitProject(Point2D from, Point2D toward, double direction, double w) {
         return project(from, absoluteBearing(from, toward)
-                - direction * (Math.PI / 2 + 0.2 + ramLean + Math.min(0.4, 30 / enemyDistance) - (w / 100.0)),
+                - direction * (1.7707963267948966 + ramLean + Math.min(0.4, 30 / enemyDistance) - (w * 0.01)),
                 Math.max(30, enemyDistance / 5));
     }
 
     static int wallSmooth(Point2D from, Point2D toward, double direction) {
         int w = 0;
-        while (w < maxWallSmooth && !fieldRectangle.contains(orbitProject(from, toward, direction, w++)))
+        double margin = ramLean > 0 ? WALL_MARGIN_RAMMER : WALL_MARGIN;
+        Point2D p;
+        while (w < MAX_WALL_SMOOTH && ((p = orbitProject(from, toward, direction, w++)).getX() < margin
+                || p.getX() > BATTLE_FIELD_WIDTH - margin || p.getY() < margin || p.getY() > BATTLE_FIELD_HEIGHT - margin))
             ;
         return w;
     }
@@ -222,7 +221,6 @@ public class Pugilist extends AdvancedRobot {
 
         public boolean test() {
             advance(1);
-            Pugilist r = robot;
             double td = gunLocation.distance(targetLocation);
             if (enemyWave) {
                 if (distanceFromGun > td - 25) {
@@ -230,17 +228,15 @@ public class Pugilist extends AdvancedRobot {
                     passingWave = this;
                 }
                 if (distanceFromGun > td + 25) {
-                    r.removeCustomEvent(this);
+                    return true;
                 }
                 if (surfable) {
                     Wave.dangerForward += danger(impactLocation(1, 0));
                     Wave.dangerReverse += danger(impactLocation(-1, 5));
                 }
             } else if (distanceFromGun > td) {
-                if (r.getOthers() > 0) {
-                    registerVisits(visits, 100);
-                }
-                r.removeCustomEvent(this);
+                registerVisits(visits, 100);
+                return true;
             }
             return false;
         }
@@ -254,11 +250,8 @@ public class Pugilist extends AdvancedRobot {
         }
 
         int visitingIndex(Point2D target) {
-            return (int) Math
-                    .clamp(Math
-                            .round(((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection)
-                                    + (FACTORS - 1) / 2),
-                            0, FACTORS - 1);
+            return (int) Math.clamp(
+                    Utils.normalRelativeAngle(gunBearing(target) - startBearing) / bearingDirection + 22.5, 0.0, 44.0);
         }
 
         void registerVisits(double[] buffer, double depth) {
