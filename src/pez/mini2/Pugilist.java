@@ -271,7 +271,7 @@ public class Pugilist extends AdvancedRobot {
             int mostVisited = MIDDLE_FACTOR, i = FACTORS - 1;
             try {
                 for (;;) {
-                    if (fastVisits[--i]  + visits[i] * 25 > fastVisits[mostVisited] + visits[mostVisited] * 25) {
+                    if (fastVisits[--i]  + visits[i] > fastVisits[mostVisited] + visits[mostVisited]) {
                         mostVisited = i;
                     }
                 }
