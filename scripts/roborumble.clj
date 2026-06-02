@@ -1,6 +1,7 @@
 (ns roborumble
   (:require [babashka.fs :as fs]
             [babashka.process :as p]
+            [clojure.java.io :as io]
             [clojure.string :as str]
             [remote]
             [robocode-lock]))
@@ -42,14 +43,21 @@
 (def ^:dynamic *worker-id* 0)
 
 (defn- prefix-stream!
-  "Read lines from stream and print each with a prefix. Runs in a future."
-  [prefix stream]
+  "Read lines from stream and print each with a prefix. Runs in a future.
+   When log-writer is provided, also writes each line to it."
+  [prefix stream log-writer]
   (future
     (with-open [rdr (java.io.BufferedReader. (java.io.InputStreamReader. stream))]
       (loop []
         (when-let [line (.readLine rdr)]
-          (locking *out*
-            (println (str prefix " " line)))
+          (let [prefixed (str prefix " " line)]
+            (locking *out*
+              (println prefixed))
+            (when log-writer
+              (locking log-writer
+                (.write log-writer prefixed)
+                (.write log-writer "\n")
+                (.flush log-writer))))
           (recur))))))
 
 (defn- run-roborumble-worker!
@@ -83,9 +91,14 @@
         proc (p/process cmd opts)]
     (locking *out*
       (println (format "  %s Started in %s" prefix robocode-home)))
-    (prefix-stream! prefix (:out proc))
-    (prefix-stream! prefix (:err proc))
-    @proc))
+    (let [log-file (io/file ".tmp" "roborumble-logs" (format "worker-%d.log" *worker-id*))
+          log-writer (java.io.FileWriter. log-file true)]
+      (try
+        (prefix-stream! prefix (:out proc) log-writer)
+        (prefix-stream! prefix (:err proc) log-writer)
+        @proc
+        (finally
+          (.close log-writer))))))
 
 ;; --- Main orchestration ---
 
@@ -113,6 +126,7 @@
           (remote/check-remote! ctx)
           (remote/check-robocode-installed! ctx)
           (cleanup-stale-results! ctx)
+          (fs/create-dirs ".tmp/roborumble-logs")
           (println (format "RoboRumble: %d workers %s"
                            n-workers
                            (if (= :remote (:mode ctx))
