@@ -221,6 +221,7 @@ public class Pugilist extends AdvancedRobot {
 
         public boolean test() {
             advance(1);
+            Pugilist r = robot;
             double td = gunLocation.distance(targetLocation);
             if (enemyWave) {
                 if (distanceFromGun > td - 25) {
@@ -228,15 +229,17 @@ public class Pugilist extends AdvancedRobot {
                     passingWave = this;
                 }
                 if (distanceFromGun > td + 25) {
-                    return true;
+                    r.removeCustomEvent(this);
                 }
                 if (surfable) {
                     Wave.dangerForward += danger(impactLocation(1, 0));
                     Wave.dangerReverse += danger(impactLocation(-1, 5));
                 }
             } else if (distanceFromGun > td) {
-                registerVisits(visits, 100);
-                return true;
+                if (r.getOthers() > 0) {
+                    registerVisits(visits, 100);
+                }
+                r.removeCustomEvent(this);
             }
             return false;
         }
@@ -250,8 +253,11 @@ public class Pugilist extends AdvancedRobot {
         }
 
         int visitingIndex(Point2D target) {
-            return (int) Math.clamp(
-                    Utils.normalRelativeAngle(gunBearing(target) - startBearing) / bearingDirection + 22.5, 0.0, 44.0);
+            return (int) Math
+                    .clamp(Math
+                            .round(((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection)
+                                    + (FACTORS - 1) / 2),
+                            0, FACTORS - 1);
         }
 
         void registerVisits(double[] buffer, double depth) {
