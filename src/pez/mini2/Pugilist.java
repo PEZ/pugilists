@@ -112,7 +112,7 @@ public class Pugilist extends AdvancedRobot {
         }
 
         double bulletPower = Math.min(enemyEnergy / 4,
-                enemyDistance < 175 ? MAX_BULLET_POWER
+                ramLean > 0 || enemyDistance < 175 ? MAX_BULLET_POWER
                         : Math.clamp(Math.min(enemyFirePower - 0.175, 700 / enemyDistance), 0.1, BULLET_POWER));
 
         if (enemyVelocity != 0) {
