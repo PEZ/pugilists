@@ -13,6 +13,7 @@ bin/
 .classpath
 .project
 .settings/
+.calva/mcp-server/port
 
 # OS
 .DS_Store
