@@ -21,15 +21,17 @@ public class Pugilist extends AdvancedRobot {
     static final double MAX_VELOCITY = 8;
     static final double BATTLE_FIELD_WIDTH = 800;
     static final double BATTLE_FIELD_HEIGHT = 600;
-    static final int WALL_MARGIN = 20;
-    static final int WALL_MARGIN_RAMMER = 100;
+    static final double WALL_MARGIN = 20;
     static final double BULLET_POWER = 1.9;
     static final double MAX_BULLET_POWER = 3.0;
     static final double BOT_WIDTH = 40;
+    static final int MAX_WALL_SMOOTH_RAMMER = 150;
     static final int MAX_WALL_SMOOTH = 97;
 
-    static int wallMargin;
-    static Rectangle2D fieldRectangle;
+    static int maxWallSmooth;
+
+    static Rectangle2D fieldRectangle = new Rectangle2D.Double(WALL_MARGIN, WALL_MARGIN,
+            BATTLE_FIELD_WIDTH - WALL_MARGIN * 2, BATTLE_FIELD_HEIGHT - WALL_MARGIN * 2);
     static Point2D robotLocation = new Point2D.Double();
     static Point2D enemyLocation = new Point2D.Double();
     static double enemyDistance;
@@ -87,14 +89,10 @@ public class Pugilist extends AdvancedRobot {
 
         double angle = e.getHeadingRadians()
                 - (wave.startBearing = enemyAbsoluteBearing = getHeadingRadians() + e.getBearingRadians());
-
-        wallMargin = (ramLean = (approach = (approach * 4
+        maxWallSmooth = (ramLean = (approach = (approach * 4
                 - enemyVelocity * Math.cos(angle)) / 5) > 4.5 ? 0.3 : 0) > 0
-                        ? WALL_MARGIN_RAMMER
-                        : WALL_MARGIN;
-        fieldRectangle = new Rectangle2D.Double(wallMargin, wallMargin,
-                BATTLE_FIELD_WIDTH - wallMargin * 2, BATTLE_FIELD_HEIGHT - wallMargin * 2);
-
+                        ? MAX_WALL_SMOOTH_RAMMER
+                        : MAX_WALL_SMOOTH;
         enemyLocation.setLocation(
                 project(wave.gunLocation = project(robotLocation, 0, 0), enemyAbsoluteBearing, enemyDistance));
         wave.targetLocation = enemyLocation;
@@ -152,12 +150,12 @@ public class Pugilist extends AdvancedRobot {
     }
 
     static int wallSmoothIndex(int smoothing) {
-        return smoothing / (MAX_WALL_SMOOTH / 2);
+        return smoothing / (maxWallSmooth / 2);
     }
 
     static Point2D wallSmoothedDestination(Point2D location, double direction) {
         int s = wallSmooth(location, enemyLocation, direction);
-        if (s >= MAX_WALL_SMOOTH - 1) {
+        if (s >= maxWallSmooth - 1) {
             int rs = wallSmooth(location, enemyLocation, -direction);
             if (rs < s) {
                 direction = -direction;
@@ -178,7 +176,7 @@ public class Pugilist extends AdvancedRobot {
 
     static int wallSmooth(Point2D from, Point2D toward, double direction) {
         int w = 0;
-        while (w < MAX_WALL_SMOOTH && !fieldRectangle.contains(orbitProject(from, toward, direction, w++)))
+        while (w < maxWallSmooth && !fieldRectangle.contains(orbitProject(from, toward, direction, w++)))
             ;
         return w;
     }
@@ -257,9 +255,10 @@ public class Pugilist extends AdvancedRobot {
 
         int visitingIndex(Point2D target) {
             return (int) Math
-                    .clamp(((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection)
-                            + (FACTORS) / 2.0,
-                            0.0, FACTORS - 1.0);
+                    .clamp(Math
+                            .round(((Utils.normalRelativeAngle(gunBearing(target) - startBearing)) / bearingDirection)
+                                    + MIDDLE_FACTOR),
+                            0, FACTORS - 1);
         }
 
         void registerVisits(double[] buffer, double depth) {
